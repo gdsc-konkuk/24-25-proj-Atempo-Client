@@ -1,16 +1,13 @@
-import { Inter } from 'next/font/google';
+'use client'
+
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
-import ThemeRegistry from '@/lib/theme/ThemeRegistry';
-
-const inter = Inter({ subsets: ['latin'] });
-
-export const metadata = {
-  title: 'Avenir',
-  description: 'Avenir - 미래를 향한 학습 플랫폼',
-};
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import theme from '@/theme';
+import { metadata } from './layout.metadata';
 
 export default function RootLayout({
   children,
@@ -19,8 +16,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className={inter.className}>
-        <ThemeRegistry>{children}</ThemeRegistry>
+      <head>
+        <title>{metadata.title}</title>
+        <meta name="description" content={metadata.description} />
+      </head>
+      <body>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
