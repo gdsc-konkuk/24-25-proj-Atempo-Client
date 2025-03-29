@@ -37,6 +37,7 @@ dependencies:
   google_maps_flutter: ^2.5.0
 dev_dependencies:
   flutter_test:
+  
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -51,11 +52,13 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
+
+  # Add the assets section to include images in the flutter
+  assets:
+    - assets/images/
+    - assets/images/map_placeholder.png
+    # - assets/images/user_avatar.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -80,7 +83,7 @@ flutter:
   #       - asset: fonts/Schyler-Italic.ttf
   #         style: italic
   #   - family: Trajan Pro
-  #     fonts:
+  #       fonts:
   #       - asset: fonts/TrajanPro.ttf
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
