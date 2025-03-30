@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'splash_screen.dart';
-import 'chat_page.dart'; // Import ChatPage
+import 'chat_page.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 void main() {
   runApp(MyApp());
@@ -14,7 +16,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: SplashScreen(), // Changed to start with the splash screen
+      home: SplashScreen(),
     );
   }
 }
@@ -59,17 +61,96 @@ class LoginPage extends StatelessWidget {
   }
 }
 
-class MapPage extends StatelessWidget {
+class MapPage extends StatefulWidget {
+  @override
+  _MapPageState createState() => _MapPageState();
+}
+
+class _MapPageState extends State<MapPage> {
+  String _currentAddress = "Finding your location...";
+  Position? _currentPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
+
+  Future<bool> _handleLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Location services are disabled. Please enable the services')));
+      return false;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permissions are denied')));
+        return false;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Location permissions are permanently denied, we cannot request permissions.')));
+      return false;
+    }
+
+    return true;
+  }
+
+  Future<void> _getCurrentLocation() async {
+    final hasPermission = await _handleLocationPermission();
+
+    if (!hasPermission) return;
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+
+      setState(() {
+        _currentPosition = position;
+      });
+
+      await _getAddressFromLatLng(position);
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  Future<void> _getAddressFromLatLng(Position position) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude, position.longitude);
+
+      Placemark place = placemarks[0];
+
+      setState(() {
+        _currentAddress = "${place.street}, ${place.subLocality}, "
+            "${place.locality}, ${place.administrativeArea}";
+      });
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
   void _showChatBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // 전체 화면 높이를 사용
-      backgroundColor: Colors.transparent, // 투명한 배경
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.9, // 초기 높이 (화면의 90%)
-          minChildSize: 0.5, // 최소 높이 (화면의 50%)
-          maxChildSize: 0.95, // 최대 높이 (화면의 95%)
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(
@@ -79,7 +160,10 @@ class MapPage extends StatelessWidget {
                   topRight: Radius.circular(20),
                 ),
               ),
-              child: PatientInfoWidget(scrollController: scrollController),
+              child: PatientInfoWidget(
+                scrollController: scrollController,
+                currentAddress: _currentAddress,
+              ),
             );
           },
         );
@@ -127,11 +211,38 @@ class MapPage extends StatelessWidget {
   }
 }
 
-// 채팅창 내용을 담은 위젯
-class PatientInfoWidget extends StatelessWidget {
+class PatientInfoWidget extends StatefulWidget {
   final ScrollController scrollController;
+  final String currentAddress;
 
-  const PatientInfoWidget({Key? key, required this.scrollController}) : super(key: key);
+  const PatientInfoWidget({
+    Key? key,
+    required this.scrollController,
+    required this.currentAddress,
+  }) : super(key: key);
+
+  @override
+  _PatientInfoWidgetState createState() => _PatientInfoWidgetState();
+}
+
+class _PatientInfoWidgetState extends State<PatientInfoWidget> {
+  late TextEditingController _addressController;
+  late TextEditingController _patientConditionController;
+  bool _isEditingAddress = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _addressController = TextEditingController(text: widget.currentAddress);
+    _patientConditionController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    _patientConditionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +251,6 @@ class PatientInfoWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 드래그 핸들
           Center(
             child: Container(
               width: 40,
@@ -152,31 +262,56 @@ class PatientInfoWidget extends StatelessWidget {
               margin: EdgeInsets.only(bottom: 20),
             ),
           ),
-          Text(
-            'Current Location',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Current Location',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: Icon(_isEditingAddress ? Icons.check : Icons.edit, 
+                     color: Colors.red),
+                onPressed: () {
+                  setState(() {
+                    _isEditingAddress = !_isEditingAddress;
+                  });
+                },
+              ),
+            ],
           ),
           SizedBox(height: 8),
-          Container(
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.location_pin, color: Colors.red),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '120, Neungdong-ro, Gwangjin-gu, Seoul',
-                    style: TextStyle(fontSize: 14),
+          _isEditingAddress
+              ? TextField(
+                  controller: _addressController,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.location_pin, color: Colors.red),
+                    hintText: 'Enter your location',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                )
+              : Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_pin, color: Colors.red),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _addressController.text,
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
           SizedBox(height: 20),
           Text(
             'Patient Condition',
@@ -185,6 +320,7 @@ class PatientInfoWidget extends StatelessWidget {
           SizedBox(height: 8),
           Expanded(
             child: TextField(
+              controller: _patientConditionController,
               maxLines: null,
               expands: true,
               decoration: InputDecoration(
@@ -200,8 +336,13 @@ class PatientInfoWidget extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                // Handle emergency room search
-                Navigator.pop(context); // 채팅창 닫기
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Searching emergency rooms near: ${_addressController.text}'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

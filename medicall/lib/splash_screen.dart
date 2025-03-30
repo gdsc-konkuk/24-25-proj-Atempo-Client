@@ -28,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo image
+            // Logo image - Fix the path
             Image.asset(
               'assets/images/logo-white.png',
               width: 200,
