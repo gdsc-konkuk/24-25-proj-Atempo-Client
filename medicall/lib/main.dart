@@ -3,6 +3,9 @@ import 'splash_screen.dart';
 import 'chat_page.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 void main() {
   runApp(MyApp());
@@ -69,6 +72,13 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   String _currentAddress = "Finding your location...";
   Position? _currentPosition;
+  GoogleMapController? _mapController;
+  Set<Marker> _markers = {};
+
+  static final CameraPosition _initialCameraPosition = CameraPosition(
+    target: LatLng(37.5665, 126.9780),
+    zoom: 14.0,
+  );
 
   @override
   void initState() {
@@ -117,6 +127,23 @@ class _MapPageState extends State<MapPage> {
 
       setState(() {
         _currentPosition = position;
+
+        _markers.add(
+          Marker(
+            markerId: MarkerId('currentLocation'),
+            position: LatLng(position.latitude, position.longitude),
+            infoWindow: InfoWindow(title: 'Your Location'),
+          ),
+        );
+
+        if (_mapController != null) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(position.latitude, position.longitude),
+              16.0,
+            ),
+          );
+        }
       });
 
       await _getAddressFromLatLng(position);
@@ -171,6 +198,24 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  void _onMapCreated(GoogleMapController controller) {
+    _mapController = controller;
+
+    if (_currentPosition != null) {
+      controller.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+          16.0,
+        ),
+      );
+    }
+  }
+
+  bool _isSupportedPlatform() {
+    if (kIsWeb) return true; // 웹에서는 지원됨
+    return Platform.isAndroid || Platform.isIOS; // Android 또는 iOS에서만 지원
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,16 +227,41 @@ class _MapPageState extends State<MapPage> {
       body: Column(
         children: [
           Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-              ),
-              child: Image.asset(
-                'assets/images/map_placeholder.png',
-                fit: BoxFit.cover,
-              ),
-            ),
+            child: _isSupportedPlatform()
+                ? GoogleMap(
+                    mapType: MapType.normal,
+                    initialCameraPosition: _initialCameraPosition,
+                    onMapCreated: _onMapCreated,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: true,
+                    markers: _markers,
+                    zoomControlsEnabled: false,
+                  )
+                : Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.map, size: 100, color: Colors.grey),
+                          SizedBox(height: 20),
+                          Text(
+                            'Maps are only supported on iOS and Android devices',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          SizedBox(height: 10),
+                          Text(
+                            'Current location: $_currentAddress',
+                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
           ),
           GestureDetector(
             onTap: () => _showChatBottomSheet(context),
@@ -207,6 +277,13 @@ class _MapPageState extends State<MapPage> {
           ),
         ],
       ),
+      floatingActionButton: _isSupportedPlatform() 
+          ? FloatingActionButton(
+              backgroundColor: Colors.red,
+              onPressed: _getCurrentLocation,
+              child: Icon(Icons.my_location),
+            )
+          : null,
     );
   }
 }
