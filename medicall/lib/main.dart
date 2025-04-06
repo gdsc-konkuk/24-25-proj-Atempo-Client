@@ -228,14 +228,20 @@ class _MapPageState extends State<MapPage> {
         children: [
           Expanded(
             child: _isSupportedPlatform()
-                ? GoogleMap(
-                    mapType: MapType.normal,
-                    initialCameraPosition: _initialCameraPosition,
-                    onMapCreated: _onMapCreated,
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: true,
-                    markers: _markers,
-                    zoomControlsEnabled: false,
+                ? Material(
+                    child: Card(
+                      margin: EdgeInsets.zero,
+                      elevation: 0,
+                      child: GoogleMap(
+                        mapType: MapType.normal,
+                        initialCameraPosition: _initialCameraPosition,
+                        onMapCreated: _onMapCreated,
+                        myLocationEnabled: true,
+                        myLocationButtonEnabled: true,
+                        markers: _markers,
+                        zoomControlsEnabled: false,
+                      ),
+                    ),
                   )
                 : Container(
                     width: double.infinity,

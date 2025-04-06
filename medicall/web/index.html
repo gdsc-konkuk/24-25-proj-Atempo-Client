@@ -28,11 +28,35 @@
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
+  
+  <!-- Google Maps API를 head에 먼저 로드 -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeqCNi-eeLBLPbRNv2TsX2eIzuSSVO_7w" async></script>
+  
   <title>medicall</title>
   <link rel="manifest" href="manifest.json">
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    var serviceWorkerVersion = null;
+  </script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Flutter 초기화 코드 추가
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
 </body>
 </html>
