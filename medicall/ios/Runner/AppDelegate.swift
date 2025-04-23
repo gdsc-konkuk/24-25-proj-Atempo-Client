@@ -1,6 +1,8 @@
 import UIKit
 import Flutter
+#if canImport(GoogleMaps)
 import GoogleMaps
+#endif
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,8 +10,10 @@ import GoogleMaps
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // API 키 직접 입력 (더 간결하게 설정)
+    // API 키 직접 입력
+    #if canImport(GoogleMaps)
     GMSServices.provideAPIKey("AIzaSyDeqCNi-eeLBLPbRNv2TsX2eIzuSSVO_7w")
+    #endif
     
     // MethodChannel 설정 - 단순화
     let controller = window?.rootViewController as! FlutterViewController

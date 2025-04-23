@@ -1,5 +1,6 @@
 # Uncomment this line to define a global platform for your project
-# platform :ios, '12.0'
+source 'https://github.com/CocoaPods/Specs.git'
+platform :ios, '14.0'  # iOS 최소 버전을 14.0으로 높임
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -29,8 +30,11 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks!
+  use_modular_headers!  # 추가: 모듈 헤더 사용
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  pod 'GoogleMaps', '9.4.0'  # 버전 변경: Podfile.lock과 일치하게 설정
+  pod 'Google-Maps-iOS-Utils', '6.1.0'  # 기존 설정 유지
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -39,5 +43,12 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    
+    # 추가: 빌드 설정 조정
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'  # 이 값도 14.0으로 변경
+      # Allow older GoogleMaps SDK to build with Xcode
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+    end
   end
 end
