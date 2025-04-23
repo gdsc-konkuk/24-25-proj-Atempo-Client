@@ -1,13 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 위치 권한 선언 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    
     <application
         android:label="medicall"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
         <meta-data
-        android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyDeqCNi-eeLBLPbRNv2TsX2eIzuSSVO_7w" />
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_api_key"/>
+            
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# 환경 변수 파일
+.env
+*.env
+.env.*
+
+# API 키 설정 파일
+ios/Config.xcconfig
+**/*.env
+**/secrets.json
+
+# 빌드 스크립트 로그
+scripts/*.log

@@ -9,12 +9,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
   google_maps_flutter: ^2.5.0
-  geolocator: ^13.0.3
-  geocoding: ^3.0.0
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
+  cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
   flutter_animate: ^4.5.0
+  flutter_dotenv: ^5.1.0  # 추가: dotenv 패키지
 
 dev_dependencies:
   flutter_test:
@@ -25,6 +26,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - .env  # 추가: .env 파일
     - assets/images/
     - assets/images/ambulance.png
     - assets/images/google_logo.png

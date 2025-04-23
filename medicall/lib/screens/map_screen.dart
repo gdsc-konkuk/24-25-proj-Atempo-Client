@@ -4,6 +4,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../widgets/patient_info_widget.dart';
 
 class MapScreen extends StatefulWidget {
@@ -19,81 +20,137 @@ class _MapScreenState extends State<MapScreen> {
   bool _isMapLoading = true;
   String _mapLoadError = "";
 
+  String get _googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+
   static final CameraPosition _initialCameraPosition = CameraPosition(
-    target: LatLng(37.5665, 126.9780),
+    target: LatLng(37.5665, 126.9780), // 서울 위치를 기본값으로 설정
     zoom: 14.0,
   );
 
   @override
   void initState() {
     super.initState();
-    _checkMapsApiLoaded();
-    _getCurrentLocation();
+    // 비동기 초기화를 안전하게 실행
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _safeInitialize();
+    });
+  }
+
+  // 안전한 초기화 메소드
+  Future<void> _safeInitialize() async {
+    try {
+      if (kIsWeb) {
+        _checkMapsApiLoaded();
+      }
+
+      // 위치 서비스 초기화를 시도하되 오류가 발생해도 앱이 계속 실행되도록 함
+      try {
+        await _getCurrentLocation();
+      } catch (e) {
+        debugPrint('위치 서비스 초기화 오류: $e');
+        // 오류가 발생해도 앱이 계속 실행될 수 있게 함
+        if (mounted) {
+          setState(() {
+            _isMapLoading = false;
+            _currentAddress = "위치를 가져올 수 없습니다.";
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('초기화 중 오류 발생: $e');
+      if (mounted) {
+        setState(() {
+          _isMapLoading = false;
+          _mapLoadError = "초기화 중 오류가 발생했습니다: $e";
+        });
+      }
+    }
   }
 
   Future<bool> _handleLocationPermission() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Location services are disabled. Please enable the services')));
-      return false;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permissions are denied')));
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('위치 서비스가 비활성화되어 있습니다. 설정에서 활성화해주세요.')));
+        }
         return false;
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Location permissions are permanently denied, we cannot request permissions.')));
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('위치 권한이 거부되었습니다.')));
+          }
+          return false;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('위치 권한이 영구적으로 거부되었습니다. 설정에서 권한을 허용해주세요.')));
+        }
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('위치 권한 확인 중 오류: $e');
       return false;
     }
-
-    return true;
   }
 
   Future<void> _getCurrentLocation() async {
-    final hasPermission = await _handleLocationPermission();
-
-    if (!hasPermission) return;
-
     try {
+      final hasPermission = await _handleLocationPermission();
+
+      if (!hasPermission) {
+        setState(() {
+          _isMapLoading = false;
+        });
+        return;
+      }
+
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
-      setState(() {
-        _currentPosition = position;
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+          _isMapLoading = false;
 
-        _markers.add(
-          Marker(
-            markerId: MarkerId('currentLocation'),
-            position: LatLng(position.latitude, position.longitude),
-            infoWindow: InfoWindow(title: 'Your Location'),
-          ),
-        );
-
-        if (_mapController != null) {
-          _mapController!.animateCamera(
-            CameraUpdate.newLatLngZoom(
-              LatLng(position.latitude, position.longitude),
-              16.0,
+          _markers.add(
+            Marker(
+              markerId: MarkerId('currentLocation'),
+              position: LatLng(position.latitude, position.longitude),
+              infoWindow: InfoWindow(title: '현재 위치'),
             ),
           );
-        }
-      });
+
+          if (_mapController != null) {
+            _mapController!.animateCamera(
+              CameraUpdate.newLatLngZoom(
+                LatLng(position.latitude, position.longitude),
+                16.0,
+              ),
+            );
+          }
+        });
+      }
 
       await _getAddressFromLatLng(position);
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint('위치 가져오기 오류: $e');
+      if (mounted) {
+        setState(() {
+          _isMapLoading = false;
+        });
+      }
     }
   }
 
@@ -164,25 +221,39 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _onMapCreated(GoogleMapController controller) {
-    setState(() {
-      _isMapLoading = false;
-    });
+    try {
+      if (mounted) {
+        setState(() {
+          _isMapLoading = false;
+          _mapController = controller;
+        });
 
-    _mapController = controller;
-
-    if (_currentPosition != null) {
-      controller.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-          16.0,
-        ),
-      );
+        if (_currentPosition != null) {
+          controller.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+              16.0,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('지도 컨트롤러 초기화 오류: $e');
     }
   }
 
   bool _isSupportedPlatform() {
     if (kIsWeb) return true;
     return Platform.isAndroid || Platform.isIOS;
+  }
+
+  @override
+  void dispose() {
+    // 메모리 누수 방지를 위한 컨트롤러 해제
+    if (_mapController != null) {
+      _mapController!.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -199,20 +270,18 @@ class _MapScreenState extends State<MapScreen> {
             child: _isSupportedPlatform()
                 ? Stack(
                     children: [
-                      Material(
-                        child: Card(
-                          margin: EdgeInsets.zero,
-                          elevation: 0,
-                          child: GoogleMap(
-                            mapType: MapType.normal,
-                            initialCameraPosition: _initialCameraPosition,
-                            onMapCreated: _onMapCreated,
-                            myLocationEnabled: true,
-                            myLocationButtonEnabled: true,
-                            markers: _markers,
-                            zoomControlsEnabled: false,
-                          ),
-                        ),
+                      GoogleMap(
+                        mapType: MapType.normal,
+                        initialCameraPosition: _initialCameraPosition,
+                        onMapCreated: _onMapCreated,
+                        myLocationEnabled: true,
+                        myLocationButtonEnabled: false, // 내장 버튼 비활성화
+                        markers: _markers,
+                        zoomControlsEnabled: false,
+                        compassEnabled: true,
+                        buildingsEnabled: true, // 건물 표시 활성화
+                        padding: EdgeInsets.only(bottom: 50), // 하단 패딩 추가
+                        onTap: (_) {}, // 빈 탭 핸들러 추가 (일부 디바이스에서 맵 활성화에 도움)
                       ),
                       if (_isMapLoading)
                         Center(

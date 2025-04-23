@@ -123,13 +123,25 @@ class LoginScreen extends StatelessWidget {
                       ),
                     );
                     
-                    // Navigate after a short delay
-                    Future.delayed(Duration(seconds: 1), () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => MapScreen()),
+                    // 오류 처리를 위한 try-catch 블록 추가
+                    try {
+                      // Navigate after a short delay
+                      Future.delayed(Duration(seconds: 1), () {
+                        if (!context.mounted) return;
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => MapScreen()),
+                        );
+                      });
+                    } catch (e) {
+                      // 오류 발생 시 메시지 표시
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("오류가 발생했습니다: $e"),
+                          backgroundColor: Colors.red,
+                        ),
                       );
-                    });
+                    }
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
