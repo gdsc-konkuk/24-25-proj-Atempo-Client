@@ -40,11 +40,18 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>이 앱은 가까운 응급실을 찾기 위해 위치 정보가 필요합니다</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>이 앱은 가까운 응급실을 찾기 위해 위치 정보가 필요합니다</string>
+	<string>이 앱은 응급 상황에서 위치 정보를 활용합니다</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
 	<key>GoogleMapsApiKey</key>
 	<string>$(GOOGLE_MAPS_API_KEY)</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>GoogleMapsAPIKey</key>
+	<string>AIzaSyDeqCNi-eeLBLPbRNv2TsX2eIzuSSVO_7w</string>
 </dict>
 
 </plist>
