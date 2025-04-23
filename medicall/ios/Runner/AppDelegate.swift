@@ -4,7 +4,7 @@ import Flutter
 import GoogleMaps
 #endif
 
-@UIApplicationMain
+@main
 @objc class AppDelegate: FlutterAppDelegate {
   override func application(
     _ application: UIApplication,
@@ -12,7 +12,7 @@ import GoogleMaps
   ) -> Bool {
     // API 키 직접 입력
     #if canImport(GoogleMaps)
-    GMSServices.provideAPIKey("AIzaSyDeqCNi-eeLBLPbRNv2TsX2eIzuSSVO_7w")
+    GMSServices.provideAPIKey("AIzaSyAw92wiRgypo3fVZ4-R5CbpB4x_Pcj1gwk")
     #endif
     
     // MethodChannel 설정 - 단순화
