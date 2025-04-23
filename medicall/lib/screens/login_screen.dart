@@ -55,7 +55,7 @@ class LoginScreen extends StatelessWidget {
                   child: Container(
                     height: 240,
                     child: Image.asset(
-                      'assets/images/isometric_ambulance.png', // Updated to use the new ambulance image
+                      'assets/images/ambulance.png', // Updated to use the new ambulance image
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -140,7 +140,7 @@ class LoginScreen extends StatelessWidget {
                       ),
                       SizedBox(width: 10),
                       Text(
-                        "Login with Google",
+                        "Continue with Google",
                         style: GoogleFonts.notoSans(
                           fontWeight: FontWeight.w500,
                         ),
