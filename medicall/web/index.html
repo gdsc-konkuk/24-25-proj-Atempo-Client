@@ -29,30 +29,52 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
   
-  <!-- Google Maps API를 head에 먼저 로드 -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeqCNi-eeLBLPbRNv2TsX2eIzuSSVO_7w" async></script>
+  <!-- Google Maps API 로드 방식 개선 및 오류 처리 추가 -->
+  <script>
+    function initMap() {
+      console.log('Google Maps API 초기화 성공');
+      // 글로벌 변수로 Maps API가 로드됨을 표시
+      window.googleMapsLoaded = true;
+    }
+    
+    function handleMapError() {
+      console.error('Google Maps API 로드 실패');
+      window.googleMapsLoaded = false;
+    }
+  </script>
+  <script 
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeqCNi-eeLBLPbRNv2TsX2eIzuSSVO_7w&callback=initMap" 
+    async 
+    defer
+    onerror="handleMapError()"></script>
   
   <title>medicall</title>
   <link rel="manifest" href="manifest.json">
 
+  <!-- 최신 Flutter 웹 초기화 방식 적용 -->
   <script>
-    // The value below is injected by flutter build, do not touch.
-    var serviceWorkerVersion = null;
+    window.flutterWebRenderer = "html";
   </script>
-  <!-- This script adds the flutter initialization JS code -->
   <script src="flutter.js" defer></script>
 </head>
 <body>
   <script>
     window.addEventListener('load', function(ev) {
-      // Flutter 초기화 코드 추가
+      // Flutter 웹 앱을 로드하기 전에 콘솔에 상태 기록
+      console.log('페이지 로드됨, Flutter 앱 초기화 시작');
+      
+      // Flutter 앱 초기화 코드
       _flutter.loader.loadEntrypoint({
         serviceWorker: {
           serviceWorkerVersion: serviceWorkerVersion,
         },
         onEntrypointLoaded: function(engineInitializer) {
+          console.log('Flutter 엔진 초기화 중...');
           engineInitializer.initializeEngine().then(function(appRunner) {
+            console.log('Flutter 앱 실행 준비 완료');
             appRunner.runApp();
+          }).catch(function(error) {
+            console.error('Flutter 엔진 초기화 실패:', error);
           });
         }
       });
