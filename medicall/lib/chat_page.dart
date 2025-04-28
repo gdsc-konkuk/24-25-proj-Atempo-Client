@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
+import 'screens/emergency_room_list_screen.dart';
 
 class ChatPage extends StatelessWidget {
+  final String currentAddress;
+
+  const ChatPage({
+    Key? key,
+    required this.currentAddress,
+  }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Enter Patient Info'),
-        backgroundColor: Colors.red,
-      ),
+      // appBar: AppBar(
+      //   title: Text('Enter Patient Info'),
+      //   backgroundColor: Colors.red,
+      // ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -31,7 +39,7 @@ class ChatPage extends StatelessWidget {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '120, Neungdong-ro, Gwangjin-gu, Seoul',
+                      currentAddress,
                       style: TextStyle(fontSize: 14),
                     ),
                   ),
@@ -61,7 +69,11 @@ class ChatPage extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Handle emergency room search
+                  // Navigate to emergency room list
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => EmergencyRoomListScreen()),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,

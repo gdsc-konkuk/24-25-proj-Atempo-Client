@@ -22,7 +22,7 @@ class SignUpScreen extends StatelessWidget {
                       color: Colors.white,
                     ),
                     children: [
-                      TextSpan(text: 'Med'),
+                      TextSpan(text: 'Medi'),
                       WidgetSpan(
                         child: Icon(Icons.phone, color: Colors.white, size: 32),
                         alignment: PlaceholderAlignment.middle,

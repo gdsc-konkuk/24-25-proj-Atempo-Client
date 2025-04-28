@@ -38,7 +38,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   color: Colors.white,
                 ),
                 children: [
-                  TextSpan(text: 'Med'),
+                  TextSpan(text: 'Medi'),
                   WidgetSpan(
                     child: Icon(Icons.phone, color: Colors.white, size: 40),
                     alignment: PlaceholderAlignment.middle,

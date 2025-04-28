@@ -26,7 +26,7 @@ class LoginScreen extends StatelessWidget {
                         color: Colors.black,
                       ),
                       children: [
-                        TextSpan(text: 'Med'),
+                        TextSpan(text: 'Medi'),
                         WidgetSpan(
                           child: Transform.translate(
                             offset: Offset(0, -2),
