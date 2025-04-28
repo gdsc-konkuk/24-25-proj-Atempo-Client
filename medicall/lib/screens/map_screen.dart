@@ -6,6 +6,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../widgets/patient_info_widget.dart';
+import '../services/maps_service.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -112,61 +113,152 @@ class _MapScreenState extends State<MapScreen> {
       if (!hasPermission) {
         setState(() {
           _isMapLoading = false;
+          _currentAddress = "위치 권한이 없습니다. 설정에서 위치 권한을 허용해주세요.";
         });
         return;
       }
 
+      debugPrint('위치 권한 획득 완료, 현재 위치 가져오는 중...');
+      
+      // iOS에서는 네이티브 위치 서비스 시도
+      if (Platform.isIOS) {
+        final nativeLocation = await MapsService.requestNativeLocation();
+        if (nativeLocation != null) {
+          final lat = nativeLocation['latitude'] as double;
+          final lng = nativeLocation['longitude'] as double;
+          
+          debugPrint('iOS 네이티브에서 위치 정보 수신: 위도 $lat, 경도 $lng');
+          
+          // 위치 정보 설정
+          Position position = Position(
+            latitude: lat,
+            longitude: lng,
+            timestamp: DateTime.now(),
+            accuracy: nativeLocation['accuracy'] as double,
+            altitude: 0.0,
+            heading: 0.0,
+            speed: 0.0,
+            speedAccuracy: 0.0,
+            altitudeAccuracy: 0.0,
+            headingAccuracy: 0.0,
+          );
+          
+          _updatePositionAndCamera(position);
+          await _getAddressFromLatLng(position);
+          return;
+        }
+      }
+      
+      // 기본 위치 서비스 사용 (Geolocator)
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
-      if (mounted) {
-        setState(() {
-          _currentPosition = position;
-          _isMapLoading = false;
-
-          _markers.add(
-            Marker(
-              markerId: MarkerId('currentLocation'),
-              position: LatLng(position.latitude, position.longitude),
-              infoWindow: InfoWindow(title: '현재 위치'),
+      debugPrint('Geolocator에서 위치 수신 성공: $position');
+      
+      // 위치가 샌프란시스코(테스트 위치)인지 확인
+      if (MapsService.isSanFranciscoLocation(position.latitude, position.longitude)) {
+        debugPrint('샌프란시스코 테스트 위치 감지됨! 서울로 기본 위치 설정');
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('실제 위치를 가져올 수 없어 기본 위치(서울)로 설정합니다.'),
+              duration: Duration(seconds: 3),
             ),
           );
-
-          if (_mapController != null) {
-            _mapController!.animateCamera(
-              CameraUpdate.newLatLngZoom(
-                LatLng(position.latitude, position.longitude),
-                16.0,
-              ),
-            );
-          }
-        });
+        }
+        
+        // 서울 위치로 오버라이드
+        position = Position(
+          latitude: MapsService.defaultLatitude,
+          longitude: MapsService.defaultLongitude,
+          timestamp: DateTime.now(),
+          accuracy: 0.0,
+          altitude: 0.0,
+          heading: 0.0,
+          speed: 0.0,
+          speedAccuracy: 0.0,
+          altitudeAccuracy: 0.0,
+          headingAccuracy: 0.0,
+        );
       }
 
+      _updatePositionAndCamera(position);
       await _getAddressFromLatLng(position);
     } catch (e) {
       debugPrint('위치 가져오기 오류: $e');
       if (mounted) {
         setState(() {
           _isMapLoading = false;
+          _currentAddress = "위치를 가져오는 데 실패했습니다. 네트워크 연결을 확인하세요.";
         });
       }
+    }
+  }
+  
+  // 위치 정보 및 카메라 업데이트 메서드 (코드 중복 제거를 위해 분리)
+  void _updatePositionAndCamera(Position position) {
+    if (mounted) {
+      setState(() {
+        _currentPosition = position;
+        _isMapLoading = false;
+
+        _markers.clear(); // 기존 마커 제거
+        _markers.add(
+          Marker(
+            markerId: const MarkerId('currentLocation'),
+            position: LatLng(position.latitude, position.longitude),
+            infoWindow: const InfoWindow(title: '현재 위치'),
+          ),
+        );
+
+        if (_mapController != null) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(position.latitude, position.longitude),
+              16.0,
+            ),
+          );
+        }
+      });
     }
   }
 
   Future<void> _getAddressFromLatLng(Position position) async {
     try {
+      // 디버깅을 위한 로그 추가
+      debugPrint('위치 정보: 위도 ${position.latitude}, 경도 ${position.longitude}');
+      
       List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude, position.longitude);
+          position.latitude, position.longitude,
+          localeIdentifier: 'ko_KR'); // 한국어 로케일 명시적 지정
 
       Placemark place = placemarks[0];
+      debugPrint('받아온 위치 정보: $place');
 
-      setState(() {
-        _currentAddress = "${place.street}, ${place.subLocality}, "
+      // 한국 주소 형식에 맞게 처리
+      String address = "";
+      if (place.country == 'South Korea' || place.country == '대한민국') {
+        // 한국식 주소 형식
+        address = "${place.administrativeArea ?? ''} ${place.locality ?? ''} ${place.subLocality ?? ''} ${place.thoroughfare ?? ''} ${place.subThoroughfare ?? ''}";
+      } else {
+        // 기본 주소 형식
+        address = "${place.street}, ${place.subLocality}, "
             "${place.locality}, ${place.administrativeArea}";
+      }
+      
+      // 공백 정리
+      address = address.replaceAll(RegExp(r'\s+'), ' ').trim();
+      
+      setState(() {
+        _currentAddress = address;
       });
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint('주소 변환 오류: $e');
+      // 오류 발생시 위도/경도만 표시
+      setState(() {
+        _currentAddress = "위도: ${position.latitude}, 경도: ${position.longitude}";
+      });
     }
   }
 
@@ -273,7 +365,14 @@ class _MapScreenState extends State<MapScreen> {
                       GoogleMap(
                         mapType: MapType.normal,
                         initialCameraPosition: _initialCameraPosition,
-                        onMapCreated: _onMapCreated,
+                        onMapCreated: (GoogleMapController controller) {
+                          // 로그 추가
+                          print("지도가 생성되었습니다!");
+                          setState(() {
+                            _mapController = controller;
+                            _isMapLoading = false;
+                          });
+                        },
                         myLocationEnabled: true,
                         myLocationButtonEnabled: false, // 내장 버튼 비활성화
                         markers: _markers,

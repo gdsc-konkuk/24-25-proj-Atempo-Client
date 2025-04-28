@@ -33,6 +33,18 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# iOS/Android API 키 파일
+medicall/ios/Config.xcconfig
+medicall/ios/**/GoogleService-Info.plist
+medicall/android/app/src/main/res/values/secrets.xml
+medicall/android/key.properties
+
+# Flutter/Dart specific
+medicall/**/build/
+medicall/.dart_tool/
+medicall/.flutter-plugins
+medicall/.flutter-plugins-dependencies
+
 # vercel
 .vercel
 
