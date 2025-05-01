@@ -54,6 +54,25 @@
 	</dict>
 	<key>GoogleMapsAPIKey</key>
 	<string>CNi-eeLBLPbRNv2TsX2eIzuSSVO_7w</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>http</string>
+		<string>https</string>
+	</array>
+	<!-- URL 스킴 등록 (딥링크) -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.medicall.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>medicall</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 
 </plist>
