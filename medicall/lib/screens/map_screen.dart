@@ -23,9 +23,11 @@ class _MapScreenState extends State<MapScreen> {
 
   String get _googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
+  // 글로벌 좌표계에서 중립적인 초기 위치 (대서양 중간 지점)
+  // 실제로는 사용자의 위치를 얻자마자 이 위치로 카메라가 이동하지 않음
   static final CameraPosition _initialCameraPosition = CameraPosition(
-    target: LatLng(37.5665, 126.9780), // 서울 위치를 기본값으로 설정
-    zoom: 14.0,
+    target: LatLng(0, 0),
+    zoom: 2.0, // 글로벌 뷰로 시작
   );
 
   @override
@@ -226,9 +228,9 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.9,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
+          initialChildSize: 0.6, // Changed from 0.9 to 0.6 (60% of screen height)
+          minChildSize: 0.4, // Changed from 0.5 to 0.4 (40% of screen height minimum)
+          maxChildSize: 0.95, // Keep this the same (95% maximum)
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(
@@ -322,6 +324,17 @@ class _MapScreenState extends State<MapScreen> {
                             _mapController = controller;
                             _isMapLoading = false;
                           });
+                          
+                          // 지도가 생성되자마자 현재 위치가 있으면 그 위치로 이동
+                          // 이를 통해 초기 위치(0,0)에서 사용자 위치로 바로 이동함
+                          if (_currentPosition != null) {
+                            controller.animateCamera(
+                              CameraUpdate.newLatLngZoom(
+                                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                                16.0,
+                              ),
+                            );
+                          }
                         },
                         myLocationEnabled: true,
                         myLocationButtonEnabled: false, // 내장 버튼 비활성화

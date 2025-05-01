@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
+import 'package:geolocator/geolocator.dart';
 
 class NavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -107,6 +108,25 @@ class _NavigationScreenState extends State<NavigationScreen> {
         _errorMessage = 'Failed to load route: $e';
       });
     }
+  }
+  
+  Future<LatLng> _getCurrentUserLocation() async {
+    // 위치 권한 확인
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('위치 권한이 거부되었습니다');
+      }
+    }
+    
+    // 현재 위치 가져오기
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high
+    );
+    
+    // 좌표로 반환
+    return LatLng(position.latitude, position.longitude);
   }
   
   bool _isSupportedPlatform() {
