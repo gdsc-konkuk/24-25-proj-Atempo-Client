@@ -1,11 +1,102 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // 추가: dotenv 패키지 import
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../providers/auth_provider.dart';
+import '../services/http_client_service.dart';
 import 'signup_screen.dart';
 import 'map_screen.dart';
+import 'webview_login_screen.dart';
+import 'dart:async';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  final String? code; // 딥링크로 전달받은 인증 코드
+  
+  const LoginScreen({Key? key, this.code}) : super(key: key);
+  
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final storage = FlutterSecureStorage();
+  String? _refreshToken;
+  bool _processingDeepLink = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    
+    // 딥링크로 전달받은 인증 코드가 있는 경우 처리
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _processDeepLinkIfPresent();
+    });
+  }
+  
+  // 딥링크 처리
+  Future<void> _processDeepLinkIfPresent() async {
+    if (widget.code != null && !_processingDeepLink) {
+      setState(() {
+        _processingDeepLink = true;
+      });
+      
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      try {
+        final success = await authProvider.handleOAuthRedirect(widget.code!);
+        
+        if (success) {
+          // 로그인 성공 메시지
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('로그인이 완료되었습니다'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            
+            // 메인 화면으로 이동
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MapScreen()),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(authProvider.errorMessage ?? '로그인 처리 중 오류가 발생했습니다'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('로그인 처리 중 오류: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _processingDeepLink = false;
+          });
+        }
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
+    // AuthProvider 인스턴스 가져오기
+    final authProvider = Provider.of<AuthProvider>(context);
+    
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
@@ -109,56 +200,55 @@ class LoginScreen extends StatelessWidget {
                     ),
                     minimumSize: Size(double.infinity, 50),
                   ),
-                  onPressed: () {
-                    // Show a snackbar message for successful login
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Login successful!"),
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                        margin: EdgeInsets.all(15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  onPressed: authProvider.isLoading
+                      ? null
+                      : () async {
+                          try {
+                            final loginUrl = await authProvider.getLoginUrl();
+                            
+                            if (context.mounted) {
+                              // WebView 로그인 화면으로 이동
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => WebViewLoginScreen(
+                                    loginUrl: loginUrl,
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("로그인 초기화 오류: $e"),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: authProvider.isLoading
+                      ? SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(color: const Color(0xFFD94B4B)),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/images/google_logo.png',
+                              height: 24,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              "Continue with Google",
+                              style: GoogleFonts.notoSans(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    );
-                    
-                    // 오류 처리를 위한 try-catch 블록 추가
-                    try {
-                      // Navigate after a short delay
-                      Future.delayed(Duration(seconds: 1), () {
-                        if (!context.mounted) return;
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => MapScreen()),
-                        );
-                      });
-                    } catch (e) {
-                      // 오류 발생 시 메시지 표시
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("오류가 발생했습니다: $e"),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/images/google_logo.png',
-                        height: 24,
-                      ),
-                      SizedBox(width: 10),
-                      Text(
-                        "Continue with Google",
-                        style: GoogleFonts.notoSans(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
                 SizedBox(height: 20),
               ],

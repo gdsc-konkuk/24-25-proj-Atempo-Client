@@ -16,6 +16,23 @@ dependencies:
   google_fonts: ^6.1.0
   flutter_animate: ^4.5.0
   flutter_dotenv: ^5.1.0  # 추가: dotenv 패키지
+  url_launcher: ^6.2.5  # 추가: 브라우저 열기를 위한 패키지
+  provider: ^6.1.1  # 상태 관리
+  flutter_secure_storage: ^8.0.0  # 민감 정보 저장
+  uni_links: ^0.5.1  # 딥링크 처리
+  http: ^1.3.0  # HTTP 요청 처리
+  
+  # 쿠키 처리를 위한 패키지 추가
+  dio: ^5.4.0
+  cookie_jar: ^4.0.8
+  dio_cookie_manager: ^3.1.1
+  
+  # WebView 추가
+  webview_flutter: ^4.7.0
+  webview_flutter_android: ^3.15.0
+  webview_flutter_wkwebview: ^3.15.0
+  # 웹뷰 쿠키 관리
+  webview_cookie_manager: ^2.0.6
 
 dev_dependencies:
   flutter_test:
