@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'faq_screen.dart'; // Add this import
+import 'faq_screen.dart';
+import 'contact_us_screen.dart';
+import 'about_us_screen.dart'; // 추가된 import
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -130,7 +132,11 @@ class SettingsScreen extends StatelessWidget {
                     subtitle: Text('1:1 Inquiry'),
                     trailing: Icon(Icons.chevron_right),
                     onTap: () {
-                      // Handle contact us
+                      // Navigate to Contact Us screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ContactUsScreen()),
+                      );
                     },
                   ),
                   Divider(height: 1),
@@ -146,6 +152,53 @@ class SettingsScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => FAQScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.red[400],
+                    size: 28,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'About',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Card(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    title: Text(
+                      'About Us',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    subtitle: Text('About our team and project'),
+                    trailing: Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AboutUsScreen()),
                       );
                     },
                   ),
