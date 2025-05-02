@@ -32,6 +32,12 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<void> loadCurrentUser() async {
+    // 토큰이 있으면 서버에서 유저 정보 조회 후 상태 갱신
+    // 예시: await AuthService().getCurrentUser();
+    // notifyListeners();
+  }
+
   // 웹뷰에서 사용할 로그인 URL 가져오기
   Future<String> getLoginUrl() async {
     _isLoading = true;

@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../widgets/patient_info_widget.dart';
 import 'emergency_room_list_screen.dart'; // Keep this import for the navigation function
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -33,6 +35,8 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    // 앱 진입 시 토큰이 있으면 자동 로그인/유저정보 갱신
+    Provider.of<AuthProvider>(context, listen: false).loadCurrentUser();
     // 비동기 초기화를 안전하게 실행
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _safeInitialize();
