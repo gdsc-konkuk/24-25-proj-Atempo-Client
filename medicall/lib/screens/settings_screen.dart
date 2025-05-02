@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'faq_screen.dart'; // Add this import
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -141,7 +142,11 @@ class SettingsScreen extends StatelessWidget {
                     subtitle: Text('Frequently Asked Questions'),
                     trailing: Icon(Icons.chevron_right),
                     onTap: () {
-                      // Handle FAQ
+                      // Navigate to FAQ screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => FAQScreen()),
+                      );
                     },
                   ),
                 ],
