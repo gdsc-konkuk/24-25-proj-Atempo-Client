@@ -9,6 +9,7 @@ import '../widgets/patient_info_widget.dart';
 import 'emergency_room_list_screen.dart'; // Keep this import for the navigation function
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'settings_screen.dart'; // 설정 화면 import 추가
 
 class MapScreen extends StatefulWidget {
   @override
@@ -311,6 +312,15 @@ class _MapScreenState extends State<MapScreen> {
         title: Text('Medicall'),
         backgroundColor: const Color(0xFFD94B4B),
         centerTitle: true,
+        leading: IconButton(  // 설정 아이콘 추가
+          icon: Icon(Icons.settings),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SettingsScreen()),
+            );
+          },
+        ),
       ),
       body: Column(
         children: [
