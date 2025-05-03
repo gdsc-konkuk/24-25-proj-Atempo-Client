@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../providers/settings_provider.dart';
 import 'faq_screen.dart';
 import 'contact_us_screen.dart';
 import 'about_us_screen.dart';
@@ -13,31 +15,14 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  double _searchRadius = 5.0;
-
   @override
   void initState() {
     super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _searchRadius = prefs.getDouble('search_radius') ?? 5.0;
-    });
-  }
-
-  Future<void> _saveSearchRadius(double radius) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('search_radius', radius);
-    setState(() {
-      _searchRadius = radius;
-    });
   }
 
   void _showSearchRadiusModal() {
-    double tempRadius = _searchRadius;
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    double tempRadius = settingsProvider.searchRadius;
 
     showDialog(
       context: context,
@@ -99,7 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         TextButton(
                           onPressed: () async {
-                            await _saveSearchRadius(tempRadius);
+                            await settingsProvider.setSearchRadius(tempRadius);
                             Navigator.of(context).pop();
                           },
                           child: Text(
@@ -125,6 +110,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final searchRadius = context.watch<SettingsProvider>().searchRadius;
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -196,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${_searchRadius.toInt()}km',
+                      '${searchRadius.toInt()}km',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.black87,

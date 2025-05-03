@@ -6,10 +6,11 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../widgets/patient_info_widget.dart';
-import 'emergency_room_list_screen.dart'; // Keep this import for the navigation function
+import 'emergency_room_list_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import 'settings_screen.dart'; // 설정 화면 import 추가
+import '../providers/settings_provider.dart';
+import 'settings_screen.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -21,42 +22,37 @@ class _MapScreenState extends State<MapScreen> {
   Position? _currentPosition;
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
+  Set<Circle> _circles = {};
   bool _isMapLoading = true;
   String _mapLoadError = "";
 
   String get _googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
   // 글로벌 좌표계에서 중립적인 초기 위치 (대서양 중간 지점)
-  // 실제로는 사용자의 위치를 얻자마자 이 위치로 카메라가 이동하지 않음
   static final CameraPosition _initialCameraPosition = CameraPosition(
     target: LatLng(0, 0),
-    zoom: 2.0, // 글로벌 뷰로 시작
+    zoom: 2.0,
   );
 
   @override
   void initState() {
     super.initState();
-    // 앱 진입 시 토큰이 있으면 자동 로그인/유저정보 갱신
     Provider.of<AuthProvider>(context, listen: false).loadCurrentUser();
-    // 비동기 초기화를 안전하게 실행
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _safeInitialize();
     });
   }
 
-  // 안전한 초기화 메소드
   Future<void> _safeInitialize() async {
     try {
       if (kIsWeb) {
         _checkMapsApiLoaded();
       }
 
-      // 위치 서비스 초기화를 시도하되 오류가 발생해도 앱이 계속 실행되도록 함
       try {
         await _getCurrentLocation();
       } catch (e) {
         debugPrint('위치 서비스 초기화 오류: $e');
-        // 오류가 발생해도 앱이 계속 실행될 수 있게 함
         if (mounted) {
           setState(() {
             _isMapLoading = false;
@@ -136,7 +132,7 @@ class _MapScreenState extends State<MapScreen> {
           _currentPosition = position;
           _isMapLoading = false;
 
-          _markers.clear(); // 기존 마커 제거
+          _markers.clear();
           _markers.add(
             Marker(
               markerId: MarkerId('currentLocation'),
@@ -170,28 +166,23 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _getAddressFromLatLng(Position position) async {
     try {
-      // 디버깅을 위한 로그 추가
       debugPrint('위치 정보: 위도 ${position.latitude}, 경도 ${position.longitude}');
       
       List<Placemark> placemarks = await placemarkFromCoordinates(
           position.latitude, position.longitude,
-          localeIdentifier: 'ko_KR'); // 한국어 로케일 명시적 지정
+          localeIdentifier: 'ko_KR');
 
       Placemark place = placemarks[0];
       debugPrint('받아온 위치 정보: $place');
 
-      // 한국 주소 형식에 맞게 처리
       String address = "";
       if (place.country == 'South Korea' || place.country == '대한민국') {
-        // 한국식 주소 형식
         address = "${place.administrativeArea ?? ''} ${place.locality ?? ''} ${place.subLocality ?? ''} ${place.thoroughfare ?? ''} ${place.subThoroughfare ?? ''}";
       } else {
-        // 기본 주소 형식
         address = "${place.street}, ${place.subLocality}, "
             "${place.locality}, ${place.administrativeArea}";
       }
       
-      // 공백 정리
       address = address.replaceAll(RegExp(r'\s+'), ' ').trim();
       
       setState(() {
@@ -199,7 +190,6 @@ class _MapScreenState extends State<MapScreen> {
       });
     } catch (e) {
       debugPrint('주소 변환 오류: $e');
-      // 오류 발생시 위도/경도만 표시
       setState(() {
         _currentAddress = "위도: ${position.latitude}, 경도: ${position.longitude}";
       });
@@ -233,9 +223,9 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.6, // Changed from 0.9 to 0.6 (60% of screen height)
-          minChildSize: 0.4, // Changed from 0.5 to 0.4 (40% of screen height minimum)
-          maxChildSize: 0.95, // Keep this the same (95% maximum)
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(
@@ -284,10 +274,6 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void navigateToEmergencyRoomList() async {
-    // In the future, you might fetch data from server here
-    // For example:
-    // final emergencyRooms = await apiService.fetchNearbyEmergencyRooms(_currentPosition);
-    
     if (mounted) {
       Navigator.push(
         context,
@@ -296,9 +282,104 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  // 검색 반경 원형 업데이트 메서드 - 원을 표시하지 않음
+  void _updateSearchRadiusCircle(Position position) {
+    // 원형 표시 제거
+    _circles.clear(); // 기존 원 제거
+    // 원을 추가하지 않음 (빨간색 블러 제거)
+  }
+
+  // 검색 반경 설정 모달 표시
+  void _showSearchRadiusModal() {
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    double tempRadius = settingsProvider.searchRadius;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: EdgeInsets.all(20),
+                width: MediaQuery.of(context).size.width * 0.8,
+                decoration: BoxDecoration(
+                  color: Color(0xFFFEEBEB),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Search Radius Settings',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      '${tempRadius.toInt()}km',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    SizedBox(height: 10),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: const Color(0xFFD94B4B),
+                        inactiveTrackColor: Colors.grey[300],
+                        thumbColor: const Color(0xFFD94B4B),
+                        thumbShape: RoundSliderThumbShape(
+                          enabledThumbRadius: 8.0,
+                        ),
+                        overlayColor: const Color(0xFFD94B4B).withAlpha(50),
+                      ),
+                      child: Slider(
+                        min: 1,
+                        max: 50,
+                        divisions: 49,
+                        value: tempRadius,
+                        onChanged: (value) {
+                          setModalState(() {
+                            tempRadius = value;
+                          });
+                        },
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () async {
+                            await settingsProvider.setSearchRadius(tempRadius);
+                            Navigator.of(context).pop();
+                          },
+                          child: Text(
+                            'Confirm',
+                            style: TextStyle(
+                              color: const Color(0xFFD94B4B),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
-    // 메모리 누수 방지를 위한 컨트롤러 해제
     if (_mapController != null) {
       _mapController!.dispose();
     }
@@ -307,12 +388,14 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final searchRadius = context.watch<SettingsProvider>().searchRadius;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Medicall'),
         backgroundColor: const Color(0xFFD94B4B),
         centerTitle: true,
-        leading: IconButton(  // 설정 아이콘 추가
+        leading: IconButton(
           icon: Icon(Icons.settings),
           onPressed: () {
             Navigator.push(
@@ -332,15 +415,11 @@ class _MapScreenState extends State<MapScreen> {
                         mapType: MapType.normal,
                         initialCameraPosition: _initialCameraPosition,
                         onMapCreated: (GoogleMapController controller) {
-                          // 로그 추가
                           print("지도가 생성되었습니다!");
                           setState(() {
                             _mapController = controller;
                             _isMapLoading = false;
                           });
-                          
-                          // 지도가 생성되자마자 현재 위치가 있으면 그 위치로 이동
-                          // 이를 통해 초기 위치(0,0)에서 사용자 위치로 바로 이동함
                           if (_currentPosition != null) {
                             controller.animateCamera(
                               CameraUpdate.newLatLngZoom(
@@ -351,13 +430,13 @@ class _MapScreenState extends State<MapScreen> {
                           }
                         },
                         myLocationEnabled: true,
-                        myLocationButtonEnabled: false, // 내장 버튼 비활성화
+                        myLocationButtonEnabled: false,
                         markers: _markers,
                         zoomControlsEnabled: false,
                         compassEnabled: true,
-                        buildingsEnabled: true, // 건물 표시 활성화
-                        padding: EdgeInsets.only(bottom: 50), // 하단 패딩 추가
-                        onTap: (_) {}, // 빈 탭 핸들러 추가 (일부 디바이스에서 맵 활성화에 도움)
+                        buildingsEnabled: true,
+                        padding: EdgeInsets.only(bottom: 50),
+                        onTap: (_) {},
                       ),
                       if (_isMapLoading)
                         Center(
@@ -423,7 +502,7 @@ class _MapScreenState extends State<MapScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.map, size: 100, color: Colors.grey),
-                          SizedBox(height: 20),
+                          SizedBox(height: 30),
                           Text(
                             'Maps are only supported on iOS and Android devices',
                             style: TextStyle(fontSize: 16),
@@ -438,6 +517,46 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                   ),
+          ),
+          InkWell(
+            onTap: _showSearchRadiusModal,
+            child: Container(
+              color: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.radar,
+                    color: const Color(0xFFD94B4B),
+                    size: 24,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Search Radius: ${searchRadius.toInt()}km',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEEBEB),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Edit',
+                      style: TextStyle(
+                        color: const Color(0xFFD94B4B),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           GestureDetector(
             onTap: () => _showChatBottomSheet(context),

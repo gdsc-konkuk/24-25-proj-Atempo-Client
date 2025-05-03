@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'services/http_client_service.dart';
 import 'providers/auth_provider.dart';
+import 'providers/settings_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/map_screen.dart';
@@ -26,6 +27,7 @@ void main() async {
       providers: [
         Provider<HttpClientService>.value(value: httpClient),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: MyApp(),
     ),
