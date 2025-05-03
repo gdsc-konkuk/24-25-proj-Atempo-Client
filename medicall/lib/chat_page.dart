@@ -39,12 +39,12 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
-  // 키보드 내리기 함수
+  // down the keyboard
   void _dismissKeyboard() {
     FocusScope.of(context).unfocus();
   }
 
-  // 주소 검색 다이얼로그
+  // search address dialog
   void _showAddressSearchDialog() {
     showDialog(
       context: context,
@@ -76,7 +76,7 @@ class _ChatPageState extends State<ChatPage> {
                     TextField(
                       controller: searchController,
                       decoration: InputDecoration(
-                        hintText: '검색할 주소 입력',
+                        hintText: 'Search for an address',
                         prefixIcon: Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -112,7 +112,7 @@ class _ChatPageState extends State<ChatPage> {
                           });
                         } catch (e) {
                           setState(() {
-                            searchResults = ["검색 결과가 없습니다"];
+                            searchResults = ["The address could not be found."];
                             isSearching = false;
                           });
                         }
@@ -162,7 +162,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  // 검색 반경 설정 모달 표시
+  // change search radius
   void _showSearchRadiusModal() {
     final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
     double tempRadius = settingsProvider.searchRadius;
@@ -256,10 +256,10 @@ class _ChatPageState extends State<ChatPage> {
     final searchRadius = context.watch<SettingsProvider>().searchRadius;
 
     return GestureDetector(
-      // 화면의 빈 공간을 탭하면 키보드가 내려감
+      // if you tap outside of the text field, the keyboard will be dismissed
       onTap: _dismissKeyboard,
       child: Scaffold(
-        resizeToAvoidBottomInset: true, // 키보드가 올라올 때 화면이 조절됨
+        resizeToAvoidBottomInset: true, // when keyboard is open, the screen will be resized
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -270,7 +270,7 @@ class _ChatPageState extends State<ChatPage> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              // 주소 입력/수정 영역 추가
+              // press the text field to edit
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -287,9 +287,9 @@ class _ChatPageState extends State<ChatPage> {
                           ? TextField(
                               controller: _addressController,
                               focusNode: _addressFocusNode,
-                              textInputAction: TextInputAction.done, // 키보드에 완료 버튼 표시
+                              textInputAction: TextInputAction.done, 
                               decoration: InputDecoration(
-                                hintText: '주소 입력',
+                                hintText: 'Enter address',
                                 border: InputBorder.none,
                                 suffixIcon: IconButton(
                                   icon: Icon(Icons.check),
@@ -312,7 +312,7 @@ class _ChatPageState extends State<ChatPage> {
                                 setState(() {
                                   _isAddressEditable = true;
                                 });
-                                // 텍스트필드에 포커스 주기
+                                // Focus on the text field after a short delay
                                 Future.delayed(Duration(milliseconds: 50), () {
                                   FocusScope.of(context).requestFocus(_addressFocusNode);
                                 });
@@ -335,7 +335,7 @@ class _ChatPageState extends State<ChatPage> {
                 ),
               ),
 
-              // 검색 반경 설정 UI 추가
+              // Search radius
               SizedBox(height: 16),
               InkWell(
                 onTap: _showSearchRadiusModal,
@@ -394,7 +394,7 @@ class _ChatPageState extends State<ChatPage> {
                   focusNode: _patientConditionFocusNode,
                   maxLines: null,
                   expands: true,
-                  textInputAction: TextInputAction.newline, // 여러 줄 입력을 위한 설정
+                  textInputAction: TextInputAction.newline, // multiline input
                   keyboardType: TextInputType.multiline,
                   decoration: InputDecoration(
                     hintText: 'Describe the patient\'s condition...',
@@ -409,7 +409,7 @@ class _ChatPageState extends State<ChatPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    _dismissKeyboard(); // 버튼 클릭 시 키보드 내리기
+                    _dismissKeyboard(); // Keyboard is dismissed
                     // Navigate to emergency room list
                     Navigator.push(
                       context,
