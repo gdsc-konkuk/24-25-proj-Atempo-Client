@@ -5,6 +5,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../widgets/patient_info_widget.dart';
 import 'emergency_room_list_screen.dart';
 import 'package:provider/provider.dart';
@@ -126,7 +128,7 @@ class _MapScreenState extends State<MapScreen> {
           desiredAccuracy: LocationAccuracy.high);
 
       debugPrint('위치 수신 성공: $position');
-      
+
       if (mounted) {
         setState(() {
           _currentPosition = position;
@@ -167,7 +169,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _getAddressFromLatLng(Position position) async {
     try {
       debugPrint('위치 정보: 위도 ${position.latitude}, 경도 ${position.longitude}');
-      
+
       List<Placemark> placemarks = await placemarkFromCoordinates(
           position.latitude, position.longitude,
           localeIdentifier: 'ko_KR');
@@ -182,9 +184,9 @@ class _MapScreenState extends State<MapScreen> {
         address = "${place.street}, ${place.subLocality}, "
             "${place.locality}, ${place.administrativeArea}";
       }
-      
+
       address = address.replaceAll(RegExp(r'\s+'), ' ').trim();
-      
+
       setState(() {
         _currentAddress = address;
       });
@@ -282,102 +284,6 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // 검색 반경 원형 업데이트 메서드 - 원을 표시하지 않음
-  void _updateSearchRadiusCircle(Position position) {
-    // 원형 표시 제거
-    _circles.clear(); // 기존 원 제거
-    // 원을 추가하지 않음 (빨간색 블러 제거)
-  }
-
-  // 검색 반경 설정 모달 표시
-  void _showSearchRadiusModal() {
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-    double tempRadius = settingsProvider.searchRadius;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Container(
-                padding: EdgeInsets.all(20),
-                width: MediaQuery.of(context).size.width * 0.8,
-                decoration: BoxDecoration(
-                  color: Color(0xFFFEEBEB),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Search Radius Settings',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      '${tempRadius.toInt()}km',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    SizedBox(height: 10),
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: const Color(0xFFD94B4B),
-                        inactiveTrackColor: Colors.grey[300],
-                        thumbColor: const Color(0xFFD94B4B),
-                        thumbShape: RoundSliderThumbShape(
-                          enabledThumbRadius: 8.0,
-                        ),
-                        overlayColor: const Color(0xFFD94B4B).withAlpha(50),
-                      ),
-                      child: Slider(
-                        min: 1,
-                        max: 50,
-                        divisions: 49,
-                        value: tempRadius,
-                        onChanged: (value) {
-                          setModalState(() {
-                            tempRadius = value;
-                          });
-                        },
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () async {
-                            await settingsProvider.setSearchRadius(tempRadius);
-                            Navigator.of(context).pop();
-                          },
-                          child: Text(
-                            'Confirm',
-                            style: TextStyle(
-                              color: const Color(0xFFD94B4B),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   void dispose() {
     if (_mapController != null) {
@@ -388,8 +294,6 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final searchRadius = context.watch<SettingsProvider>().searchRadius;
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Medicall'),
@@ -517,46 +421,6 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                   ),
-          ),
-          InkWell(
-            onTap: _showSearchRadiusModal,
-            child: Container(
-              color: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.radar,
-                    color: const Color(0xFFD94B4B),
-                    size: 24,
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Search Radius: ${searchRadius.toInt()}km',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEEBEB),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'Edit',
-                      style: TextStyle(
-                        color: const Color(0xFFD94B4B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
           GestureDetector(
             onTap: () => _showChatBottomSheet(context),
