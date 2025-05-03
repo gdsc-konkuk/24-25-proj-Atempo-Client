@@ -203,65 +203,31 @@ class AuthService {
   
   // Get current user
   Future<User?> getCurrentUser() async {
-    try {
-      final accessToken = await _storage.read(key: 'access_token');
-      final refreshToken = await _storage.read(key: 'refresh_token');
-      final userId = await _storage.read(key: 'user_id');
-      
-      if (accessToken == null || refreshToken == null || userId == null) {
-        return null;
-      }
-      
-      // Attempt to request user info with access token
-      try {
-        final userInfoResponse = await http.get(
-          Uri.parse('$_baseUrl/api/v1/members/$userId'),
-          headers: {
-            'Authorization': 'Bearer $accessToken',
-          },
-        );
-        
-        if (userInfoResponse.statusCode == 200) {
-          final Map<String, dynamic> userData = jsonDecode(userInfoResponse.body);
-          return User(
-            id: userId,
-            email: userData['email'] ?? '',
-            name: userData['name'] ?? '',
-            photoUrl: userData['photoUrl'],
-            accessToken: accessToken,
-          );
-        } else if (userInfoResponse.statusCode == 401) {
-          // Attempt to refresh access token if expired
-          final newAccessToken = await refreshAccessToken();
-          await _storage.write(key: 'access_token', value: newAccessToken);
-          
-          // Retry with refreshed token
-          final retryResponse = await http.get(
-            Uri.parse('$_baseUrl/api/v1/members/$userId'),
-            headers: {
-              'Authorization': 'Bearer $newAccessToken',
-            },
-          );
-          
-          if (retryResponse.statusCode == 200) {
-            final Map<String, dynamic> userData = jsonDecode(retryResponse.body);
-            return User(
-              id: userId,
-              email: userData['email'] ?? '',
-              name: userData['name'] ?? '',
-              photoUrl: userData['photoUrl'],
-              accessToken: newAccessToken,
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('User info retrieval error: $e');
-      }
-      
-      // Return null if all attempts fail
+    final accessToken = await _storage.read(key: 'access_token');
+    if (accessToken == null) return null;
+    
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/v1/members/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+    
+    if (response.statusCode == 200) {
+      final userData = jsonDecode(response.body);
+      return User(
+        id: userData['id'].toString(),
+        email: userData['email'] ?? '',
+        name: userData['name'] ?? '',
+        photoUrl: userData['photoUrl'],
+        accessToken: accessToken,
+      );
+    } else if (response.statusCode == 401) {
+      // Token expired - attempt refresh or return null
       return null;
-    } catch (e) {
-      debugPrint('Current user retrieval error: $e');
+    } else {
+      debugPrint('Failed to fetch user info: ${response.statusCode}, ${response.body}');
       return null;
     }
   }

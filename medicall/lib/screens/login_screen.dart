@@ -122,17 +122,32 @@ class _LoginScreenState extends State<LoginScreen> {
       await storage.write(key: 'access_token', value: atk);
       await storage.write(key: 'refresh_token', value: rtk);
       
-      // 명시적으로 HttpClientService 인스턴스 초기화
-      final httpClient = Provider.of<HttpClientService>(context, listen: false);
-      httpClient.setAuthorizationHeader('Bearer $atk');
-      httpClient.updateRefreshToken(rtk);
+      // Provider 사용 전에 context가 유효한지 확인
+      if (!mounted) return;
       
-      // 로그로 헤더 확인
-      print("Auth header set: ${httpClient.getHeaders()}");
+      // HTTP 클라이언트에 토큰 설정
+      try {
+        final httpClient = Provider.of<HttpClientService>(context, listen: false);
+        httpClient.setAuthorizationHeader('Bearer $atk');
+        httpClient.updateRefreshToken(rtk);
+        
+        // 로그로 헤더 확인
+        print("Auth header set: ${httpClient.getHeaders()}");
+      } catch (providerError) {
+        print("Provider 오류: $providerError");
+        // Provider 오류가 발생해도 계속 진행 (인증 수행은 가능)
+      }
       
-      // Provider에 사용자 정보 갱신 요청 (토큰 기반 인가)
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.loadCurrentUser();
+      // Provider에 사용자 정보 갱신 요청
+      if (mounted) {
+        try {
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          await authProvider.loadCurrentUser();
+        } catch (authProviderError) {
+          print("AuthProvider 오류: $authProviderError"); 
+          // Provider 오류가 발생해도 계속 진행
+        }
+      }
 
       _sub?.cancel();
       if (mounted) {

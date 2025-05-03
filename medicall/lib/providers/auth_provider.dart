@@ -33,9 +33,20 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> loadCurrentUser() async {
-    // 토큰이 있으면 서버에서 유저 정보 조회 후 상태 갱신
-    // 예시: await AuthService().getCurrentUser();
-    // notifyListeners();
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // 서버에서 현재 사용자 정보 가져오기
+      _user = await _authService.getCurrentUser();
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = '사용자 정보 로드 실패: ${e.toString()}';
+      print('사용자 정보 로드 오류: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // 웹뷰에서 사용할 로그인 URL 가져오기

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'services/http_client_service.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -14,7 +15,20 @@ const String CUSTOM_URI_SCHEME = 'medicall';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  runApp(MyApp());
+  
+  // HTTP 클라이언트 서비스 초기화
+  final httpClient = HttpClientService();
+  await httpClient.initialize();
+  
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<HttpClientService>.value(value: httpClient),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -84,25 +98,20 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ],
-      child: MaterialApp(
-        title: 'Medicall',
-        theme: ThemeData(
-          primaryColor: const Color(0xFFD94B4B),
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFFD94B4B),
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
+    return MaterialApp(
+      title: 'Medicall',
+      theme: ThemeData(
+        primaryColor: const Color(0xFFD94B4B),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFD94B4B),
+          brightness: Brightness.light,
         ),
-        home: _authCode != null 
-            ? LoginScreen(code: _authCode) // 딥링크에서 코드가 있으면 로그인 화면으로
-            : SplashScreen(),
-        debugShowCheckedModeBanner: false,
+        useMaterial3: true,
       ),
+      home: _authCode != null 
+          ? LoginScreen(code: _authCode) // 딥링크에서 코드가 있으면 로그인 화면으로
+          : SplashScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
