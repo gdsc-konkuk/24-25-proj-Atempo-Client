@@ -118,8 +118,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleOAuthTokens(String atk, String rtk) async {
     try {
+      // 토큰 저장
       await storage.write(key: 'access_token', value: atk);
       await storage.write(key: 'refresh_token', value: rtk);
+      
+      // 명시적으로 HttpClientService 인스턴스 초기화
+      final httpClient = Provider.of<HttpClientService>(context, listen: false);
+      httpClient.setAuthorizationHeader('Bearer $atk');
+      httpClient.updateRefreshToken(rtk);
+      
+      // 로그로 헤더 확인
+      print("Auth header set: ${httpClient.getHeaders()}");
+      
       // Provider에 사용자 정보 갱신 요청 (토큰 기반 인가)
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.loadCurrentUser();
@@ -151,6 +161,10 @@ class _LoginScreenState extends State<LoginScreen> {
         headers: {'Content-Type': 'application/json'},
         body: '{"code":"$code"}',
       );
+      
+      print("Token response status: ${response.statusCode}");
+      print("Token response body: ${response.body}");
+      
       if (response.statusCode != 200) {
         if (mounted) {
           setState(() {
@@ -167,8 +181,17 @@ class _LoginScreenState extends State<LoginScreen> {
       final refreshToken = tokenData['refreshToken'];
 
       if (accessToken != null && refreshToken != null) {
+        // 토큰 저장
         await storage.write(key: 'access_token', value: accessToken);
         await storage.write(key: 'refresh_token', value: refreshToken);
+
+        // JWT 토큰을 HTTP 클라이언트에 설정
+        final httpClient = Provider.of<HttpClientService>(context, listen: false);
+        httpClient.setAuthorizationHeader('Bearer $accessToken');
+        httpClient.updateRefreshToken(refreshToken);
+        
+        // 로그로 헤더 확인
+        print("Auth header set: ${httpClient.getHeaders()}");
 
         // Provider에 사용자 정보 갱신 요청 (토큰 기반 인가)
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -179,6 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
           setState(() {
             _isLoading = false;
           });
+          
           // 화면이 이미 이동했는지 체크 후 이동
           if (ModalRoute.of(context)?.isCurrent ?? true) {
             Navigator.of(context).pushAndRemoveUntil(
@@ -228,7 +252,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     // AuthProvider 인스턴스 가져오기
     final authProvider = Provider.of<AuthProvider>(context);
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
@@ -239,7 +262,6 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 40),
-                // Logo
                 Center(
                   child: RichText(
                     text: TextSpan(
@@ -273,7 +295,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 SizedBox(height: 60),
-                // Ambulance image 
                 Center(
                   child: Container(
                     height: 240,
@@ -284,7 +305,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 SizedBox(height: 60),
-                // Login Section
                 Text(
                   "Login",
                   style: GoogleFonts.notoSans(
@@ -318,7 +338,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 SizedBox(height: 24),
-                // Google Login Button
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
@@ -359,7 +378,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(height: 20),
                   Center(child: Text(_statusMessage, style: TextStyle(color: Colors.red))),
                 ],
-                SizedBox(height: 20),
               ],
             ),
           ),
@@ -368,14 +386,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Custom route for animated transition
   Route _createRoute() {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => SignUpScreen(),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         Animation<double> sizeAnimation = Tween<double>(begin: 0.0, end: 1.0)
             .animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut));
-
         return Stack(
           children: [
             PositionedTransition(
@@ -384,7 +400,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   MediaQuery.of(context).size.width,
                   MediaQuery.of(context).size.height,
                   0,
-                  0
+                  0,
                 ),
                 end: RelativeRect.fill,
               ).animate(animation),

@@ -1,105 +1,136 @@
-import 'package:dio/dio.dart';
-import 'package:cookie_jar/cookie_jar.dart';
-import 'package:dio_cookie_manager/dio_cookie_manager.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
 
-/// 쿠키 상태를 유지하는 HTTP 클라이언트 서비스
 class HttpClientService {
-  static final HttpClientService _instance = HttpClientService._internal();
-  factory HttpClientService() => _instance;
+  final storage = FlutterSecureStorage();
+  final String baseUrl = 'http://avenir.my:8080/api/v1';
+  Map<String, String> _headers = {'Content-Type': 'application/json'};
+  String? _refreshToken;
 
-  late Dio _dio;
-  // 전역으로 쿠키 저장소 유지
-  final CookieJar cookieJar = CookieJar();
+  // 액세스 토큰으로 인증 헤더 설정
+  void setAuthorizationHeader(String bearerToken) {
+    _headers['Authorization'] = bearerToken;
+  }
 
-  HttpClientService._internal() {
-    _dio = Dio(
-      BaseOptions(
-        followRedirects: false,                 // 자동 리다이렉트 비활성
-        validateStatus: (s) => s != null && (s < 400 || s == 302),
-      ),
-    );
+  // 리프레시 토큰 저장
+  void updateRefreshToken(String refreshToken) {
+    _refreshToken = refreshToken;
+  }
+
+  // 초기화 메서드 - 앱 시작 시 호출해야 함
+  Future<void> initialize() async {
+    final accessToken = await storage.read(key: 'access_token');
+    final refreshToken = await storage.read(key: 'refresh_token');
     
-    // 쿠키 관리자 설정
-    _dio.interceptors.add(CookieManager(cookieJar));
+    if (accessToken != null) {
+      setAuthorizationHeader('Bearer $accessToken');
+    }
     
-    // 로깅 설정 (디버그 모드에서만)
-    if (kDebugMode) {
-      _dio.interceptors.add(LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        responseHeader: true,
-        requestHeader: true,
-      ));
+    if (refreshToken != null) {
+      updateRefreshToken(refreshToken);
     }
   }
 
-  Dio get client => _dio;
-  
-  /// WebView에서 추출한 JSESSIONID를 Dio에 주입
-  void injectSessionCookie(String jsessionId, String domain, {String path = '/'}) {
-    final cookie = Cookie('JSESSIONID', jsessionId)
-      ..domain = domain
-      ..path = path;
+  // 토큰 갱신 메서드
+  Future<bool> refreshAccessToken() async {
+    if (_refreshToken == null) return false;
     
-    final uri = Uri.parse('http://$domain');
-    cookieJar.saveFromResponse(uri, [cookie]);
-    
-    if (kDebugMode) {
-      print('JSESSIONID 쿠키 주입 완료: $jsessionId');
-    }
-  }
-
-  /// OAuth 로그인 URL 리다이렉션 획득
-  Future<String> getLoginRedirect(String url) async {
     try {
-      final res = await _dio.get(url);             // 302 예상
-      if (res.statusCode == 302) {
-        final loc = res.headers[HttpHeaders.locationHeader]?.first;
-        if (loc == null || loc.isEmpty) {
-          throw Exception('Location 헤더 없음');
-        }
-        return loc;                               // 최종 리다이렉트 URL 반환
-      }
-      throw Exception('예상치 못한 상태: ${res.statusCode}');
-    } catch (e) {
-      debugPrint('HTTP 리다이렉트 요청 오류: $e');
-      rethrow;
-    }
-  }
-
-  /// Post 요청 수행 (쿠키 관리 포함)
-  Future<Response> post(String url, {
-    dynamic data,
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-  }) async {
-    try {
-      final response = await _dio.post(
-        url,
-        data: data,
-        queryParameters: queryParameters,
-        options: options ?? Options(
-          followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
-        ),
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/access-token'),
+        headers: {'Authorization': _refreshToken!},
       );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final newAccessToken = data['accessToken'];
+        
+        if (newAccessToken != null) {
+          setAuthorizationHeader('Bearer $newAccessToken');
+          await storage.write(key: 'access_token', value: newAccessToken);
+          return true;
+        }
+      }
+      
+      // 토큰 갱신 실패 시 로그인 필요
+      return false;
+    } catch (e) {
+      print('토큰 갱신 중 오류: $e');
+      return false;
+    }
+  }
+
+  // 디버깅용 - 헤더 확인
+  Map<String, String> getHeaders() {
+    return Map.from(_headers);
+  }
+  
+  // URL 조합 헬퍼 (슬래시 중복 방지)
+  String buildUrl(String endpoint) {
+    // baseUrl에서 끝 슬래시 제거
+    final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    
+    // endpoint에서 시작 슬래시 제거
+    final path = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    
+    // 슬래시로 올바르게 연결
+    return '$base/$path';
+  }
+
+  // HTTP GET 요청 메서드
+  Future<http.Response> get(String endpoint, {Map<String, String>? queryParams}) async {
+    final uri = Uri.parse(buildUrl(endpoint))
+        .replace(queryParameters: queryParams);
+    
+    try {
+      final response = await http.get(uri, headers: _headers);
+      
+      // 401 Unauthorized - 토큰 갱신 시도
+      if (response.statusCode == 401) {
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          // 토큰 갱신 성공 시 요청 재시도
+          return http.get(uri, headers: _headers);
+        }
+      }
       
       return response;
     } catch (e) {
-      debugPrint('HTTP POST 요청 오류: $e');
-      rethrow;
+      throw Exception('GET 요청 오류: $e');
     }
   }
 
-  /// 특정 도메인의 쿠키 삭제
-  void clearCookies(String domain) {
-    cookieJar.delete(Uri.parse(domain));
+  // HTTP POST 요청 메서드
+  Future<http.Response> post(String endpoint, dynamic body) async {
+    final uri = Uri.parse(buildUrl(endpoint));
+    
+    try {
+      final response = await http.post(
+        uri, 
+        headers: _headers,
+        body: body is String ? body : jsonEncode(body),
+      );
+      
+      // 401 Unauthorized - 토큰 갱신 시도
+      if (response.statusCode == 401) {
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          // 토큰 갱신 성공 시 요청 재시도
+          return http.post(
+            uri, 
+            headers: _headers,
+            body: body is String ? body : jsonEncode(body),
+          );
+        }
+      }
+      
+      return response;
+    } catch (e) {
+      throw Exception('POST 요청 오류: $e');
+    }
   }
 
-  /// 모든 쿠키 삭제
-  void clearAllCookies() {
-    cookieJar.deleteAll();
-  }
+  // 기타 필요한 HTTP 메서드 (PUT, DELETE 등) 구현 가능
 }

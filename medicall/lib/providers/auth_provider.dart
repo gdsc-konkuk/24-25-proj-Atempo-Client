@@ -40,21 +40,15 @@ class AuthProvider with ChangeNotifier {
 
   // 웹뷰에서 사용할 로그인 URL 가져오기
   Future<String> getLoginUrl() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      final loginUrl = await _authService.getLoginUrl();
-      _isLoading = false;
-      notifyListeners();
-      return loginUrl;
-    } catch (e) {
-      _errorMessage = '로그인 URL 획득 실패: ${e.toString()}';
-      _isLoading = false;
-      notifyListeners();
-      throw e;
-    }
+    // Fix URL construction to avoid double slashes
+    final baseUrl = 'http://avenir.my:8080';
+    final path = '/oauth2/authorization/google';
+    
+    // Ensure there's exactly one slash between baseUrl and path
+    final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final route = path.startsWith('/') ? path : '/$path';
+    
+    return '$base$route';
   }
 
   // OAuth 인증 코드로 로그인 완료하기
