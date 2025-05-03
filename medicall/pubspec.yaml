@@ -34,6 +34,9 @@ dependencies:
   # 웹뷰 쿠키 관리
   webview_cookie_manager: ^2.0.6
 
+  # 설정 저장을 위한 패키지 추가
+  shared_preferences: ^2.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

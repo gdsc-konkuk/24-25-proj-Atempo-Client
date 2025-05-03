@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/map_screen.dart';
+import 'screens/settings_screen.dart';
 import 'package:uni_links/uni_links.dart';
 import 'dart:async';
 
@@ -112,6 +113,9 @@ class _MyAppState extends State<MyApp> {
           ? LoginScreen(code: _authCode) // 딥링크에서 코드가 있으면 로그인 화면으로
           : SplashScreen(),
       debugShowCheckedModeBanner: false,
+      routes: {
+        '/settings': (context) => SettingsScreen(),
+      },
     );
   }
 }

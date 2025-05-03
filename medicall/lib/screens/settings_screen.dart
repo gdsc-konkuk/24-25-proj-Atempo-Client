@@ -1,11 +1,127 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'faq_screen.dart';
 import 'contact_us_screen.dart';
-import 'about_us_screen.dart'; // 추가된 import
+import 'about_us_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
+
+  @override
+  _SettingsScreenState createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  double _searchRadius = 5.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _searchRadius = prefs.getDouble('search_radius') ?? 5.0;
+    });
+  }
+
+  Future<void> _saveSearchRadius(double radius) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('search_radius', radius);
+    setState(() {
+      _searchRadius = radius;
+    });
+  }
+
+  void _showSearchRadiusModal() {
+    double tempRadius = _searchRadius;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: EdgeInsets.all(20),
+                width: MediaQuery.of(context).size.width * 0.8,
+                decoration: BoxDecoration(
+                  color: Color(0xFFFEEBEB),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Search Radius Settings',
+                      style: GoogleFonts.notoSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      '${tempRadius.toInt()}km',
+                      style: GoogleFonts.notoSans(fontSize: 16),
+                    ),
+                    SizedBox(height: 10),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: const Color(0xFFD94B4B),
+                        inactiveTrackColor: Colors.grey[300],
+                        thumbColor: const Color(0xFFD94B4B),
+                        thumbShape: RoundSliderThumbShape(
+                          enabledThumbRadius: 8.0,
+                        ),
+                        overlayColor: const Color(0xFFD94B4B).withAlpha(50),
+                      ),
+                      child: Slider(
+                        min: 1,
+                        max: 50,
+                        divisions: 49,
+                        value: tempRadius,
+                        onChanged: (value) {
+                          setModalState(() {
+                            tempRadius = value;
+                          });
+                        },
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () async {
+                            await _saveSearchRadius(tempRadius);
+                            Navigator.of(context).pop();
+                          },
+                          child: Text(
+                            'Confirm',
+                            style: GoogleFonts.notoSans(
+                              color: const Color(0xFFD94B4B),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +196,7 @@ class SettingsScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '5km',
+                      '${_searchRadius.toInt()}km',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.black87,
@@ -89,9 +205,7 @@ class SettingsScreen extends StatelessWidget {
                     Icon(Icons.chevron_right),
                   ],
                 ),
-                onTap: () {
-                  // Handle search radius setting
-                },
+                onTap: _showSearchRadiusModal,
               ),
             ),
             SizedBox(height: 16),
@@ -132,7 +246,6 @@ class SettingsScreen extends StatelessWidget {
                     subtitle: Text('1:1 Inquiry'),
                     trailing: Icon(Icons.chevron_right),
                     onTap: () {
-                      // Navigate to Contact Us screen
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => ContactUsScreen()),
@@ -148,7 +261,6 @@ class SettingsScreen extends StatelessWidget {
                     subtitle: Text('Frequently Asked Questions'),
                     trailing: Icon(Icons.chevron_right),
                     onTap: () {
-                      // Navigate to FAQ screen
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => FAQScreen()),
