@@ -75,6 +75,8 @@ DEPENDENCIES:
   - Google-Maps-iOS-Utils (= 5.0.0)
   - google_maps_flutter_ios (from `.symlinks/plugins/google_maps_flutter_ios/ios`)
   - GoogleMaps (= 8.4.0)
+  - MapboxCommon
+  - MapboxMaps (= 10.15.0)
   - MapboxNavigation (= 2.15.0)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -84,7 +86,7 @@ DEPENDENCIES:
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
 
 SPEC REPOS:
-  https://github.com/CocoaPods/Specs.git:
+  trunk:
     - Google-Maps-iOS-Utils
     - GoogleMaps
     - MapboxCommon
@@ -154,6 +156,6 @@ SPEC CHECKSUMS:
   webview_cookie_manager: d63a76cabdf42a7ea3d92768ac67d4853a1367f8
   webview_flutter_wkwebview: 1821ceac936eba6f7984d89a9f3bcb4dea99ebb2
 
-PODFILE CHECKSUM: 891cbaf3bb9c34c1720afabdb5dee17fe4eed5cb
+PODFILE CHECKSUM: 237d87f07b12f37d6a76a4d3640842f1403b50cd
 
 COCOAPODS: 1.16.2
