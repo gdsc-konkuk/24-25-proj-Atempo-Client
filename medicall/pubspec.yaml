@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  google_maps_flutter: ^2.5.0  # 버전을 2.5.0으로 명시적 지정 (최신 2.12.0 대신)
+  google_maps_flutter: ^2.12.1  # 버전을 2.5.0으로 명시적 지정 (최신 2.12.0 대신)
   geolocator: ^10.1.0
   geocoding: ^2.1.1
   cupertino_icons: ^1.0.8
