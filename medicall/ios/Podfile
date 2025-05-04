@@ -39,7 +39,8 @@ target 'Runner' do
   
   # 2. Utils 라이브러리도 호환되는 버전으로 설정
   pod 'Google-Maps-iOS-Utils', '5.0.0'
-  
+  pod 'MapboxNavigation', '2.15.0' # 예시 버전
+
   target 'RunnerTests' do
     inherit! :search_paths
   end

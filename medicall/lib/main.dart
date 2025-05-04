@@ -16,6 +16,8 @@ const String CUSTOM_URI_SCHEME = 'medicall';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
   await dotenv.load(fileName: ".env");
   
   // HTTP 클라이언트 서비스 초기화
