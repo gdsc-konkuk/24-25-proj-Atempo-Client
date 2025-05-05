@@ -4,6 +4,7 @@ import Flutter
 import GoogleMaps
 #endif
 import CoreLocation
+import flutter_mapbox_navigation
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, CLLocationManagerDelegate {
@@ -17,6 +18,9 @@ import CoreLocation
     #if canImport(GoogleMaps)
     GMSServices.provideAPIKey("AIzaSyAw92wiRgypo3fVZ4-R5CbpB4x_Pcj1gwk")
     #endif
+    
+    // Mapbox 토큰은 Info.plist에서 설정됩니다
+    // flutter_mapbox_navigation 플러그인은 자동으로 이 값을 사용합니다
     
     // 위치 관리자 초기화 - iOS에서 위치 서비스 제대로 설정
     setupLocationManager()

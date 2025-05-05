@@ -10,13 +10,16 @@ import 'screens/map_screen.dart';
 import 'screens/settings_screen.dart';
 import 'package:uni_links/uni_links.dart';
 import 'dart:async';
+import 'package:medicall/services/env_service.dart';
 
 // 딥링크 URI 스킴 설정
 const String CUSTOM_URI_SCHEME = 'medicall';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  
+  // Load environment variables
+  await EnvService.load();
   
   // HTTP 클라이언트 서비스 초기화
   final httpClient = HttpClientService();

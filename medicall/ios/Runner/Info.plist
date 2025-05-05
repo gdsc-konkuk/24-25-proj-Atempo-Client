@@ -38,13 +38,17 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to location when open to show your position on the map and provide navigation services.</string>
+	<string>Shows your location on the map and helps with navigation.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>이 앱은 응급 상황에서 위치 정보를 활용합니다</string>
+	<string>네비게이션을 위해 위치 접근 권한이 필요합니다</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs access to location when open and in the background to provide navigation services even when the app is minimized.</string>
+	<string>네비게이션을 위해 위치 접근 권한이 필요합니다</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+	<key>MGLMapboxAccessToken</key>
+	<string>$(MAPBOX_ACCESS_TOKEN)</string>
+	<key>MBXAccessToken</key>
+	<string>$(MAPBOX_ACCESS_TOKEN)</string>
 	<key>GoogleMapsApiKey</key>
 	<string>$(GOOGLE_MAPS_API_KEY)</string>
 	<key>NSAppTransportSecurity</key>
@@ -72,6 +76,12 @@
 				<string>medicall</string>
 			</array>
 		</dict>
+	</array>
+	<!-- 백그라운드 모드 설정 -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>location</string>
 	</array>
 </dict>
 

@@ -5,6 +5,7 @@ import 'dart:io' show Platform;
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
+import 'package:medicall/screens/mapbox_navigation_screen.dart';
 
 class NavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -110,6 +111,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
   
+  void _startMapboxNavigation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapboxNavigationScreen(hospital: widget.hospital),
+      ),
+    );
+  }
+  
   Future<LatLng> _getCurrentUserLocation() async {
     // 위치 권한 확인
     LocationPermission permission = await Geolocator.checkPermission();
@@ -133,6 +143,39 @@ class _NavigationScreenState extends State<NavigationScreen> {
     if (kIsWeb) return true;
     return Platform.isAndroid || Platform.isIOS;
   }
+  
+  LatLngBounds _getBounds() {
+    double minLat = double.infinity;
+    double maxLat = -double.infinity;
+    double minLng = double.infinity;
+    double maxLng = -double.infinity;
+    
+    // Include all markers
+    for (final marker in _markers) {
+      minLat = min(minLat, marker.position.latitude);
+      maxLat = max(maxLat, marker.position.latitude);
+      minLng = min(minLng, marker.position.longitude);
+      maxLng = max(maxLng, marker.position.longitude);
+    }
+    
+    // Include all polyline points
+    for (final polyline in _polylines) {
+      for (final point in polyline.points) {
+        minLat = min(minLat, point.latitude);
+        maxLat = max(maxLat, point.latitude);
+        minLng = min(minLng, point.longitude);
+        maxLng = max(maxLng, point.longitude);
+      }
+    }
+    
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+  }
+  
+  double min(double a, double b) => a < b ? a : b;
+  double max(double a, double b) => a > b ? a : b;
   
   @override
   Widget build(BuildContext context) {
@@ -352,14 +395,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
                       ],
                     ),
                     ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: _startMapboxNavigation,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFFE93C4A),
                         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       ),
-                      child: Text('End Navigation'),
+                      child: Text('Start Navigation'),
                     ),
                   ],
                 ),
@@ -411,38 +452,4 @@ class _NavigationScreenState extends State<NavigationScreen> {
       ],
     );
   }
-  
-  // Helper method to get bounds that include all route points
-  LatLngBounds _getBounds() {
-    double minLat = double.infinity;
-    double maxLat = -double.infinity;
-    double minLng = double.infinity;
-    double maxLng = -double.infinity;
-    
-    // Include all markers
-    for (final marker in _markers) {
-      minLat = min(minLat, marker.position.latitude);
-      maxLat = max(maxLat, marker.position.latitude);
-      minLng = min(minLng, marker.position.longitude);
-      maxLng = max(maxLng, marker.position.longitude);
-    }
-    
-    // Include all polyline points
-    for (final polyline in _polylines) {
-      for (final point in polyline.points) {
-        minLat = min(minLat, point.latitude);
-        maxLat = max(maxLat, point.latitude);
-        minLng = min(minLng, point.longitude);
-        maxLng = max(maxLng, point.longitude);
-      }
-    }
-    
-    return LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
-    );
-  }
-  
-  double min(double a, double b) => a < b ? a : b;
-  double max(double a, double b) => a > b ? a : b;
 }
