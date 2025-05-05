@@ -38,11 +38,11 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>이 앱은 가까운 응급실을 찾기 위해 위치 정보가 필요합니다</string>
+	<string>This app needs access to location when open to show your position on the map and provide navigation services.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>이 앱은 응급 상황에서 위치 정보를 활용합니다</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>이 앱은 응급 상황에서 위치 정보를 활용합니다</string>
+	<string>This app needs access to location when open and in the background to provide navigation services even when the app is minimized.</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
 	<key>GoogleMapsApiKey</key>
