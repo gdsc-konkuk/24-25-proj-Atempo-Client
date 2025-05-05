@@ -12,6 +12,7 @@ import 'package:uni_links/uni_links.dart';
 import 'dart:async';
 import 'package:medicall/services/env_service.dart';
 
+
 // 딥링크 URI 스킴 설정
 const String CUSTOM_URI_SCHEME = 'medicall';
 
@@ -24,7 +25,11 @@ void main() async {
   // HTTP 클라이언트 서비스 초기화
   final httpClient = HttpClientService();
   await httpClient.initialize();
-  
+
+  //Mapbox 토큰 설정
+  // await dotenv.load(fileName: '.env');
+  // MapboxOptions.setAccessToken(dotenv.env['MAPBOX_ACCESS_TOKEN']!);
+
   runApp(
     MultiProvider(
       providers: [

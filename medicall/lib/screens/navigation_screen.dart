@@ -112,12 +112,40 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
   
   void _startMapboxNavigation() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MapboxNavigationScreen(hospital: widget.hospital),
-      ),
-    );
+    try {
+      print("Starting Mapbox Navigation...");
+      
+      // 테스트를 위한 임시 병원 데이터 생성
+      Map<String, dynamic> hospitalData = Map.from(widget.hospital);
+      
+      // 병원 데이터에 위도/경도가 없는 경우 임의의 값 추가 (서울대학교병원 위치)
+      if (!hospitalData.containsKey('latitude') || !hospitalData.containsKey('longitude')) {
+        print("병원 위치 정보가 없어 임의의 값을 설정합니다.");
+        hospitalData['latitude'] = 37.579617;  // 서울대학교병원 위도
+        hospitalData['longitude'] = 126.998898;  // 서울대학교병원 경도
+      }
+      
+      print("병원 위치: ${hospitalData['latitude']}, ${hospitalData['longitude']}");
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapboxNavigationScreen(hospital: hospitalData),
+        ),
+      ).then((value) {
+        print("Navigation screen returned with: $value");
+      }).catchError((error) {
+        print("Navigation screen error: $error");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("네비게이션을 시작할 수 없습니다: $error"))
+        );
+      });
+    } catch (e) {
+      print("Navigation 시작 중 오류 발생: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("네비게이션을 시작할 수 없습니다: $e"))
+      );
+    }
   }
   
   Future<LatLng> _getCurrentUserLocation() async {
@@ -145,13 +173,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
   
   LatLngBounds _getBounds() {
-    double minLat = double.infinity;
-    double maxLat = -double.infinity;
-    double minLng = double.infinity;
-    double maxLng = -double.infinity;
+    // 초기 값 설정
+    double minLat = 90.0;  // 위도 범위는 -90 ~ 90
+    double maxLat = -90.0;
+    double minLng = 180.0; // 경도 범위는 -180 ~ 180
+    double maxLng = -180.0;
+    
+    bool hasPoints = false;
     
     // Include all markers
     for (final marker in _markers) {
+      hasPoints = true;
       minLat = min(minLat, marker.position.latitude);
       maxLat = max(maxLat, marker.position.latitude);
       minLng = min(minLng, marker.position.longitude);
@@ -161,11 +193,32 @@ class _NavigationScreenState extends State<NavigationScreen> {
     // Include all polyline points
     for (final polyline in _polylines) {
       for (final point in polyline.points) {
+        hasPoints = true;
         minLat = min(minLat, point.latitude);
         maxLat = max(maxLat, point.latitude);
         minLng = min(minLng, point.longitude);
         maxLng = max(maxLng, point.longitude);
       }
+    }
+    
+    // 포인트가 없거나 계산된 범위가 유효하지 않은 경우 기본값 사용
+    if (!hasPoints || minLat > maxLat || minLng > maxLng) {
+      // 서울 중심의 작은 범위를 기본값으로 사용
+      return LatLngBounds(
+        southwest: LatLng(37.5642 - 0.01, 126.9742 - 0.01),
+        northeast: LatLng(37.5642 + 0.01, 126.9742 + 0.01),
+      );
+    }
+    
+    // 위도/경도의 차이가 너무 작은 경우 약간의 여유 공간을 추가
+    if (maxLat - minLat < 0.001) {
+      maxLat += 0.001;
+      minLat -= 0.001;
+    }
+    
+    if (maxLng - minLng < 0.001) {
+      maxLng += 0.001;
+      minLng -= 0.001;
     }
     
     return LatLngBounds(

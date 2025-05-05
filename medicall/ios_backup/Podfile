@@ -55,38 +55,81 @@ target 'Runner' do
   # pod 'MapboxMaps',       '11.12.0-rc.1'
   # pod 'MapboxNavigation', '2.19.0'
 
+  # Mapbox 호환 버전 재설정 25.5.5
+  pod 'MapboxMaps', '10.4.0'          # Turf 2.8.0 사용
+  pod 'MapboxDirections', '2.12.0'     # Turf 2.7.0 -> 2.8.0 호환 가능 버전
+  pod 'MapboxNavigation', '2.11.0'     # 최신 안정화 버전
+  pod 'Turf', '2.7.0'                 # 버전 고정
   target 'RunnerTests' do
     inherit! :search_paths
   end
 end
 
 # MapboxMaps만 소스에서 직접 빌드하게 설정
-pre_install do |installer|
-  installer.pod_targets.each do |pod|
-    if pod.name.eql?('MapboxMaps')
-      def pod.build_type;
-        Pod::BuildType.static_library
-      end
-    end
-  end
-end
+# pre_install do |installer|
+#   installer.pod_targets.each do |pod|
+#     if pod.name.eql?('MapboxMaps')
+#       def pod.build_type;
+#         Pod::BuildType.static_library
+#       end
+#     end
+#   end
+# end
+
+# post_install do |installer|
+#   installer.pods_project.targets.each do |target|
+#     # Swift 버전 명시적 설정
+#     target.build_configurations.each do |config|
+#       config.build_settings['SWIFT_VERSION'] = '5.5'
+#       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      
+#       # Mapbox 프레임워크 검색 경로 추가
+#       config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= [
+#         '$(inherited)',
+#         '${PODS_ROOT}/MapboxMaps',
+#         '${PODS_ROOT}/MapboxNavigation'
+#       ]
+#     end
+#   end
+# end
+
+
+# post_install do |installer|
+#   installer.pods_project.targets.each do |target|
+#     flutter_additional_ios_build_settings(target)
+    
+#     target.build_configurations.each do |config|
+#       # 최소 iOS 버전 설정 
+#       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      
+#       # 심볼릭 링크 관련 설정 추가
+#       config.build_settings['CLANG_MODULES_AUTOLINK'] = 'YES'
+      
+#       # 프레임워크 검색 경로 추가
+#       config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)', '${PODS_ROOT}/GoogleMaps/Base/Frameworks', '${PODS_ROOT}/GoogleMaps/Maps/Frameworks']
+#     end
+#   end
+# end
+
+
+
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
-    
     target.build_configurations.each do |config|
-      # 최소 iOS 버전 설정 
+      # Swift 5.5 강제 설정
+      config.build_settings['SWIFT_VERSION'] = '5.5'
+      
+      # 프레임워크 검색 경로 확장
+      config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= [
+        '$(inherited)',
+        '${PODS_ROOT}/MapboxMaps',
+        '${PODS_ROOT}/MapboxNavigation'
+      ]
+      
+      # Xcode 15 호환성 설정
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-      
-      # 심볼릭 링크 관련 설정 추가
-      config.build_settings['CLANG_MODULES_AUTOLINK'] = 'YES'
-      
-      # 프레임워크 검색 경로 추가
-      config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)', '${PODS_ROOT}/GoogleMaps/Base/Frameworks', '${PODS_ROOT}/GoogleMaps/Maps/Frameworks']
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
     end
   end
 end
-
-
-

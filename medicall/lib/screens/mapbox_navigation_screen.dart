@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mapbox_navigation/flutter_mapbox_navigation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'dart:async';
+import 'package:flutter_mapbox_navigation/flutter_mapbox_navigation.dart';
 
 class MapboxNavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -21,40 +18,69 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   // Mapbox Navigation Controller
   MapBoxNavigationViewController? _controller;
   
-  // Navigation information
-  String _distance = '0 km';
-  String _duration = '0 min';
-  String _eta = 'Calculating...';
-  double _distanceRemaining = 0;
-  double _durationRemaining = 0;
-  
   // Navigation state
   bool _isNavigating = false;
   bool _routeBuilt = false;
+  bool _isLoading = true;
   bool _isInitialized = false;
   String _errorMessage = '';
   
-  // Target destination from hospital data
-  late WayPoint _destination;
-  WayPoint? _origin;
-
-  // Mapbox access token from .env file
-  String? _mapboxAccessToken;
-
-  // Navigation options
+  // Mapbox 접근 토큰 (환경 변수에서 가져옴)
+  String? _mapboxPublicToken;
+  
+  // 네비게이션 옵션
   late MapBoxOptions _options;
+  
+  // 출발지 및 목적지 좌표
+  WayPoint? _origin;
+  late WayPoint _destination;
 
   @override
   void initState() {
     super.initState();
-    _mapboxAccessToken = dotenv.env['MAPBOX_PUBLIC_TOKEN'];
-    _initializeOptions();
-    _initialize();
+    print("MapboxNavigationScreen 초기화 중...");
+    _mapboxPublicToken = dotenv.env['MAPBOX_PUBLIC_TOKEN'];
+    print("Mapbox 토큰: $_mapboxPublicToken");
+    
+    if (_mapboxPublicToken == null || _mapboxPublicToken!.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = "Mapbox 토큰이 설정되지 않았습니다. .env 파일을 확인하세요.";
+      });
+      return;
+    }
+    
+    // 목적지 설정
+    double destinationLat = 0.0;
+    double destinationLng = 0.0;
+    
+    try {
+      // 병원 데이터에서 목적지 좌표 가져오기
+      destinationLat = double.parse(widget.hospital['latitude'].toString());
+      destinationLng = double.parse(widget.hospital['longitude'].toString());
+      
+      print("목적지 좌표: $destinationLat, $destinationLng");
+      
+      _destination = WayPoint(
+        name: widget.hospital['name'] ?? "목적지",
+        latitude: destinationLat,
+        longitude: destinationLng,
+      );
+      
+      _initNavigationOptions();
+    } catch (e) {
+      print("좌표 변환 오류: $e");
+      setState(() {
+        _isLoading = false;
+        _errorMessage = "좌표 정보를 처리할 수 없습니다: $e";
+      });
+    }
   }
-
-  void _initializeOptions() {
+  
+  void _initNavigationOptions() {
+    // 네비게이션 옵션 설정
     _options = MapBoxOptions(
-      // Using direct style URLs instead of non-existent constants
+      // MapBoxNavigation.instance.initialize() 제거 - 컨트롤러를 통해 초기화할 예정
       mapStyleUrlDay: "mapbox://styles/mapbox/navigation-day-v1",
       mapStyleUrlNight: "mapbox://styles/mapbox/navigation-night-v1",
       zoom: 15.0,
@@ -65,395 +91,229 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
       voiceInstructionsEnabled: true,
       bannerInstructionsEnabled: true,
       units: VoiceUnits.metric,
-      mode: MapBoxNavigationMode.drivingWithTraffic,
+      simulateRoute: true,
       language: "ko",
-      simulateRoute: false,
-      isOptimized: true,
-      allowsUTurnAtWayPoints: true,
-      animateBuildRoute: true,
-      longPressDestinationEnabled: false,
-    );
-  }
-
-  Future<void> _initialize() async {
-    // Load destination from hospital data
-    double destLat = double.tryParse(widget.hospital['latitude']?.toString() ?? '0') ?? 0;
-    double destLng = double.tryParse(widget.hospital['longitude']?.toString() ?? '0') ?? 0;
-    
-    // Fallback to sample coordinates if needed
-    if (destLat == 0 || destLng == 0) {
-      destLat = 37.5742;
-      destLng = 126.9842;
-    }
-    
-    _destination = WayPoint(
-      name: widget.hospital['name'] ?? 'Hospital',
-      latitude: destLat,
-      longitude: destLng,
     );
     
-    // Set initial values
-    _distance = widget.hospital['distance'] ?? '0 km';
-    _duration = widget.hospital['time'] ?? '0 min';
-    
-    // Calculate initial ETA
-    final now = DateTime.now();
-    final minutesInt = int.tryParse(_duration.split(' ')[0]) ?? 0;
-    final arrivalTime = now.add(Duration(minutes: minutesInt));
-    _eta = '${arrivalTime.hour}:${arrivalTime.minute.toString().padLeft(2, '0')} ${arrivalTime.hour >= 12 ? 'PM' : 'AM'}';
-    
-    try {
-      // Get user's current location
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high
-      );
-      
-      _origin = WayPoint(
-        name: "Current Location",
-        latitude: position.latitude,
-        longitude: position.longitude,
-      );
-      
-      setState(() {
-        _isInitialized = true;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Location error: ${e.toString()}';
-      });
-    }
+    setState(() {
+      _isLoading = false;
+    });
   }
   
-  Future<void> _startNavigation() async {
-    if (_origin == null) {
-      setState(() {
-        _errorMessage = 'Unable to get current location';
-      });
-      return;
-    }
-    
-    try {
-      // Start the navigation
-      // 1. 경로 먼저 생성
-        await _controller?.buildRoute(
-        wayPoints: [_origin!, _destination], // ✅ 올바른 메서드
-    );
-
-    // 2. 네비게이션 시작
-    await _controller?.startNavigation();
-      
-      setState(() {
-        _isNavigating = true;
-        _errorMessage = '';
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Navigation error: ${e.toString()}';
-      });
-    }
-  }
-
-  Future _updateNavigationInfo() async {
-    if (_controller == null) return;
-
-    try {
-      final distance = await _controller!.distanceRemaining;
-      final duration = await _controller!.durationRemaining;
-
-      if (!mounted) return;
-
-      setState(() {
-        _distanceRemaining = distance;
-        _durationRemaining = duration;
-        
-        _distance = '${(distance / 1000).toStringAsFixed(1)} km';
-        _duration = '${(duration / 60).ceil()} min';
-        
-        final eta = DateTime.now().add(Duration(seconds: duration.toInt()));
-        _eta = '${eta.hour}:${eta.minute.toString().padLeft(2, '0')} ${eta.hour >= 12 ? 'PM' : 'AM'}';
-      });
-    } catch (e) {
-      print("네비게이션 정보 업데이트 오류: $e");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Navigation',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: Text('Mapbox Navigation'),
         backgroundColor: Color(0xFFE93C4A),
-        elevation: 0,
-        iconTheme: IconThemeData(color: Colors.white),
       ),
-      body: Column(
-        children: [
-          // Top navigation info bar
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Color(0xFFE93C4A),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.location_on, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.hospital['name'] ?? 'Hospital',
-                        style: GoogleFonts.notoSans(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildInfoItem(
-                      icon: Icons.directions_car,
-                      value: _distance,
-                      label: 'Distance',
-                    ),
-                    _buildInfoItem(
-                      icon: Icons.access_time,
-                      value: _duration,
-                      label: 'Duration',
-                    ),
-                    _buildInfoItem(
-                      icon: Icons.watch_later_outlined,
-                      value: _eta,
-                      label: 'ETA',
-                    ),
-                  ],
-                ),
-              ],
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _errorMessage.isNotEmpty
+              ? _buildErrorWidget()
+              : _buildNavigationWidget(),
+    );
+  }
+  
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 64),
+            SizedBox(height: 16),
+            Text(
+              _errorMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16),
             ),
-          ),
-          
-          // Mapbox navigation view
-          Expanded(
-            child: Stack(
-              children: [
-                MapBoxNavigationView(
-                  options: _options,
-                  onRouteEvent: _onRouteEvent,
-                  onCreated: (MapBoxNavigationViewController controller) {
-                    _controller = controller;
-                    if (_isInitialized && !_isNavigating) {
-                      _startNavigation();
-                    }
-                  },
-                ),
-                
-                if (!_isInitialized)
-                  Container(
-                    color: Colors.white.withOpacity(0.7),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(color: Color(0xFFE93C4A)),
-                          SizedBox(height: 16),
-                          Text('Initializing navigation...'),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                if (_errorMessage.isNotEmpty)
-                  Container(
-                    margin: EdgeInsets.all(20),
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.error_outline, color: Color(0xFFE93C4A), size: 48),
-                        SizedBox(height: 16),
-                        Text(
-                          _errorMessage,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _startNavigation,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFFE93C4A),
-                          ),
-                          child: Text('Try Again'),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('뒤로 가기'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFFE93C4A),
+              ),
             ),
-          ),
-          
-          // Bottom navigation controls
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 6,
-                  offset: Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ETA: $_eta',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '${_duration} (${_distance})',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFE93C4A),
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  ),
-                  child: Text('End Navigation'),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
   
-  void _onRouteEvent(RouteEvent event) {
-    switch (event.eventType) {
-      case MapBoxEvent.progress_change:
-        _updateNavigationInfo();
-        break;
+  Widget _buildNavigationWidget() {
+    return Stack(
+      children: [
+        Container(
+          color: Colors.grey[200],
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '병원 위치로 네비게이션 시작 준비 완료',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  '${widget.hospital['name']}',
+                  style: TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '위치: ${_destination.latitude}, ${_destination.longitude}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: _startEmbeddedNavigation,
+                  child: Text('네비게이션 시작'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFE93C4A),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_routeBuilt && _isNavigating)
+          Container(
+            color: Colors.white,
+            child: MapBoxNavigationView(
+              options: _options,
+              onRouteEvent: _onRouteEvent,
+              onCreated: _onNavigationViewCreated,
+            ),
+          ),
+      ],
+    );
+  }
+  
+  Future<void> _startEmbeddedNavigation() async {
+    try {
+      print("네비게이션 시작 중...");
+      setState(() {
+        _routeBuilt = true;
+        _isNavigating = true;
+      });
+    } catch (e) {
+      print("네비게이션 시작 오류: $e");
+      setState(() {
+        _errorMessage = "네비게이션을 시작할 수 없습니다: $e";
+      });
+    }
+  }
+  
+  void _onNavigationViewCreated(MapBoxNavigationViewController controller) async {
+    print("네비게이션 컨트롤러 생성됨");
+    _controller = controller;
+    
+    try {
+      // 컨트롤러를 통한 초기화 - 새로운 방식
+      await _controller!.initialize();
+      
+      setState(() {
+        _isInitialized = true;
+      });
+      
+      print("Mapbox Navigation initialized successfully");
+      _buildRoute();
+    } catch (e) {
+      print("Mapbox Navigation initialization error: $e");
+      setState(() {
+        _errorMessage = "Mapbox SDK 초기화 실패: $e";
+      });
+    }
+  }
+  
+  Future<void> _buildRoute() async {
+    try {
+      // 현재 위치 설정 (실제 앱에서는 Geolocator로 현재 위치 가져오기)
+      _origin = WayPoint(
+        name: "현재 위치",
+        latitude: 37.5642,  // 서울시청 좌표
+        longitude: 126.9742,
+      );
+      
+      // 경로 생성
+      print("경로 생성 중: ${_origin?.latitude}, ${_origin?.longitude} -> ${_destination.latitude}, ${_destination.longitude}");
+      
+      List<WayPoint> wayPoints = [];
+      wayPoints.add(_origin!);
+      wayPoints.add(_destination);
+      
+      if (_controller != null) {
+        await _controller?.buildRoute(wayPoints: wayPoints);
+        print("경로 생성 완료");
         
+        // 네비게이션 시작
+        await _controller?.startNavigation();
+        print("네비게이션 시작됨");
+      } else {
+        print("네비게이션 컨트롤러가 초기화되지 않았습니다");
+        setState(() {
+          _errorMessage = "네비게이션 컨트롤러 초기화 오류";
+        });
+      }
+    } catch (e) {
+      print("경로 생성 오류: $e");
+      setState(() {
+        _routeBuilt = false;
+        _isNavigating = false;
+        _errorMessage = "경로를 생성할 수 없습니다: $e";
+      });
+    }
+  }
+  
+  Future<void> _onRouteEvent(e) async {
+    print("라우트 이벤트 발생: ${e.eventType}");
+    
+    switch (e.eventType) {
       case MapBoxEvent.route_building:
+        print("경로 생성 중...");
+        break;
       case MapBoxEvent.route_built:
+        print("경로 생성 완료");
         setState(() => _routeBuilt = true);
         break;
-        
       case MapBoxEvent.route_build_failed:
+        print("경로 생성 실패");
         setState(() {
           _routeBuilt = false;
-          _errorMessage = '경로 생성 실패';
+          _errorMessage = "경로를 생성할 수 없습니다";
         });
         break;
-        
       case MapBoxEvent.navigation_running:
+        print("네비게이션 진행 중");
         setState(() => _isNavigating = true);
         break;
-        
       case MapBoxEvent.on_arrival:
-        _showArrivalDialog();
+        print("목적지 도착");
         break;
-        
       case MapBoxEvent.navigation_finished:
       case MapBoxEvent.navigation_cancelled:
+        print("네비게이션 종료");
         setState(() {
           _routeBuilt = false;
           _isNavigating = false;
         });
         break;
-        
       default:
         break;
     }
   }
   
-  void _showArrivalDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('You have arrived!'),
-          content: Text('You have reached ${widget.hospital['name'] ?? 'the hospital'}.'),
-          actions: [
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); // Return to previous screen
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-  
-  Widget _buildInfoItem({required IconData icon, required String value, required String label}) {
-    return Column(
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: 16),
-            SizedBox(width: 4),
-            Text(
-              value,
-              style: GoogleFonts.notoSans(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 2),
-        Text(
-          label,
-          style: GoogleFonts.notoSans(
-            color: Colors.white.withOpacity(0.8),
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-  
   @override
   void dispose() {
-    _controller?.finishNavigation();
+    _controller = null;
     super.dispose();
   }
 }
