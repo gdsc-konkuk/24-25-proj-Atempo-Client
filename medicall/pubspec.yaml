@@ -15,7 +15,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
   flutter_animate: ^4.5.0
-  flutter_dotenv: ^5.0.2  # 추가: dotenv 패키지
+  flutter_dotenv: ^5.2.1  # 추가: dotenv 패키지
   url_launcher: ^6.2.5  # 추가: 브라우저 열기를 위한 패키지
   provider: ^6.1.1  # 상태 관리
   flutter_secure_storage: ^8.0.0  # 민감 정보 저장
@@ -40,6 +40,8 @@ dependencies:
   # Mapbox Navigation 추가
   flutter_mapbox_navigation: ^0.2.2
   # mapbox_maps_flutter: ^1.4.0
+
+
 
 
 dev_dependencies:

@@ -54,3 +54,5 @@ next-env.d.ts
 
 
 medicall/ios/Flutter/Generated.xcconfig
+
+medicall/ios/Config.xcconfig

@@ -119,27 +119,73 @@ class _NavigationScreenState extends State<NavigationScreen> {
       Map<String, dynamic> hospitalData = Map.from(widget.hospital);
       
       // 병원 데이터에 위도/경도가 없는 경우 임의의 값 추가 (서울대학교병원 위치)
-      if (!hospitalData.containsKey('latitude') || !hospitalData.containsKey('longitude')) {
+      if (!hospitalData.containsKey('latitude') || !hospitalData.containsKey('longitude') || 
+          hospitalData['latitude'] == null || hospitalData['longitude'] == null) {
         print("병원 위치 정보가 없어 임의의 값을 설정합니다.");
         hospitalData['latitude'] = 37.579617;  // 서울대학교병원 위도
         hospitalData['longitude'] = 126.998898;  // 서울대학교병원 경도
+        
+        // 필수 정보 추가
+        if (hospitalData['name'] == null) {
+          hospitalData['name'] = '서울대학교병원';
+        }
+        if (hospitalData['distance'] == null) {
+          hospitalData['distance'] = '5.2 km';
+        }
+      }
+      
+      print("병원 데이터: $hospitalData");
+      
+      // 명시적으로 데이터 타입 변환 (문자열로 된 값도 숫자로 변환)
+      try {
+        if (hospitalData['latitude'] is String) {
+          hospitalData['latitude'] = double.parse(hospitalData['latitude']);
+        }
+        if (hospitalData['longitude'] is String) {
+          hospitalData['longitude'] = double.parse(hospitalData['longitude']);
+        }
+      } catch (e) {
+        print("좌표 변환 오류: $e");
+        hospitalData['latitude'] = 37.579617;
+        hospitalData['longitude'] = 126.998898;
       }
       
       print("병원 위치: ${hospitalData['latitude']}, ${hospitalData['longitude']}");
       
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MapboxNavigationScreen(hospital: hospitalData),
+      // 화면 전환 전 확인 대화상자 표시
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('네비게이션 시작'),
+          content: Text('${hospitalData['name']}(으)로 네비게이션을 시작하시겠습니까?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).pop(); // rootNavigator 사용
+                // 확인 후 네비게이션 화면으로 전환 - pushReplacement로 변경
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MapboxNavigationScreen(hospital: hospitalData),
+                  ),
+                ).then((value) {
+                  print("Navigation screen returned with: $value");
+                }).catchError((error) {
+                  print("Navigation screen error: $error");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("네비게이션을 시작할 수 없습니다: $error"))
+                  );
+                });
+              },
+              child: Text('확인'),
+            ),
+          ],
         ),
-      ).then((value) {
-        print("Navigation screen returned with: $value");
-      }).catchError((error) {
-        print("Navigation screen error: $error");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("네비게이션을 시작할 수 없습니다: $error"))
-        );
-      });
+      );
     } catch (e) {
       print("Navigation 시작 중 오류 발생: $e");
       ScaffoldMessenger.of(context).showSnackBar(

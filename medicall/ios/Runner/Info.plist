@@ -45,10 +45,16 @@
 	<string>네비게이션을 위해 위치 접근 권한이 필요합니다</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
-	<key>MGLMapboxAccessToken</key>
-	<string>$(MAPBOX_ACCESS_TOKEN)</string>
-	<key>MBXAccessToken</key>
-	<string>$(MAPBOX_ACCESS_TOKEN)</string>
+ 	<key>MGLMapboxAccessToken</key>
+    <string>$(MAPBOX_PUBLIC_TOKEN)</string>
+    <key>MBXAccessToken</key>
+    <string>$(MAPBOX_ACCESS_TOKEN)</string>
+
+
+
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+	
 	<key>GoogleMapsApiKey</key>
 	<string>$(GOOGLE_MAPS_API_KEY)</string>
 	<key>NSAppTransportSecurity</key>

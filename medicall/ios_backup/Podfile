@@ -132,4 +132,7 @@ post_install do |installer|
       config.build_settings['ENABLE_BITCODE'] = 'NO'
     end
   end
+  flutter_env_plugin_path = File.join(Dir.pwd, '.symlinks', 'plugins', 'flutter_env_native', 'ios', 'setup_env.sh')
+  root_dir = File.expand_path('..', Dir.pwd)
+  system("sh \"#{flutter_env_plugin_path}\" \"#{root_dir}\"")
 end

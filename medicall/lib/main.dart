@@ -11,10 +11,13 @@ import 'screens/settings_screen.dart';
 import 'package:uni_links/uni_links.dart';
 import 'dart:async';
 import 'package:medicall/services/env_service.dart';
-
+import 'package:flutter_mapbox_navigation/flutter_mapbox_navigation.dart';
 
 // 딥링크 URI 스킴 설정
 const String CUSTOM_URI_SCHEME = 'medicall';
+
+// 글로벌 네비게이터 키 추가
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,9 +29,14 @@ void main() async {
   final httpClient = HttpClientService();
   await httpClient.initialize();
 
-  //Mapbox 토큰 설정
-  // await dotenv.load(fileName: '.env');
-  // MapboxOptions.setAccessToken(dotenv.env['MAPBOX_ACCESS_TOKEN']!);
+  // Mapbox 토큰 설정 - 주석 해제 및 수정
+  await dotenv.load(fileName: '.env');
+  final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
+  if (mapboxToken.isNotEmpty) {
+    print("Mapbox token loaded successfully");
+  } else {
+    print("Warning: Mapbox token is empty or not found in .env file");
+  }
 
   runApp(
     MultiProvider(
@@ -110,6 +118,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey, // 글로벌 키 추가
       title: 'Medicall',
       theme: ThemeData(
         primaryColor: const Color(0xFFD94B4B),

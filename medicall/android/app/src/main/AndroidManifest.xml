@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     
     <application
         android:label="medicall"
@@ -15,7 +16,9 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_api_key"/>
             
-        <meta-data android:name="com.mapbox.token" android:value="${MAPBOX_ACCESS_TOKEN}" />
+        <meta-data 
+            android:name="com.mapbox.token" 
+            android:value="${MAPBOX_ACCESS_TOKEN}" />
             
         <activity
             android:name=".MainActivity"
