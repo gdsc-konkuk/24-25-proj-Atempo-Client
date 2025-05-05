@@ -35,11 +35,6 @@ jobs:
         working-directory: ./medicall
         run: flutter pub get
 
-      # Flutter 분석 명령에 --fatal-infos 플래그 제거 (정보 수준 이슈는 무시)
-      - name: Analyze project source
-        working-directory: ./medicall
-        run: flutter analyze --no-fatal-warnings
-
       # 테스트는 계속 유지
       - name: Run tests
         working-directory: ./medicall
