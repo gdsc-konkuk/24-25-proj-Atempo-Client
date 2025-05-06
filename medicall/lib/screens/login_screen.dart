@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../providers/auth_provider.dart';
 import '../services/http_client_service.dart';
-import 'signup_screen.dart';
 import 'map_screen.dart';
 import 'dart:async';
 import 'package:uni_links/uni_links.dart';
@@ -312,30 +311,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.black,
                   ),
                 ),
-                SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(_createRoute());
-                  },
-                  child: RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.notoSans(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
-                      children: [
-                        TextSpan(text: "Don't have an account? "),
-                        TextSpan(
-                          text: "Sign Up",
-                          style: TextStyle(
-                            color: const Color(0xFF323232),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
                 SizedBox(height: 24),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -382,37 +357,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Route _createRoute() {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => SignUpScreen(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        Animation<double> sizeAnimation = Tween<double>(begin: 0.0, end: 1.0)
-            .animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut));
-        return Stack(
-          children: [
-            PositionedTransition(
-              rect: RelativeRectTween(
-                begin: RelativeRect.fromLTRB(
-                  MediaQuery.of(context).size.width,
-                  MediaQuery.of(context).size.height,
-                  0,
-                  0,
-                ),
-                end: RelativeRect.fill,
-              ).animate(animation),
-              child: Container(color: const Color(0xFFD94B4B)),
-            ),
-            ScaleTransition(
-              scale: sizeAnimation,
-              alignment: Alignment.bottomRight,
-              child: child,
-            ),
-          ],
-        );
-      },
     );
   }
 }
