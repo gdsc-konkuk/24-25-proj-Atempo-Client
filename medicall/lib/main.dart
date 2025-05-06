@@ -13,10 +13,10 @@ import 'dart:async';
 import 'package:medicall/services/env_service.dart';
 import 'package:flutter_mapbox_navigation/flutter_mapbox_navigation.dart';
 
-// 딥링크 URI 스킴 설정
+// Set deep link URI scheme
 const String CUSTOM_URI_SCHEME = 'medicall';
 
-// 글로벌 네비게이터 키 추가
+// Add global navigator key
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -25,11 +25,11 @@ void main() async {
   // Load environment variables
   await EnvService.load();
   
-  // HTTP 클라이언트 서비스 초기화
+  // Initialize HTTP client service
   final httpClient = HttpClientService();
   await httpClient.initialize();
 
-  // Mapbox 토큰 설정 - 주석 해제 및 수정
+  // Set Mapbox token - Uncomment and modify if needed
   await dotenv.load(fileName: '.env');
   final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
   if (mapboxToken.isNotEmpty) {
@@ -73,52 +73,52 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> initDeepLinks() async {
-    // 앱이 완전히 종료된 상태였을 때의 딥링크 처리
+    // Handle deep link when the app was completely terminated
     try {
       _initialLink = await getInitialLink();
       if (_initialLink != null) {
-        debugPrint('앱 시작 시 딥링크 감지: $_initialLink');
+        debugPrint('Initial deep link detected: $_initialLink');
         _handleDeepLink(_initialLink!);
       }
     } catch (e) {
-      debugPrint('초기 딥링크 처리 오류: $e');
+      debugPrint('Error processing initial deep link: $e');
     }
 
-    // 앱이 백그라운드에 있거나 실행 중일 때의 딥링크 처리
+    // Handle deep links when the app is in background or running
     _deepLinkSubscription = uriLinkStream.listen((Uri? uri) {
       if (uri != null) {
-        debugPrint('백그라운드에서 딥링크 감지: $uri');
+        debugPrint('Deep link detected in background: $uri');
         _handleDeepLink(uri.toString());
       }
     }, onError: (err) {
-      debugPrint('딥링크 스트림 오류: $err');
+      debugPrint('Deep link stream error: $err');
     });
   }
 
   void _handleDeepLink(String link) {
-    debugPrint('딥링크 수신: $link');
+    debugPrint('Deep link received: $link');
     
-    // OAuth 리디렉션 URL에서 인증 코드 추출
-    // 예: medicall://auth?code=abc123
+    // Extract authentication code from OAuth redirection URL
+    // Example: medicall://auth?code=abc123
     if (link.contains('auth') && link.contains('code=')) {
       final uri = Uri.parse(link);
       final code = uri.queryParameters['code'];
       
       if (code != null) {
-        debugPrint('인증 코드 추출 성공: $code');
+        debugPrint('Successfully extracted authentication code: $code');
         setState(() {
           _authCode = code;
         });
       }
     } else {
-      debugPrint('인증 코드를 찾을 수 없음: $link');
+      debugPrint('Authentication code not found: $link');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey, // 글로벌 키 추가
+      navigatorKey: navigatorKey, // Added global key
       title: 'Medicall',
       theme: ThemeData(
         primaryColor: const Color(0xFFD94B4B),
@@ -129,7 +129,7 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
       ),
       home: _authCode != null 
-          ? LoginScreen(code: _authCode) // 딥링크에서 코드가 있으면 로그인 화면으로
+          ? LoginScreen(code: _authCode) // If deep link contains code, navigate to login screen
           : SplashScreen(),
       debugShowCheckedModeBanner: false,
       routes: {

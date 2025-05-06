@@ -29,15 +29,15 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
   
-  <!-- Google Maps API 로드 방식 개선 및 오류 처리 추가 -->
+  <!-- Improve Google Maps API loading method and add error handling -->
   <script>
     function initMap() {
-      console.log('Google Maps API 초기화 성공');
+      console.log('Google Maps API initialization succeeded');
       window.googleMapsLoaded = true;
     }
     
     function handleMapError() {
-      console.error('Google Maps API 로드 실패');
+      console.error('Google Maps API loading failed');
       window.googleMapsLoaded = false;
     }
   </script>
@@ -50,7 +50,7 @@
   <title>medicall</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- 최신 Flutter 웹 초기화 방식 적용 -->
+  <!-- Use the latest Flutter web initialization method -->
   <script>
     window.flutterWebRenderer = "html";
   </script>
@@ -59,21 +59,21 @@
 <body>
   <script>
     window.addEventListener('load', function(ev) {
-      // Flutter 웹 앱을 로드하기 전에 콘솔에 상태 기록
-      console.log('페이지 로드됨, Flutter 앱 초기화 시작');
+      // Record status in console before loading the Flutter web app
+      console.log('Page loaded, starting Flutter app initialization');
       
-      // Flutter 앱 초기화 코드
+      // Flutter app initialization code
       _flutter.loader.loadEntrypoint({
         serviceWorker: {
           serviceWorkerVersion: serviceWorkerVersion,
         },
         onEntrypointLoaded: function(engineInitializer) {
-          console.log('Flutter 엔진 초기화 중...');
+          console.log('Initializing Flutter engine...');
           engineInitializer.initializeEngine().then(function(appRunner) {
-            console.log('Flutter 앱 실행 준비 완료');
+            console.log('Flutter app ready to run');
             appRunner.runApp();
           }).catch(function(error) {
-            console.error('Flutter 엔진 초기화 실패:', error);
+            console.error('Flutter engine initialization failed:', error);
           });
         }
       });

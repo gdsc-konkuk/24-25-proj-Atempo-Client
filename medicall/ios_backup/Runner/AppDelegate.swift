@@ -13,15 +13,15 @@ import CoreLocation
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // API 키 직접 입력
+    // Manually input API key
     #if canImport(GoogleMaps)
     GMSServices.provideAPIKey("AIzaSyAw92wiRgypo3fVZ4-R5CbpB4x_Pcj1gwk")
     #endif
     
-    // 위치 관리자 초기화 - iOS에서 위치 서비스 제대로 설정
+    // Initialize location manager – properly setup location services in iOS.
     setupLocationManager()
     
-    // MethodChannel 설정
+    // Setup MethodChannel
     let controller = window?.rootViewController as! FlutterViewController
     let mapsChannel = FlutterMethodChannel(name: "com.medicall/maps", binaryMessenger: controller.binaryMessenger)
     
@@ -29,10 +29,10 @@ import CoreLocation
       guard let self = self else { return }
       
       if call.method == "initGoogleMaps" {
-        // 항상 성공 반환 (API 키는 이미 설정됨)
+        // Always return success (API key already configured)
         result(true)
       } else if call.method == "requestLocation" {
-        // 위치 요청 핸들러 추가
+        // Add location request handler
         self.requestLocation(result: result)
       } else {
         result(FlutterMethodNotImplemented)
@@ -43,20 +43,20 @@ import CoreLocation
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
   
-  // 위치 관리자 설정
+  // Setup location manager
   private func setupLocationManager() {
     locationManager = CLLocationManager()
     locationManager?.delegate = self
     locationManager?.desiredAccuracy = kCLLocationAccuracyBest
     
-    // 위치 권한 요청 (사용자에게 최초 한 번만 표시됨)
+    // Request location permission (displayed only once to the user)
     locationManager?.requestWhenInUseAuthorization()
     
-    // 위치 업데이트 시작
+    // Start location updates
     locationManager?.startUpdatingLocation()
   }
   
-  // 위치 요청 메서드
+  // Location request method
   private func requestLocation(result: @escaping FlutterResult) {
     guard let locationManager = locationManager else {
       result(FlutterError(code: "LOCATION_UNAVAILABLE", 
@@ -65,7 +65,7 @@ import CoreLocation
       return
     }
     
-    // 위치 권한 확인
+    // Check location permission
     let authStatus = CLLocationManager.authorizationStatus()
     if authStatus == .denied || authStatus == .restricted {
       result(FlutterError(code: "LOCATION_PERMISSION_DENIED", 
@@ -74,9 +74,9 @@ import CoreLocation
       return
     }
     
-    // 이미 위치가 있는지 확인
+    // Check if location already exists
     if let location = locationManager.location {
-      // 위치 정보를 Flutter로 반환
+      // Return location information to Flutter
       let locationData: [String: Any] = [
         "latitude": location.coordinate.latitude,
         "longitude": location.coordinate.longitude,
@@ -84,20 +84,20 @@ import CoreLocation
       ]
       result(locationData)
     } else {
-      // 위치 업데이트 요청
+      // Request location update
       locationManager.requestLocation()
-      // 비동기 요청이므로 일단 null 반환
+      // Asynchronous request; return nil for now
       result(nil)
     }
   }
   
-  // CLLocationManagerDelegate 메서드
+  // CLLocationManagerDelegate methods
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-    // 위치 업데이트 시 필요한 처리
-    print("iOS에서 위치 업데이트: \(locations.last?.coordinate ?? CLLocationCoordinate2D())")
+    // Handle actions when location updates occur
+    print("Location updated on iOS: \(locations.last?.coordinate ?? CLLocationCoordinate2D())")
   }
   
   func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-    print("iOS 위치 서비스 오류: \(error.localizedDescription)")
+    print("iOS location service error: \(error.localizedDescription)")
   }
 }

@@ -128,9 +128,9 @@ class ContactUsScreen extends StatelessWidget {
                               IconButton(
                                 icon: Icon(Icons.content_copy, color: Colors.grey),
                                 onPressed: () {
-                                  // 클립보드에 이메일 복사
+                                  // Copy email to clipboard
                                   Clipboard.setData(ClipboardData(text: 'medicall.developer@gmail.com'));
-                                  // 스낵바로 복사 알림
+                                  // Show snackbar for copy notification
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Email copied to clipboard'),

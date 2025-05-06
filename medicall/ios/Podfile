@@ -34,10 +34,10 @@ target 'Runner' do
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   
-  # 1. GoogleMaps 버전을 변경하고 명시적으로 설정
-  pod 'GoogleMaps', '8.4.0'  # 8.4.0으로 변경 (google_maps_flutter_ios가 요구하는 최소 버전)
+  # 1. Change GoogleMaps version and explicitly set it
+  pod 'GoogleMaps', '8.4.0'  # Changed to 8.4.0 (minimum version required by google_maps_flutter_ios)
   
-  # 2. Utils 라이브러리도 호환되는 버전으로 설정
+  # 2. Set compatible version for Utils library
   pod 'Google-Maps-iOS-Utils', '5.0.0'
   
   target 'RunnerTests' do
@@ -50,13 +50,13 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     
     target.build_configurations.each do |config|
-      # 최소 iOS 버전 설정 
+      # Set minimum iOS version
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
       
-      # 심볼릭 링크 관련 설정 추가
+      # Add symbolic link configuration
       config.build_settings['CLANG_MODULES_AUTOLINK'] = 'YES'
       
-      # 프레임워크 검색 경로 추가
+      # Add framework search paths
       config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)', '${PODS_ROOT}/GoogleMaps/Base/Frameworks', '${PODS_ROOT}/GoogleMaps/Maps/Frameworks']
     end
   end

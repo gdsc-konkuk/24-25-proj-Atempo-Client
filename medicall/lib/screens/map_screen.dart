@@ -30,7 +30,7 @@ class _MapScreenState extends State<MapScreen> {
 
   String get _googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
-  // 글로벌 좌표계에서 중립적인 초기 위치 (대서양 중간 지점)
+  // Neutral initial position in global coordinate system (mid-Atlantic point)
   static final CameraPosition _initialCameraPosition = CameraPosition(
     target: LatLng(0, 0),
     zoom: 2.0,
@@ -54,20 +54,20 @@ class _MapScreenState extends State<MapScreen> {
       try {
         await _getCurrentLocation();
       } catch (e) {
-        debugPrint('위치 서비스 초기화 오류: $e');
+        debugPrint('Location services initialization error: $e');
         if (mounted) {
           setState(() {
             _isMapLoading = false;
-            _currentAddress = "위치를 가져올 수 없습니다.";
+            _currentAddress = "Unable to retrieve location.";
           });
         }
       }
     } catch (e) {
-      debugPrint('초기화 중 오류 발생: $e');
+      debugPrint('Error during initialization: $e');
       if (mounted) {
         setState(() {
           _isMapLoading = false;
-          _mapLoadError = "초기화 중 오류가 발생했습니다: $e";
+          _mapLoadError = "An error occurred during initialization: $e";
         });
       }
     }
@@ -79,7 +79,7 @@ class _MapScreenState extends State<MapScreen> {
       if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('위치 서비스가 비활성화되어 있습니다. 설정에서 활성화해주세요.')));
+              content: Text('Location services are disabled. Please enable them in settings.')));
         }
         return false;
       }
@@ -90,7 +90,7 @@ class _MapScreenState extends State<MapScreen> {
         if (permission == LocationPermission.denied) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('위치 권한이 거부되었습니다.')));
+                const SnackBar(content: Text('Location permission denied.')));
           }
           return false;
         }
@@ -99,14 +99,14 @@ class _MapScreenState extends State<MapScreen> {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('위치 권한이 영구적으로 거부되었습니다. 설정에서 권한을 허용해주세요.')));
+              content: Text('Location permission permanently denied. Please enable it in settings.')));
         }
         return false;
       }
 
       return true;
     } catch (e) {
-      debugPrint('위치 권한 확인 중 오류: $e');
+      debugPrint('Error checking location permission: $e');
       return false;
     }
   }
@@ -118,16 +118,16 @@ class _MapScreenState extends State<MapScreen> {
       if (!hasPermission) {
         setState(() {
           _isMapLoading = false;
-          _currentAddress = "위치 권한이 없습니다. 설정에서 위치 권한을 허용해주세요.";
+          _currentAddress = "Location permission not granted. Please enable it in settings.";
         });
         return;
       }
 
-      debugPrint('위치 권한 획득 완료, 현재 위치 가져오는 중...');
+      debugPrint('Location permission granted, fetching current location...');
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
-      debugPrint('위치 수신 성공: $position');
+      debugPrint('Location received: $position');
 
       if (mounted) {
         setState(() {
@@ -139,7 +139,7 @@ class _MapScreenState extends State<MapScreen> {
             Marker(
               markerId: MarkerId('currentLocation'),
               position: LatLng(position.latitude, position.longitude),
-              infoWindow: InfoWindow(title: '현재 위치'),
+              infoWindow: InfoWindow(title: 'Current Location'),
             ),
           );
 
@@ -156,11 +156,11 @@ class _MapScreenState extends State<MapScreen> {
 
       await _getAddressFromLatLng(position);
     } catch (e) {
-      debugPrint('위치 가져오기 오류: $e');
+      debugPrint('Error retrieving location: $e');
       if (mounted) {
         setState(() {
           _isMapLoading = false;
-          _currentAddress = "위치를 가져오는 데 실패했습니다. 네트워크 연결을 확인하세요.";
+          _currentAddress = "Failed to retrieve location. Please check your network connection.";
         });
       }
     }
@@ -168,14 +168,14 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _getAddressFromLatLng(Position position) async {
     try {
-      debugPrint('위치 정보: 위도 ${position.latitude}, 경도 ${position.longitude}');
+      debugPrint('Location info: Latitude ${position.latitude}, Longitude ${position.longitude}');
 
       List<Placemark> placemarks = await placemarkFromCoordinates(
           position.latitude, position.longitude,
           localeIdentifier: 'ko_KR');
 
       Placemark place = placemarks[0];
-      debugPrint('받아온 위치 정보: $place');
+      debugPrint('Received location info: $place');
 
       String address = "";
       if (place.country == 'South Korea' || place.country == '대한민국') {
@@ -191,9 +191,9 @@ class _MapScreenState extends State<MapScreen> {
         _currentAddress = address;
       });
     } catch (e) {
-      debugPrint('주소 변환 오류: $e');
+      debugPrint('Address conversion error: $e');
       setState(() {
-        _currentAddress = "위도: ${position.latitude}, 경도: ${position.longitude}";
+        _currentAddress = "Lat: ${position.latitude}, Lng: ${position.longitude}";
       });
     }
   }
@@ -206,12 +206,12 @@ class _MapScreenState extends State<MapScreen> {
 
           if (mapsLoaded != true) {
             setState(() {
-              _mapLoadError = "Google Maps API 로드에 실패했습니다. 새로고침해 보세요.";
+              _mapLoadError = "Failed to load Google Maps API. Please refresh.";
             });
           }
         } catch (e) {
           setState(() {
-            _mapLoadError = "Maps API 초기화 오류: $e";
+            _mapLoadError = "Maps API initialization error: $e";
           });
         }
       });
@@ -266,7 +266,7 @@ class _MapScreenState extends State<MapScreen> {
         }
       }
     } catch (e) {
-      debugPrint('지도 컨트롤러 초기화 오류: $e');
+      debugPrint('Map controller initialization error: $e');
     }
   }
 
@@ -319,7 +319,7 @@ class _MapScreenState extends State<MapScreen> {
                         mapType: MapType.normal,
                         initialCameraPosition: _initialCameraPosition,
                         onMapCreated: (GoogleMapController controller) {
-                          print("지도가 생성되었습니다!");
+                          print("Map created!");
                           setState(() {
                             _mapController = controller;
                             _isMapLoading = false;
@@ -349,7 +349,7 @@ class _MapScreenState extends State<MapScreen> {
                             children: [
                               CircularProgressIndicator(color: const Color(0xFFD94B4B)),
                               SizedBox(height: 16),
-                              Text('지도를 불러오는 중...'),
+                              Text('Loading map...'),
                             ],
                           ),
                         ),
@@ -388,7 +388,7 @@ class _MapScreenState extends State<MapScreen> {
                                     _checkMapsApiLoaded();
                                   },
                                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD94B4B)),
-                                  child: Text('다시 시도'),
+                                  child: Text('Retry'),
                                 ),
                               ],
                             ),
@@ -429,7 +429,7 @@ class _MapScreenState extends State<MapScreen> {
               padding: EdgeInsets.symmetric(vertical: 15),
               alignment: Alignment.center,
               child: Text(
-                '채팅창',
+                'Chat',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),

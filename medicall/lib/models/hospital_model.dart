@@ -51,15 +51,16 @@ class Hospital {
 
   // 거리(미터) 기준으로 예상 소요 시간 계산
   String estimatedTime(double distanceInMeters) {
-    // 평균 구급차 속도를 기준으로 계산 (약 50km/h = 13.89 m/s)
+    // Calculate estimated time based on distance (in meters)
+    // Using average ambulance speed (approx. 50 km/h = 13.89 m/s)
     final double speedInMetersPerSecond = 13.89;
     final int timeInSeconds = (distanceInMeters / speedInMetersPerSecond).round();
     
     if (timeInSeconds < 60) {
-      return '$timeInSeconds초';
+      return '$timeInSeconds sec';
     } else {
       final int minutes = (timeInSeconds / 60).round();
-      return '$minutes분';
+      return '$minutes min';
     }
   }
 }

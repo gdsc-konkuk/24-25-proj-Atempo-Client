@@ -34,7 +34,7 @@ class User {
   }
 }
 
-// OAuth 로그인 결과를 처리하기 위한 클래스
+// Class to handle OAuth login results
 class OAuthLoginResult {
   final String loginUrl;
   final String baseUrl;

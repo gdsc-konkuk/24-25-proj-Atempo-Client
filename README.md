@@ -1,65 +1,65 @@
 # MediCall
 
-> 응급환자를 가장 빠르게 수용할 수 있는 병원으로 연결하는 **AI 기반 응급실 매칭 시스템**
+> An AI-based Emergency Room Matching System that connects emergency patients to the hospital that can admit them the fastest.
 
 ---
 
-## 🚑 프로젝트 개요
+## 🚑 Project Overview
 
-구급대원이 환자를 이송하는 도중, 병원이 수용 불가하거나 담당 의료진이 부재한 상황으로 **골든타임을 놓치는 문제**가 발생합니다.  
-**MediCall**은 구급대원이 환자 상태와 위치를 간단히 입력하면, **AI가 주변 병원 응급실에 병렬적으로 연락**하여  
-**가장 빠르게 응답한 수용 가능한 병원을 자동 추천**합니다.
-
----
-
-## 🛠 주요 기능
-
-- **채팅형 인터페이스**로 환자 정보 간편 입력
-- **Gemini AI**를 통한 병원 후보 선정 및 메시지 생성
-- **Twilio를 활용한 병렬 전화** → 병원의 다이얼 응답 (1: 수용 가능 / 2: 수용 불가)
-- **응답 속도 + 거리 기준** 최적 병원 자동 매칭
-- **Google Maps API**를 통해 실시간 경로 안내
+During patient transport, issues arise when hospitals cannot admit patients or lack available medical staff, causing a loss of the critical "golden time".  
+**MediCall** allows paramedics to simply input patient condition and location; then, **AI simultaneously contacts nearby hospital emergency rooms** to  
+**automatically recommend the first available hospital that responds**.
 
 ---
 
-## 🧩 시스템 구조
+## 🛠 Key Features
+
+- **Chat-based interface** for easy patient information entry
+- **Gemini AI** for hospital candidate selection and message generation
+- **Parallel calls using Twilio** → hospitals respond via dial (1: Accept / 2: Reject)
+- **Optimal matching based on response speed and distance**
+- **Real-time route guidance** via Google Maps API
+
+---
+
+## 🧩 System Architecture
 
 ```plaintext
-[구급대원 - Flutter 앱] 
-  → 환자 상태 및 위치 전송
+[Paramedics - Flutter App] 
+  → Send patient condition and location
        ↓
-[서버 - Gemini AI] 
-  → 병원 리스트 선정 + 안내 메시지 생성
+[Server - Gemini AI] 
+  → Select hospital list and generate guidance message
        ↓
 [Twilio] 
-  → 병렬 전화, 병원은 다이얼로 응답
+  → Parallel calls; hospital responds with dial (1: Accept / 2: Reject)
        ↓
-[응답 결과 분석 + 거리 계산]
+[Analyze response results + calculate distance]
        ↓
-[최종 병원 추천 + Google Maps 경로 안내]
+[Final hospital recommendation + Google Maps route guidance]
 ```
 
 ---
 
-## 🧑‍💻 기술 스택
+## 🧑‍💻 Tech Stack
 
-| 영역      | 기술                                                         |
-|-----------|--------------------------------------------------------------|
-| **Mobile**    | Flutter, Dart                                                |
-| **통신**  | Twilio (TTS 전화 / 다이얼 응답 수신)                         |
-| **지도**  | Google Maps API                                              |
-| **배포**  | (추후 결정)                                                  |
+| Area      | Technologies                                             |
+|-----------|----------------------------------------------------------|
+| **Mobile**    | Flutter, Dart                                           |
+| **Communication**  | Twilio (TTS Calls / Dial Response Handling)        |
+| **Maps**  | Google Maps API                                          |
+| **Deployment**  | (To be decided)                                      |
 
 ---
 
-## 📌 프로젝트 명세
+## 📌 Project Specification
 
-| 항목             | 내용                                                  |
-|------------------|-------------------------------------------------------|
-| 프로젝트명       | MediCall                                              |
-| 목적             | 응급환자의 골든타임 확보를 위한 실시간 병원 매칭      |
-| 대상 사용자      | 구급대원 및 의료 종사자                               |
-| 활용 대상 지역   | 한국, 미국, 인프라가 부족한 개발도상국 등             |
-| 차별점           | 병원에 **동시 병렬 연락**, **다이얼 응답**, **AI 추천** |
+| Item             | Details                                                          |
+|------------------|------------------------------------------------------------------|
+| Project Name     | MediCall                                                         |
+| Objective        | Real-time hospital matching to secure the golden time for emergencies |
+| Target Users     | Paramedics and healthcare professionals                          |
+| Target Regions   | Korea, USA, and developing countries with limited infrastructure  |
+| Differentiators  | Parallel simultaneous contact with hospitals, dial responses, AI recommendation |
 
 ---

@@ -25,41 +25,41 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   bool _isInitialized = false;
   String _errorMessage = '';
   
-  // Mapbox 접근 토큰 (환경 변수에서 가져옴)
+  // Mapbox token (fetched from environment variable)
   String? _mapboxPublicToken;
   
-  // 네비게이션 옵션
+  // Navigation options
   late MapBoxOptions _options;
   
-  // 출발지 및 목적지 좌표
+  // Origin and destination coordinates
   WayPoint? _origin;
   late WayPoint _destination;
 
   @override
   void initState() {
     super.initState();
-    print("MapboxNavigationScreen 초기화 중...");
+    print("Initializing MapboxNavigationScreen...");
     _mapboxPublicToken = dotenv.env['MAPBOX_PUBLIC_TOKEN'];
-    print("Mapbox 토큰: $_mapboxPublicToken");
+    print("Mapbox token: $_mapboxPublicToken");
     
     if (_mapboxPublicToken == null || _mapboxPublicToken!.isEmpty) {
       setState(() {
         _isLoading = false;
-        _errorMessage = "Mapbox 토큰이 설정되지 않았습니다. .env 파일을 확인하세요.";
+        _errorMessage = "Mapbox token is not set. Please check the .env file.";
       });
       return;
     }
     
-    // 목적지 설정
+    // Set destination
     double destinationLat = 0.0;
     double destinationLng = 0.0;
     
     try {
-      // 병원 데이터에서 목적지 좌표 가져오기 - 더 엄격한 검증
+      // Fetch destination coordinates from hospital data – with stricter validation
       var latValue = widget.hospital['latitude'];
       var lngValue = widget.hospital['longitude'];
       
-      // 다양한 타입 처리
+      // Handle various types
       if (latValue is double) {
         destinationLat = latValue;
       } else if (latValue is String) {
@@ -67,7 +67,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
       } else if (latValue is int) {
         destinationLat = latValue.toDouble();
       } else {
-        throw Exception("유효하지 않은 위도 형식: $latValue");
+        throw Exception("Invalid latitude format: $latValue");
       }
       
       if (lngValue is double) {
@@ -77,29 +77,29 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
       } else if (lngValue is int) {
         destinationLng = lngValue.toDouble();
       } else {
-        throw Exception("유효하지 않은 경도 형식: $lngValue");
+        throw Exception("Invalid longitude format: $lngValue");
       }
       
-      print("목적지 좌표: $destinationLat, $destinationLng");
+      print("Destination coordinates: $destinationLat, $destinationLng");
       
       _destination = WayPoint(
-        name: widget.hospital['name'] ?? "목적지",
+        name: widget.hospital['name'] ?? "Destination",
         latitude: destinationLat,
         longitude: destinationLng,
       );
       
       _initNavigationOptions();
     } catch (e) {
-      print("좌표 변환 오류: $e");
+      print("Coordinate conversion error: $e");
       setState(() {
         _isLoading = false;
-        _errorMessage = "좌표 정보를 처리할 수 없습니다: $e";
+        _errorMessage = "Unable to process coordinate information: $e";
       });
     }
   }
   
   void _initNavigationOptions() {
-    // 네비게이션 옵션 설정
+    // Set navigation options
     _options = MapBoxOptions(
       mapStyleUrlDay: "mapbox://styles/mapbox/navigation-day-v1",
       mapStyleUrlNight: "mapbox://styles/mapbox/navigation-night-v1",
@@ -155,7 +155,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: Text('뒤로 가기'),
+              child: Text('Go Back'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFFE93C4A),
               ),
@@ -167,7 +167,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   }
   
   Widget _buildNavigationWidget() {
-    // 개선된 네비게이션 위젯 - 무조건 MapBoxNavigationView를 표시
+    // Improved navigation widget - always display MapBoxNavigationView
     return Container(
       color: Colors.white,
       child: MapBoxNavigationView(
@@ -180,125 +180,111 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   
   Future<void> _buildRoute() async {
     if (_controller == null || _origin == null) {
-      print("❌ 경로 생성 실패: 컨트롤러 또는 출발지 정보가 없습니다");
+      print("❌ Route build failed: Controller or origin is missing");
       return;
     }
     
-    print("🔄 경로 생성 시작");
-    print("출발지: ${_origin?.latitude}, ${_origin?.longitude}");
-    print("목적지: ${_destination.latitude}, ${_destination.longitude}");
+    print("Starting route building");
+    print("Origin: ${_origin?.latitude}, ${_origin?.longitude}");
+    print("Destination: ${_destination.latitude}, ${_destination.longitude}");
     
-    // 경로를 구축하기 위한 waypoints 생성
-    List<WayPoint> wayPoints = [];
-    wayPoints.add(_origin!);
-    wayPoints.add(_destination);
+    List<WayPoint> wayPoints = [_origin!, _destination];
     
     try {
-      // 경로 구축
       await _controller!.buildRoute(wayPoints: wayPoints);
-      print("✅ 경로 구축 완료");
+      print("✅ Route build complete");
       
       setState(() {
         _routeBuilt = true;
       });
     } catch (e) {
-      print("❌ 경로 생성 실패: $e");
+      print("❌ Route build failed: $e");
       setState(() {
-        _errorMessage = "경로를 생성할 수 없습니다: $e";
+        _errorMessage = "Unable to build route: $e";
       });
     }
   }
   
   Future<void> _startEmbeddedNavigation() async {
     try {
-      print("네비게이션 시작 중...");
-      
-      // 명시적 상태 업데이트 확인 로그
-      print("네비게이션 상태 변경: _routeBuilt = true, _isNavigating = true");
+      print("Starting navigation...");
       setState(() {
         _routeBuilt = true;
         _isNavigating = true;
       });
-      
-      // 상태 변경 후 확인 로그
-      print("네비게이션 상태 변경 완료: _routeBuilt = $_routeBuilt, _isNavigating = $_isNavigating");
+      print("Navigation state updated: _routeBuilt = $_routeBuilt, _isNavigating = $_isNavigating");
     } catch (e) {
-      print("네비게이션 시작 오류: $e");
+      print("Error starting navigation: $e");
       setState(() {
-        _errorMessage = "네비게이션을 시작할 수 없습니다: $e";
+        _errorMessage = "Unable to start navigation: $e";
       });
     }
   }
   
   void _onNavigationViewCreated(MapBoxNavigationViewController controller) async {
-    print("네비게이션 컨트롤러 생성됨");
+    print("Navigation controller created");
     _controller = controller;
     
     try {
-      // 컨트롤러를 통한 초기화
       await _controller!.initialize();
-      print("✅ 컨트롤러 초기화 완료");
+      print("✅ Controller initialization successful");
       
       setState(() {
         _isInitialized = true;
       });
       
-      // 현재 위치 설정 (실제 앱에서는 Geolocator로 현재 위치 가져오기)
       _origin = WayPoint(
-        name: "현재 위치",
-        latitude: 37.5642,  // 서울시청 좌표 (실제로는 현재 위치 사용)
+        name: "Current Location",
+        latitude: 37.5642,  // Sample starting point (replace with real location)
         longitude: 126.9742,
       );
       
-      // 경로 생성 및 네비게이션 시작
       await _buildRoute();
       
-      // 경로 생성이 성공적으로 완료된 경우에만 네비게이션 시작
       if (_routeBuilt) {
         await _controller!.startNavigation();
-        print("✅ 네비게이션 시작됨");
-        
+        print("✅ Navigation started");
         setState(() {
           _isNavigating = true;
         });
       }
     } catch (e) {
-      print("❌ Mapbox Navigation 초기화 오류: $e");
+      print("❌ Mapbox Navigation initialization error: $e");
       setState(() {
-        _errorMessage = "네비게이션 초기화 실패: $e";
+        _errorMessage = "Navigation initialization failed: $e";
       });
     }
   }
   
   Future<void> _onRouteEvent(e) async {
-    print("🔵 라우트 이벤트 발생: ${e.eventType}");
+    print("🔵 Route event occurred: ${e.eventType}");
     
     switch (e.eventType) {
       case MapBoxEvent.route_building:
-        print("🔄 경로 생성 중...");
+        print("🔄 Building route...");
         break;
       case MapBoxEvent.route_built:
-        print("✅ 경로 생성 완료");
+        print("✅ Route built successfully");
         setState(() => _routeBuilt = true);
         break;
       case MapBoxEvent.route_build_failed:
-        print("❌ 경로 생성 실패");
-        print("🚨 실패 상세: ${e.data}");
+        print("❌ Route build failed");
+        print("🚨 Failure details: ${e.data}");
         setState(() {
           _routeBuilt = false;
-          _errorMessage = "경로를 생성할 수 없습니다: ${e.data}";
+          _errorMessage = "Unable to build route: ${e.data}";
         });
         break;
       case MapBoxEvent.navigation_running:
-        print("네비게이션 진행 중");
+        print("Navigation running");
         setState(() => _isNavigating = true);
         break;
       case MapBoxEvent.on_arrival:
-        print("목적지 도착");
+        print("Arrived at destination");
         break;
       case MapBoxEvent.navigation_finished:
       case MapBoxEvent.navigation_cancelled:
-        print("네비게이션 종료");
+        print("Navigation finished");
         setState(() {
           _routeBuilt = false;
           _isNavigating = false;

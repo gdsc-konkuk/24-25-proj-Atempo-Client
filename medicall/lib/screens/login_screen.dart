@@ -37,11 +37,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (widget.code != null) {
       setState(() {
         _isLoading = true;
-        _statusMessage = "로그인 처리 중...";
+        _statusMessage = "Processing login...";
       });
       _handleOAuthCode(widget.code!);
     } else {
-      // If no code was passed, check initial link (cold start deep link)
+      // If no code was passed, check for initial deep link
       _checkInitialLink();
     }
   }
@@ -118,35 +118,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleOAuthTokens(String atk, String rtk) async {
     try {
-      // 토큰 저장
+      // Save tokens
       await storage.write(key: 'access_token', value: atk);
       await storage.write(key: 'refresh_token', value: rtk);
-      
-      // Provider 사용 전에 context가 유효한지 확인
-      if (!mounted) return;
-      
-      // HTTP 클라이언트에 토큰 설정
+
+      // Set tokens to HTTP client service
       try {
         final httpClient = Provider.of<HttpClientService>(context, listen: false);
         httpClient.setAuthorizationHeader('Bearer $atk');
         httpClient.updateRefreshToken(rtk);
-        
-        // 로그로 헤더 확인
         print("Auth header set: ${httpClient.getHeaders()}");
       } catch (providerError) {
-        print("Provider 오류: $providerError");
-        // Provider 오류가 발생해도 계속 진행 (인증 수행은 가능)
+        print("Provider error: $providerError");
       }
-      
-      // Provider에 사용자 정보 갱신 요청
-      if (mounted) {
-        try {
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-          await authProvider.loadCurrentUser();
-        } catch (authProviderError) {
-          print("AuthProvider 오류: $authProviderError"); 
-          // Provider 오류가 발생해도 계속 진행
-        }
+
+      // Update user data via AuthProvider
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.loadCurrentUser();
+      } catch (authProviderError) {
+        print("AuthProvider error: $authProviderError");
       }
 
       _sub?.cancel();
@@ -163,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _statusMessage = "토큰 처리 오류: $e";
+          _statusMessage = "Token processing error: $e";
         });
       }
     }
@@ -176,16 +167,16 @@ class _LoginScreenState extends State<LoginScreen> {
         headers: {'Content-Type': 'application/json'},
         body: '{"code":"$code"}',
       );
-      
+
       print("Token response status: ${response.statusCode}");
       print("Token response body: ${response.body}");
-      
+
       if (response.statusCode != 200) {
         if (mounted) {
           setState(() {
             _isLoading = false;
             _statusMessage =
-                "토큰 요청 실패: ${response.statusCode} ${response.body}";
+                "Token request failed: ${response.statusCode} ${response.body}";
           });
         }
         return;
@@ -196,19 +187,14 @@ class _LoginScreenState extends State<LoginScreen> {
       final refreshToken = tokenData['refreshToken'];
 
       if (accessToken != null && refreshToken != null) {
-        // 토큰 저장
         await storage.write(key: 'access_token', value: accessToken);
         await storage.write(key: 'refresh_token', value: refreshToken);
 
-        // JWT 토큰을 HTTP 클라이언트에 설정
         final httpClient = Provider.of<HttpClientService>(context, listen: false);
         httpClient.setAuthorizationHeader('Bearer $accessToken');
         httpClient.updateRefreshToken(refreshToken);
-        
-        // 로그로 헤더 확인
         print("Auth header set: ${httpClient.getHeaders()}");
 
-        // Provider에 사용자 정보 갱신 요청 (토큰 기반 인가)
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.loadCurrentUser();
 
@@ -217,8 +203,6 @@ class _LoginScreenState extends State<LoginScreen> {
           setState(() {
             _isLoading = false;
           });
-          
-          // 화면이 이미 이동했는지 체크 후 이동
           if (ModalRoute.of(context)?.isCurrent ?? true) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => MapScreen()),
@@ -230,7 +214,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           setState(() {
             _isLoading = false;
-            _statusMessage = "토큰 추출 실패(응답 형식 확인 필요)";
+            _statusMessage = "Failed to extract token (check response format)";
           });
         }
       }
@@ -238,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _statusMessage = "로그인 처리 오류: $e";
+          _statusMessage = "Login processing error: $e";
         });
       }
     }
@@ -253,12 +237,12 @@ class _LoginScreenState extends State<LoginScreen> {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
         setState(() {
-          _statusMessage = "로그인 페이지를 열 수 없습니다.";
+          _statusMessage = "Unable to open login page.";
         });
       }
     } catch (e) {
       setState(() {
-        _statusMessage = "로그인 초기화 오류: $e";
+        _statusMessage = "Login initialization error: $e";
       });
     }
   }

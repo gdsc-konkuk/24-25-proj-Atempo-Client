@@ -115,28 +115,25 @@ class _NavigationScreenState extends State<NavigationScreen> {
     try {
       print("Starting Mapbox Navigation...");
       
-      // 테스트를 위한 임시 병원 데이터 생성
+      // Creating temporary hospital data for testing
       Map<String, dynamic> hospitalData = Map.from(widget.hospital);
       
-      // 병원 데이터에 위도/경도가 없는 경우 임의의 값 추가 (서울대학교병원 위치)
+      // If hospital location information is missing, set default values
       if (!hospitalData.containsKey('latitude') || !hospitalData.containsKey('longitude') || 
           hospitalData['latitude'] == null || hospitalData['longitude'] == null) {
-        print("병원 위치 정보가 없어 임의의 값을 설정합니다.");
-        hospitalData['latitude'] = 37.579617;  // 서울대학교병원 위도
-        hospitalData['longitude'] = 126.998898;  // 서울대학교병원 경도
-        
-        // 필수 정보 추가
+        print("No hospital location info; setting default values.");
+        hospitalData['latitude'] = 37.579617;  // Default latitude for Seoul National University Hospital
+        hospitalData['longitude'] = 126.998898; // Default longitude
         if (hospitalData['name'] == null) {
-          hospitalData['name'] = '서울대학교병원';
+          hospitalData['name'] = 'Seoul National University Hospital';
         }
         if (hospitalData['distance'] == null) {
           hospitalData['distance'] = '5.2 km';
         }
       }
       
-      print("병원 데이터: $hospitalData");
+      print("Hospital data: $hospitalData");
       
-      // 명시적으로 데이터 타입 변환 (문자열로 된 값도 숫자로 변환)
       try {
         if (hospitalData['latitude'] is String) {
           hospitalData['latitude'] = double.parse(hospitalData['latitude']);
@@ -145,28 +142,27 @@ class _NavigationScreenState extends State<NavigationScreen> {
           hospitalData['longitude'] = double.parse(hospitalData['longitude']);
         }
       } catch (e) {
-        print("좌표 변환 오류: $e");
+        print("Coordinate conversion error: $e");
         hospitalData['latitude'] = 37.579617;
         hospitalData['longitude'] = 126.998898;
       }
       
-      print("병원 위치: ${hospitalData['latitude']}, ${hospitalData['longitude']}");
+      print("Hospital location: ${hospitalData['latitude']}, ${hospitalData['longitude']}");
       
-      // 화면 전환 전 확인 대화상자 표시
+      // Display confirmation dialog before starting navigation
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('네비게이션 시작'),
-          content: Text('${hospitalData['name']}(으)로 네비게이션을 시작하시겠습니까?'),
+          title: Text('Start Navigation'),
+          content: Text('Would you like to start navigation to ${hospitalData['name']}?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('취소'),
+              child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context, rootNavigator: true).pop(); // rootNavigator 사용
-                // 확인 후 네비게이션 화면으로 전환 - pushReplacement로 변경
+                Navigator.of(context, rootNavigator: true).pop();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -177,39 +173,40 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 }).catchError((error) {
                   print("Navigation screen error: $error");
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("네비게이션을 시작할 수 없습니다: $error"))
+                    SnackBar(content: Text("Unable to start navigation: $error"))
                   );
                 });
               },
-              child: Text('확인'),
+              child: Text('Confirm'),
             ),
           ],
         ),
       );
+      
     } catch (e) {
-      print("Navigation 시작 중 오류 발생: $e");
+      print("Error starting navigation: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("네비게이션을 시작할 수 없습니다: $e"))
+        SnackBar(content: Text("Unable to start navigation: $e"))
       );
     }
   }
   
   Future<LatLng> _getCurrentUserLocation() async {
-    // 위치 권한 확인
+    // Check location permission
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        throw Exception('위치 권한이 거부되었습니다');
+        throw Exception('Location permission denied');
       }
     }
     
-    // 현재 위치 가져오기
+    // Get current location
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high
     );
     
-    // 좌표로 반환
+    // Return coordinates
     return LatLng(position.latitude, position.longitude);
   }
   
@@ -219,10 +216,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
   
   LatLngBounds _getBounds() {
-    // 초기 값 설정
-    double minLat = 90.0;  // 위도 범위는 -90 ~ 90
+    // Initial values
+    double minLat = 90.0;  // Latitude range is -90 to 90
     double maxLat = -90.0;
-    double minLng = 180.0; // 경도 범위는 -180 ~ 180
+    double minLng = 180.0; // Longitude range is -180 to 180
     double maxLng = -180.0;
     
     bool hasPoints = false;
@@ -247,16 +244,16 @@ class _NavigationScreenState extends State<NavigationScreen> {
       }
     }
     
-    // 포인트가 없거나 계산된 범위가 유효하지 않은 경우 기본값 사용
+    // If no points or calculated bounds are invalid, use default values
     if (!hasPoints || minLat > maxLat || minLng > maxLng) {
-      // 서울 중심의 작은 범위를 기본값으로 사용
+      // Use a small range around Seoul center as default
       return LatLngBounds(
         southwest: LatLng(37.5642 - 0.01, 126.9742 - 0.01),
         northeast: LatLng(37.5642 + 0.01, 126.9742 + 0.01),
       );
     }
     
-    // 위도/경도의 차이가 너무 작은 경우 약간의 여유 공간을 추가
+    // Add some margin if the latitude/longitude difference is too small
     if (maxLat - minLat < 0.001) {
       maxLat += 0.001;
       minLat -= 0.001;

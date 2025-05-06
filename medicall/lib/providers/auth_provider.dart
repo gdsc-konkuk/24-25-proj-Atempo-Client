@@ -23,9 +23,9 @@ class AuthProvider with ChangeNotifier {
 
     try {
       _user = await _authService.getCurrentUser();
-      _errorMessage = null;
+      _errorMessage = "Failed to load user data: ${e.toString()}";
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = "Failed to load user data: ${e.toString()}";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -37,52 +37,47 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      // 서버에서 현재 사용자 정보 가져오기
+      // Fetch current user info from the server
       _user = await _authService.getCurrentUser();
       _errorMessage = null;
     } catch (e) {
-      _errorMessage = '사용자 정보 로드 실패: ${e.toString()}';
-      print('사용자 정보 로드 오류: $e');
+      _errorMessage = "Failed to load user data: ${e.toString()}";
+      print('User data load error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // 웹뷰에서 사용할 로그인 URL 가져오기
+  // Get login URL for webview
   Future<String> getLoginUrl() async {
-    // Fix URL construction to avoid double slashes
     final baseUrl = 'http://avenir.my:8080';
     final path = '/oauth2/authorization/google';
-    
-    // Ensure there's exactly one slash between baseUrl and path
     final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
     final route = path.startsWith('/') ? path : '/$path';
-    
     return '$base$route';
   }
 
-  // OAuth 인증 코드로 로그인 완료하기
+  // Complete login using OAuth authentication code
   Future<bool> completeOAuthLogin(String authCode) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // 인증 코드로 로그인 완료하기
       _user = await _authService.completeWebViewLogin(authCode);
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = '로그인 완료 처리 실패: ${e.toString()}';
+      _errorMessage = "Failed to complete login process: ${e.toString()}";
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // 딥링크로 받은 인증 코드 처리
+  // Process received authentication code from deep link
   Future<bool> handleOAuthRedirect(String code) async {
     _isLoading = true;
     _errorMessage = null;
@@ -94,14 +89,14 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = '로그인 처리 실패: ${e.toString()}';
+      _errorMessage = "Failed to process login: ${e.toString()}";
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // 웹뷰 로그인 성공 후 토큰 직접 요청
+  // Request token directly after webview login
   Future<bool> requestTokenAfterLogin(String redirectUrl) async {
     _isLoading = true;
     _errorMessage = null;
@@ -113,14 +108,14 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = '로그인 후 토큰 획득 실패: ${e.toString()}';
+      _errorMessage = "Failed to obtain token after login: ${e.toString()}";
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // 로그아웃
+  // Logout
   Future<bool> signOut() async {
     _isLoading = true;
     notifyListeners();
@@ -133,7 +128,7 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = '로그아웃 실패: ${e.toString()}';
+      _errorMessage = "Logout failed: ${e.toString()}";
       _isLoading = false;
       notifyListeners();
       return false;
