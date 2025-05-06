@@ -23,9 +23,9 @@ class AuthProvider with ChangeNotifier {
 
     try {
       _user = await _authService.getCurrentUser();
-      _errorMessage = "Failed to load user data: ${e.toString()}";
+      _errorMessage = null;
     } catch (e) {
-      _errorMessage = "Failed to load user data: ${e.toString()}";
+      _errorMessage = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -37,28 +37,30 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      // Fetch current user info from the server
       _user = await _authService.getCurrentUser();
       _errorMessage = null;
     } catch (e) {
-      _errorMessage = "Failed to load user data: ${e.toString()}";
-      print('User data load error: $e');
+      _errorMessage = 'User: ${e.toString()}';
+      print('User Failed: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Get login URL for webview
   Future<String> getLoginUrl() async {
+    // Fix URL construction to avoid double slashes
     final baseUrl = 'http://avenir.my:8080';
     final path = '/oauth2/authorization/google';
+    
+    // Ensure there's exactly one slash between baseUrl and path
     final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
     final route = path.startsWith('/') ? path : '/$path';
+    
     return '$base$route';
   }
 
-  // Complete login using OAuth authentication code
+  // OAuth
   Future<bool> completeOAuthLogin(String authCode) async {
     _isLoading = true;
     _errorMessage = null;
@@ -70,14 +72,14 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = "Failed to complete login process: ${e.toString()}";
+      _errorMessage = 'Login Failed: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // Process received authentication code from deep link
+  // Oauth redirection
   Future<bool> handleOAuthRedirect(String code) async {
     _isLoading = true;
     _errorMessage = null;
@@ -89,14 +91,14 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = "Failed to process login: ${e.toString()}";
+      _errorMessage = 'Login failed: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // Request token directly after webview login
+  // request token after login
   Future<bool> requestTokenAfterLogin(String redirectUrl) async {
     _isLoading = true;
     _errorMessage = null;
@@ -108,14 +110,14 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = "Failed to obtain token after login: ${e.toString()}";
+      _errorMessage = 'Token Failed: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // Logout
+  // logout
   Future<bool> signOut() async {
     _isLoading = true;
     notifyListeners();
@@ -128,7 +130,7 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = "Logout failed: ${e.toString()}";
+      _errorMessage = 'Logout failed: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
       return false;

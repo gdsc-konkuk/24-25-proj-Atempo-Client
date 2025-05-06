@@ -47,10 +47,11 @@
 	<true/>
 
 
- 	<key>MGLMapboxAccessToken</key>
+  <key>MGLMapboxAccessToken</key>
     <string>$(MAPBOX_PUBLIC_TOKEN)</string>
     <key>MBXAccessToken</key>
     <string>$(MAPBOX_ACCESS_TOKEN)</string>
+
 
 
 	<key>io.flutter.embedded_views_preview</key>

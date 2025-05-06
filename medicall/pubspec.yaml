@@ -41,6 +41,8 @@ dependencies:
   flutter_mapbox_navigation: ^0.2.2
   # mapbox_maps_flutter: ^1.4.0
 
+  intl: ^0.18.0  # 날짜/시간 포맷팅을 위한 패키지
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -56,3 +58,5 @@ flutter:
     - assets/images/google_logo.png
     - assets/images/logo_white.png
     - assets/images/campaign_thumbnail.png
+    - assets/images/ambulance-car-for-map.png
+    
