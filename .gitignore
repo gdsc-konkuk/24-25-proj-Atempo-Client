@@ -33,7 +33,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# iOS/Android API 키 파일
+# iOS/Android API key files
 medicall/ios/Config.xcconfig
 medicall/ios/**/GoogleService-Info.plist
 medicall/android/app/src/main/res/values/secrets.xml

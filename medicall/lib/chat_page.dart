@@ -3,6 +3,9 @@ import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import 'screens/emergency_room_list_screen.dart';
 import 'providers/settings_provider.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 class ChatPage extends StatefulWidget {
   final String currentAddress;
@@ -22,6 +25,10 @@ class _ChatPageState extends State<ChatPage> {
   bool _isAddressEditable = false;
   final FocusNode _addressFocusNode = FocusNode();
   final FocusNode _patientConditionFocusNode = FocusNode();
+  var uuid = Uuid();
+  String _sessionToken = '1234567890';
+  List<dynamic> _placeList = [];
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -50,8 +57,8 @@ class _ChatPageState extends State<ChatPage> {
       context: context,
       builder: (BuildContext context) {
         final TextEditingController searchController = TextEditingController();
-        List<String> searchResults = [];
-        bool isSearching = false;
+        _placeList = [];
+        _sessionToken = uuid.v4();
 
         return StatefulBuilder(
           builder: (context, setState) {
@@ -61,7 +68,7 @@ class _ChatPageState extends State<ChatPage> {
               ),
               child: Container(
                 padding: EdgeInsets.all(16),
-                width: MediaQuery.of(context).size.width ,
+                width: MediaQuery.of(context).size.width,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -82,63 +89,47 @@ class _ChatPageState extends State<ChatPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onSubmitted: (query) async {
-                        setState(() {
-                          isSearching = true;
-                        });
-
-                        try {
-                          // Address search - Using Geocoding API
-                          List<Location> locations = await locationFromAddress(query);
-                          List<String> addresses = [];
-
-                          for (var location in locations) {
-                            List<Placemark> placemarks = await placemarkFromCoordinates(
-                              location.latitude,
-                              location.longitude,
-                            );
-
-                            if (placemarks.isNotEmpty) {
-                              Placemark place = placemarks.first;
-                              String address =
-                                  "${place.street}, ${place.subLocality}, ${place.locality}, ${place.country}";
-                              addresses.add(address);
-                            }
-                          }
-
+                      onChanged: (query) async {
+                        if (query.length > 2) {
                           setState(() {
-                            searchResults = addresses;
-                            isSearching = false;
+                            _isSearching = true;
                           });
-                        } catch (e) {
+                          await _getSuggestions(query, setState);
+                        } else if (query.isEmpty) {
                           setState(() {
-                            searchResults = ["The address could not be found."];
-                            isSearching = false;
+                            _placeList = [];
                           });
                         }
                       },
                     ),
                     SizedBox(height: 16),
-                    if (isSearching)
+                    if (_isSearching)
                       CircularProgressIndicator(color: const Color(0xFFD94B4B))
                     else
                       Container(
-                        height: 200,
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: searchResults.length,
-                          itemBuilder: (context, index) {
-                            return ListTile(
-                              title: Text(searchResults[index]),
-                              onTap: () {
-                                Navigator.pop(context);
-                                setState(() {
-                                  _addressController.text = searchResults[index];
-                                });
-                              },
-                            );
-                          },
+                        constraints: BoxConstraints(
+                          maxHeight: 300,
                         ),
+                        child: _placeList.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text('Type to search for locations'),
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: _placeList.length,
+                                itemBuilder: (context, index) {
+                                  return ListTile(
+                                    title: Text(_placeList[index]["description"]),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        _addressController.text = _placeList[index]["description"];
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
                       ),
                     SizedBox(height: 10),
                     TextButton(
@@ -160,6 +151,55 @@ class _ChatPageState extends State<ChatPage> {
         );
       },
     );
+  }
+
+  Future<void> _getSuggestions(String input, StateSetter setState) async {
+    const String apiKey = "AIzaSyAw92wiRgypo3fVZ4-R5CbpB4x_Pcj1gwk";
+    
+    try {
+      String baseURL = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+      String request = '$baseURL?input=$input&key=$apiKey&sessiontoken=$_sessionToken';
+      
+      // 병원 검색을 위한 파라미터 설정
+      // 'establishment'은 시설을 의미하며, 여기에 키워드로 hospital을 추가
+      request += '&types=establishment';
+      request += '&keyword=hospital,clinic,medical,emergency';
+      
+      // 현재 디바이스 언어로 결과 표시 (선택적)
+      // request += '&language=ko'; // 한국어 결과 - 필요 시 활성화
+      
+      // 위치 바이어싱을 추가하면 현재 위치 주변의 병원을 우선적으로 보여줌
+      // 실제 구현 시 현재 사용자 위치를 가져와서 사용
+      // request += '&location=37.5665,126.9780&radius=50000';
+      
+      var response = await http.get(Uri.parse(request));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // 디버깅용 로그
+        print('Places API response status: ${data['status']}');
+        if (data['status'] != 'OK' && data['status'] != 'ZERO_RESULTS') {
+          print('Places API error: ${data['error_message']}');
+        }
+        
+        setState(() {
+          _placeList = data['predictions'] ?? [];
+          _isSearching = false;
+        });
+      } else {
+        setState(() {
+          _isSearching = false;
+        });
+        print('HTTP error: ${response.statusCode}');
+        throw Exception('Failed to load predictions');
+      }
+    } catch (e) {
+      setState(() {
+        _isSearching = false;
+      });
+      print('Error getting place suggestions: $e');
+    }
   }
 
   // change search radius

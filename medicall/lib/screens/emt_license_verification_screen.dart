@@ -36,13 +36,21 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
   @override
   void initState() {
     super.initState();
+    print('EMT Screen: initState called - starting initialization');
     _licenseController.addListener(_validateInput);
+    print('EMT Screen: Added license controller listener');
     _setupAuthToken();
+    print('EMT Screen: Setup auth token process initiated');
+    print('EMT Screen: initState called - rendering EMT License Verification Screen');
   }
 
   Future<void> _setupAuthToken() async {
     try {
       print('EMT Screen: Starting auth token setup');
+      // 디버그를 위한 스토리지 정보 출력
+      final keys = await storage.readAll();
+      print('EMT Screen: All storage keys - ${keys.keys.join(', ')}');
+      
       final accessToken = await storage.read(key: 'access_token');
       print('EMT Screen: Current access token - ${accessToken != null ? "token present" : "no token"}');
       
@@ -149,7 +157,10 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
   Future<void> _verifyLicense() async {
     final formattedLicense = _formatLicenseForSubmission();
     
+    print('EMT Screen: Starting license verification for $dropdownValue: $formattedLicense');
+    
     if (_errorText != null || formattedLicense.isEmpty) {
+      print('EMT Screen: License validation failed, not sending request');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Please enter a valid license number'),
@@ -224,11 +235,14 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
           // Navigate to login screen after a short delay
           Future.delayed(Duration(seconds: 2), () {
             if (mounted) {
+              print('EMT Screen: Session expired, navigating to LoginScreen');
               // Remove all screens and navigate to login
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => LoginScreen()),
                 (route) => false,
               );
+            } else {
+              print('EMT Screen: Widget not mounted, cannot navigate to LoginScreen');
             }
           });
           return;
@@ -252,11 +266,14 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
         // Navigate to map screen after a short delay
         Future.delayed(Duration(seconds: 2), () {
           if (mounted) {
+            print('EMT Screen: License verification successful, navigating to MapScreen');
             // Clear back stack and navigate to new MapScreen
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => MapScreen()),
               (route) => false,
             );
+          } else {
+            print('EMT Screen: Widget not mounted, cannot navigate to MapScreen');
           }
         });
       } else {
@@ -281,6 +298,7 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
 
   @override
   Widget build(BuildContext context) {
+    print('EMT Screen: Building UI');
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -432,7 +450,7 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
                       ),
                     ),
                   ),
-                const Spacer(),
+                const SizedBox(height: 120),
                 // "Don't know your license number?" link
                 Center(
                   child: GestureDetector(

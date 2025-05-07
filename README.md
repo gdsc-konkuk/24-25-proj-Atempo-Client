@@ -41,6 +41,25 @@ During patient transport, issues arise when hospitals cannot admit patients or l
 
 ---
 
+
+## EMT License Information
+
+The application supports different types of EMT license verification:
+
+### License Types
+- **NREMT**: National Registry of Emergency Medical Technicians (US)
+- **KOREA**: Korean Emergency Medical Technician
+- **EMS**: Emergency Medical Services
+
+### License Number Formats
+- **NREMT**: Alphanumeric (e.g., GDG143, MED911)
+- **KOREA**: 6 digits (e.g., 123456)
+- **EMS**: 12 digits (e.g., 123456789012)
+
+This information is used during the verification process in the EMT License Verification screen.
+
+---
+
 ## 🧑‍💻 Tech Stack
 
 | Area      | Technologies                                             |

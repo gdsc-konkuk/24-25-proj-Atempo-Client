@@ -21,10 +21,10 @@ jobs:
       # Setup Flutter with the suggested version for Dart SDK 3.7.2+
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.3'  # 업데이트된 Flutter 버전 (Dart SDK 3.7.2+ 포함)
+          flutter-version: '3.29.3'  # Updated Flutter version (Including Dart SDK 3.7.2+)
           channel: 'stable'
 
-      # CI용 .env 파일 생성
+      # CI .env file generation
       - name: Create dummy .env file
         working-directory: ./medicall
         run: |
@@ -35,7 +35,7 @@ jobs:
         working-directory: ./medicall
         run: flutter pub get
 
-      # 테스트는 계속 유지
+      # keep the tests
       - name: Run tests
         working-directory: ./medicall
         run: flutter test
