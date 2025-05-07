@@ -8,6 +8,18 @@ import '../models/user_model.dart';
 class AuthService {
   final FlutterSecureStorage _storage = FlutterSecureStorage();
   final String _baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080';
+  
+  // API 엔드포인트 상수
+  static const String _AUTH_TOKEN_PATH = '/api/v1/auth/token';
+  static const String _AUTH_ACCESS_TOKEN_PATH = '/api/v1/auth/access-token';
+  static const String _USER_INFO_PATH = '/api/v1/members';
+  
+  // URL 정규화 헬퍼 메서드
+  String _normalizeUrl(String baseUrl, String path) {
+    final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final endpoint = path.startsWith('/') ? path : '/$path';
+    return '$base$endpoint';
+  }
 
   // OAuth login URL for WebView
   Future<String> getLoginUrl() async {
@@ -167,64 +179,6 @@ class AuthService {
       await _storage.write(key: 'user_id', value: userData['id'].toString());
       
       return User(
-        id: userData['id'].toString(),
-        email: userData['email'] ?? '',
-        name: userData['name'] ?? '',
-        photoUrl: userData['photoUrl'],
-        accessToken: accessToken,
-      );
-    } catch (e) {
-      debugPrint('OAuth redirect handling error: $e');
-      rethrow;
-    }
-  }
-  
-  // Refresh access token
-  Future<String> refreshAccessToken() async {
-    try {
-      final refreshToken = await _storage.read(key: 'refresh_token');
-      if (refreshToken == null) {
-        throw Exception('Refresh token is missing');
-      }
-      
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/v1/auth/access-token'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refreshToken': refreshToken}),
-      );
-      
-      if (response.statusCode != 200) {
-        throw Exception('Access token refresh failed: ${response.statusCode}');
-      }
-      
-      final data = jsonDecode(response.body);
-      final accessToken = data['accessToken'];
-      
-      // Save new access token
-      await _storage.write(key: 'access_token', value: accessToken);
-      return accessToken;
-    } catch (e) {
-      debugPrint('Access token refresh error: $e');
-      rethrow;
-    }
-  }
-  
-  // Get current user
-  Future<User?> getCurrentUser() async {
-    final accessToken = await _storage.read(key: 'access_token');
-    if (accessToken == null) return null;
-    
-    final response = await http.get(
-      Uri.parse('$_baseUrl/api/v1/members/me'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
-    );
-    
-    if (response.statusCode == 200) {
-      final userData = jsonDecode(response.body);
-      return User(
         id: userData['id']?.toString() ?? '',
         email: userData['email'] ?? '',
         name: userData['name'] ?? '',
@@ -235,11 +189,156 @@ class AuthService {
         certificationType: userData['certification_type'],
         certificationNumber: userData['certification_number'],
       );
-    } else if (response.statusCode == 401) {
-      // Token expired - attempt refresh or return null
+    } catch (e) {
+      debugPrint('OAuth redirect handling error: $e');
+      rethrow;
+    }
+  }
+  
+  // Refresh access token
+  Future<String> refreshAccessToken() async {
+    try {
+      print('AuthService: 액세스 토큰 갱신 시작');
+      final refreshToken = await _storage.read(key: 'refresh_token');
+      if (refreshToken == null) {
+        print('AuthService: 리프레시 토큰 없음');
+        throw Exception('Refresh token is missing');
+      }
+      
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $refreshToken',
+      };
+      
+      // URL 정규화 및 엔드포인트 상수 사용
+      final url = _normalizeUrl(_baseUrl, _AUTH_ACCESS_TOKEN_PATH);
+      print('AuthService: 토큰 갱신 요청 URL - $url');
+      
+      final response = await http.post(
+        Uri.parse(url),
+        headers: headers,
+      );
+      
+      print('AuthService: 토큰 갱신 응답 상태 코드 - ${response.statusCode}');
+      print('AuthService: 토큰 갱신 응답 헤더 - ${response.headers}');
+      
+      if (response.statusCode == 200) {
+        // 헤더에서 액세스 토큰 추출
+        final newAccessToken = response.headers['authorization'];
+        
+        if (newAccessToken != null && newAccessToken.isNotEmpty) {
+          final token = newAccessToken.startsWith('Bearer ') 
+              ? newAccessToken.substring(7) 
+              : newAccessToken;
+          
+          await _storage.write(key: 'access_token', value: token);
+          return token;
+        }
+        
+        // 헤더에 토큰이 없는 경우
+        final currentToken = await _storage.read(key: 'access_token') ?? '';
+        return currentToken;
+      } else {
+        throw Exception('Access token refresh failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Access token refresh error: $e');
+      // 오류 발생 시 현재 토큰 반환
+      final currentToken = await _storage.read(key: 'access_token') ?? '';
+      return currentToken;
+    }
+  }
+  
+  // Get token
+  Future<String?> getToken() async {
+    return await _storage.read(key: 'access_token');
+  }
+  
+  // Get current user
+  Future<User?> getCurrentUser() async {
+    print('AuthService: getCurrentUser 호출됨');
+    final accessToken = await _storage.read(key: 'access_token');
+    
+    if (accessToken == null) {
+      print('AuthService: 액세스 토큰 없음');
       return null;
-    } else {
-      debugPrint('Failed to fetch user info: ${response.statusCode}, ${response.body}');
+    }
+    
+    print('AuthService: 액세스 토큰으로 사용자 정보 요청');
+    try {
+      final url = _normalizeUrl(_baseUrl, _USER_INFO_PATH);
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+      
+      print('AuthService: 사용자 정보 응답 상태 코드 - ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        print('AuthService: 사용자 정보 로드 성공');
+        
+        return User(
+          id: userData['id']?.toString() ?? '',
+          email: userData['email'] ?? '',
+          name: userData['name'] ?? '',
+          photoUrl: userData['profile_url'],
+          accessToken: accessToken,
+          role: userData['role'],
+          nickName: userData['nick_name'],
+          certificationType: userData['certification_type'],
+          certificationNumber: userData['certification_number'],
+        );
+      } else if (response.statusCode == 401) {
+        print('AuthService: 토큰 만료, 갱신 시도');
+        // 토큰 갱신 시도
+        try {
+          final newToken = await refreshAccessToken();
+          if (newToken.isNotEmpty) {
+            // 새 토큰으로 다시 시도
+            print('AuthService: 토큰 갱신 성공, 다시 시도');
+            final retryUrl = _normalizeUrl(_baseUrl, _USER_INFO_PATH);
+            final retryResponse = await http.get(
+              Uri.parse(retryUrl),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $newToken',
+              },
+            );
+            
+            if (retryResponse.statusCode == 200) {
+              final userData = jsonDecode(retryResponse.body);
+              print('AuthService: 재시도 성공');
+              return User(
+                id: userData['id']?.toString() ?? '',
+                email: userData['email'] ?? '',
+                name: userData['name'] ?? '',
+                photoUrl: userData['profile_url'],
+                accessToken: newToken,
+                role: userData['role'],
+                nickName: userData['nick_name'],
+                certificationType: userData['certification_type'],
+                certificationNumber: userData['certification_number'],
+              );
+            } else {
+              print('AuthService: 재시도 실패 - ${retryResponse.statusCode}, ${retryResponse.body}');
+            }
+          }
+        } catch (refreshError) {
+          print('AuthService: 토큰 갱신 오류 - $refreshError');
+        }
+        
+        return null;
+      } else {
+        debugPrint('Failed to fetch user info: ${response.statusCode}, ${response.body}');
+        print('AuthService: 사용자 정보 요청 실패');
+        return null;
+      }
+    } catch (e) {
+      print('AuthService: 사용자 정보 요청 중 예외 발생 - $e');
       return null;
     }
   }

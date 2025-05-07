@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../providers/auth_provider.dart';
 import '../services/http_client_service.dart';
 import 'map_screen.dart';
+import 'login_screen.dart';
 import 'dart:convert';
 
 class EmtLicenseVerificationScreen extends StatefulWidget {
@@ -40,14 +41,29 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
 
   Future<void> _setupAuthToken() async {
     try {
+      print('EMT 화면: 인증 토큰 설정 시작');
       final accessToken = await storage.read(key: 'access_token');
+      print('EMT 화면: 현재 액세스 토큰 - ${accessToken != null ? "토큰 있음" : "토큰 없음"}');
+      
       if (accessToken != null) {
+        // HttpClientService와 AuthProvider 모두 토큰 설정
         final httpClient = Provider.of<HttpClientService>(context, listen: false);
         httpClient.setAuthorizationHeader('Bearer $accessToken');
-        print("Auth header set in EMT verification: ${httpClient.getHeaders()}");
+        print("EMT 화면: HttpClient에 인증 헤더 설정됨 - ${httpClient.getHeaders()}");
+        
+        // 인증 상태 확인을 위해 AuthProvider 업데이트
+        try {
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          await authProvider.loadCurrentUser();
+          print('EMT 화면: AuthProvider 사용자 정보 로드됨');
+        } catch (e) {
+          print('EMT 화면: 사용자 정보 로드 실패, 계속 진행: $e');
+        }
+      } else {
+        print('EMT 화면: 액세스 토큰이 없어서 인증 헤더를 설정할 수 없음');
       }
     } catch (e) {
-      print("Error setting up auth token: $e");
+      print("EMT 화면: 인증 토큰 설정 중 오류 발생 - $e");
     }
   }
 
@@ -120,6 +136,10 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
       
       // 요청 전 헤더와 바디 로깅
       final accessToken = await storage.read(key: 'access_token');
+      final refreshToken = await storage.read(key: 'refresh_token');
+      
+      print('EMT 화면: 인증 전 토큰 - 액세스 토큰: ${accessToken != null ? "있음" : "없음"}, 리프레시 토큰: ${refreshToken != null ? "있음" : "없음"}');
+      
       if (accessToken != null) {
         httpClient.setAuthorizationHeader('Bearer $accessToken');
       }
@@ -132,9 +152,9 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
       final endpoint = 'members/certification';
       final url = httpClient.buildUrl(endpoint);
       
-      print('Request Headers: ${httpClient.getHeaders()}');
-      print('Request Body: $requestBody');
-      print('Full Request URL: $url');
+      print('EMT 화면: 요청 헤더 - ${httpClient.getHeaders()}');
+      print('EMT 화면: 요청 바디 - $requestBody');
+      print('EMT 화면: 요청 URL - $url');
       
       // Send license verification request to server
       final response = await httpClient.patch(
@@ -142,28 +162,68 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
         jsonEncode(requestBody),
       );
       
-      print('Response Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      print('EMT 화면: 응답 상태 코드 - ${response.statusCode}');
+      print('EMT 화면: 응답 본문 - ${response.body}');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // AuthProvider를 통해 사용자 정보 업데이트
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        
+        // 현재 토큰 다시 확인
+        final updatedAccessToken = await storage.read(key: 'access_token');
+        final updatedRefreshToken = await storage.read(key: 'refresh_token');
+        print('EMT 화면: 인증 성공 후 토큰 - 액세스 토큰: ${updatedAccessToken != null ? "있음" : "없음"}, 리프레시 토큰: ${updatedRefreshToken != null ? "있음" : "없음"}');
+        
+        // 토큰이 없거나 만료된 경우를 대비해 먼저 확인
+        if (updatedAccessToken == null || updatedAccessToken.isEmpty) {
+          print('EMT 화면: 액세스 토큰이 없어 로그인 화면으로 이동합니다.');
+          setState(() {
+            _isVerifying = false;
+            _verificationMessage = '인증 세션이 만료되었습니다. 다시 로그인해주세요.';
+            _isVerificationError = true;
+          });
+          
+          // 잠시 후 로그인 화면으로 이동
+          Future.delayed(Duration(seconds: 2), () {
+            if (mounted) {
+              // 모든 화면을 제거하고 로그인 화면으로 이동
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => LoginScreen()),
+                (route) => false,
+              );
+            }
+          });
+          return;
+        }
+        
+        // HttpClient 갱신
+        httpClient.setAuthorizationHeader('Bearer $updatedAccessToken');
+        if (updatedRefreshToken != null) {
+          httpClient.updateRefreshToken(updatedRefreshToken);
+        }
+        
+        // 사용자 정보 다시 로드
         await authProvider.loadCurrentUser();
+        print('EMT 화면: 사용자 정보 업데이트 완료');
         
         setState(() {
           _isVerifying = false;
           _verificationMessage = '자격증 인증이 성공적으로 완료되었습니다.';
         });
         
+        // 잠시 기다린 후 지도 화면으로 이동
         Future.delayed(Duration(seconds: 2), () {
           if (mounted) {
-            Navigator.of(context).pushReplacement(
+            // 백스택을 정리하고 새로운 MapScreen으로 이동
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => MapScreen()),
+              (route) => false,
             );
           }
         });
       } else {
         final errorData = jsonDecode(response.body);
-        print('Error Data: $errorData');
+        print('EMT 화면: 오류 데이터 - $errorData');
         setState(() {
           _isVerifying = false;
           _verificationMessage = errorData['message'] ?? '자격증 인증에 실패했습니다. 다시 시도해주세요.';
@@ -171,8 +231,8 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
         });
       }
     } catch (e, stackTrace) {
-      print('Error during verification: $e');
-      print('Stack trace: $stackTrace');
+      print('EMT 화면: 인증 중 오류 발생 - $e');
+      print('EMT 화면: 스택 트레이스 - $stackTrace');
       setState(() {
         _isVerifying = false;
         _verificationMessage = '자격증 인증 중 오류가 발생했습니다: $e';

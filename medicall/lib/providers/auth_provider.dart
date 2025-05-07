@@ -38,11 +38,19 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
     
     try {
+      print('AuthProvider: 사용자 정보 로딩 시작');
       _user = await _authService.getCurrentUser();
+      
+      if (_user != null) {
+        print('AuthProvider: 사용자 정보 로드 성공 - 이름: ${_user!.name}, 이메일: ${_user!.email}, 역할: ${_user!.role}, 인증: ${_user!.certificationType}');
+      } else {
+        print('AuthProvider: 사용자 정보를 가져올 수 없음');
+      }
+      
       _errorMessage = null;
     } catch (e) {
+      print('AuthProvider: 사용자 정보 로드 실패 - $e');
       _errorMessage = 'User: ${e.toString()}';
-      print('User Failed: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

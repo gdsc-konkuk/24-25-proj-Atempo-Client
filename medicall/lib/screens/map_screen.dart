@@ -15,6 +15,7 @@ import '../providers/settings_provider.dart';
 import 'settings_screen.dart';
 import 'emt_license_verification_screen.dart';
 import 'user_profile_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -49,23 +50,50 @@ class _MapScreenState extends State<MapScreen> {
 
   // 사용자 권한 체크
   Future<void> _checkUserAuthorization() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.loadCurrentUser();
-    
-    final user = authProvider.currentUser;
-    if (user == null) {
-      _redirectToLicenseVerification('로그인이 필요합니다.');
-      return;
-    }
-    
-    // admin 또는 certificationType이 있는 사용자만 접근 가능
-    if (user.role == 'admin' || (user.certificationType != null && user.certificationType!.isNotEmpty)) {
+    try {
+      final storage = FlutterSecureStorage();
+      final accessToken = await storage.read(key: 'access_token');
+      final refreshToken = await storage.read(key: 'refresh_token');
+      
+      print('MapScreen - 토큰 확인: 액세스 토큰 ${accessToken != null ? "있음" : "없음"}, 리프레시 토큰 ${refreshToken != null ? "있음" : "없음"}');
+      
+      if (accessToken == null || accessToken.isEmpty) {
+        print('MapScreen - 액세스 토큰 없음, EMT 화면으로 이동');
+        _redirectToLicenseVerification('로그인이 필요합니다.');
+        return;
+      }
+      
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      // 사용자 정보 로드 시도하되, 실패해도 계속 진행
+      try {
+        await authProvider.loadCurrentUser();
+        final user = authProvider.currentUser;
+        print('MapScreen - Current user: ${user?.name}, Role: ${user?.role}, Certification: ${user?.certificationType}');
+      } catch (e) {
+        print('MapScreen - 사용자 정보 로드 실패, 무시하고 계속: $e');
+      }
+      
+      // 토큰이 있으면 사용자 정보 여부와 관계없이 지도 화면으로 진행
       setState(() {
         _isCheckingAuth = false;
       });
       _safeInitialize();
-    } else {
-      _redirectToLicenseVerification('EMT 자격증 인증이 필요합니다.');
+      
+    } catch (e) {
+      print('MapScreen - 권한 체크 중 오류 발생: $e');
+      
+      // 오류가 발생해도 토큰이 있으면 계속 진행
+      final storage = FlutterSecureStorage();
+      final accessToken = await storage.read(key: 'access_token');
+      if (accessToken != null && accessToken.isNotEmpty) {
+        print('MapScreen - 오류 발생했지만 토큰 있음, 지도 표시 계속 진행');
+        setState(() {
+          _isCheckingAuth = false;
+        });
+        _safeInitialize();
+      } else {
+        _redirectToLicenseVerification('권한 확인 중 오류가 발생했습니다.');
+      }
     }
   }
   

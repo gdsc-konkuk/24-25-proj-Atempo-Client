@@ -49,25 +49,42 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _checkInitialLink() async {
     final initialLink = await getInitialLink();
     if (initialLink != null) {
-      final uri = Uri.parse(initialLink);
-      // 먼저 atk, rtk 파라미터 체크
-      final atk = uri.queryParameters['atk'];
-      final rtk = uri.queryParameters['rtk'];
-      if (atk != null && rtk != null) {
-        setState(() {
-          _isLoading = true;
-          _statusMessage = "토큰 처리 중...";
-        });
-        await _handleOAuthTokens(atk, rtk);
-      } else {
-        final code = uri.queryParameters['code'];
-        if (code != null) {
+      print('초기 딥링크 감지: $initialLink');
+      try {
+        final uri = Uri.parse(initialLink);
+        print('파싱된 URI: $uri');
+        print('URI 쿼리 파라미터: ${uri.queryParameters}');
+        
+        // 먼저 atk, rtk 파라미터 체크
+        final atk = uri.queryParameters['atk'];
+        final rtk = uri.queryParameters['rtk'];
+        print('파라미터 체크: atk=${atk != null}, rtk=${rtk != null}');
+        
+        if (atk != null && rtk != null) {
           setState(() {
             _isLoading = true;
-            _statusMessage = "로그인 처리 중...";
+            _statusMessage = "토큰 처리 중...";
           });
-          await _handleOAuthCode(code);
+          await _handleOAuthTokens(atk, rtk);
+        } else {
+          final code = uri.queryParameters['code'];
+          print('인증 코드: $code');
+          if (code != null) {
+            setState(() {
+              _isLoading = true;
+              _statusMessage = "로그인 처리 중...";
+            });
+            await _handleOAuthCode(code);
+          } else {
+            print('인식 가능한 인증 파라미터가 없습니다: $initialLink');
+          }
         }
+      } catch (e) {
+        print('딥링크 파싱 오류: $e');
+        setState(() {
+          _statusMessage = "딥링크 처리 오류: $e";
+          _isLoading = false;
+        });
       }
     }
   }
@@ -229,9 +246,8 @@ class _LoginScreenState extends State<LoginScreen> {
             _isLoading = false;
           });
           
-          // Check if role and certificationType exist
+          // Check if role exists (certificationType 체크 제거)
           final String? role = userData['role'];
-          final String? certificationType = userData['certification_type'];
           
           if (role == null || role.isEmpty) {
             // Navigate to EMT license verification if no role
@@ -239,16 +255,10 @@ class _LoginScreenState extends State<LoginScreen> {
               MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
               (route) => false,
             );
-          } else if (role == 'admin' || (role == 'member' && certificationType != null && certificationType.isNotEmpty)) {
-            // Navigate to main map screen if admin or member with certification
+          } else {
+            // Navigate to main map screen (certification 체크 제거)
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => MapScreen()),
-              (route) => false,
-            );
-          } else {
-            // Navigate to EMT license verification for member without certification
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
               (route) => false,
             );
           }

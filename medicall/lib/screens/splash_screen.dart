@@ -64,19 +64,15 @@ class _SplashScreenState extends State<SplashScreen> {
       if (response.statusCode == 200) {
         final userData = jsonDecode(response.body);
         
-        // role과 certificationType 확인
+        // role 확인 (certificationType 체크 제거)
         final String? role = userData['role'];
-        final String? certificationType = userData['certification_type'];
         
         if (role == null || role.isEmpty) {
           // 역할이 없으면 자격증 인증 화면으로
           _navigateToLicenseVerification();
-        } else if (role == 'admin' || (role == 'member' && certificationType != null && certificationType.isNotEmpty)) {
-          // admin 또는 인증된 회원이면 지도 화면으로
-          _navigateToMap();
         } else {
-          // 기타 케이스는 자격증 인증 화면으로
-          _navigateToLicenseVerification();
+          // 로그인된 사용자는 지도 화면으로 이동 (certification 체크 제거)
+          _navigateToMap();
         }
       } else {
         // API 오류 시 로그인 화면으로

@@ -59,15 +59,11 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
       return;
     }
     
-    // admin 또는 certificationType이 있는 사용자만 접근 가능
-    if (user.role == 'admin' || (user.certificationType != null && user.certificationType!.isNotEmpty)) {
-      setState(() {
-        _isCheckingAuth = false;
-      });
-      _initializeNavigation();
-    } else {
-      _redirectToLicenseVerification('EMT 자격증 인증이 필요합니다.');
-    }
+    // certification 체크 제거, 사용자 객체가 존재하는지만 확인
+    setState(() {
+      _isCheckingAuth = false;
+    });
+    _initializeNavigation();
   }
   
   void _redirectToLicenseVerification(String message) {
