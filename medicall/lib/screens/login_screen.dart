@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../providers/auth_provider.dart';
 import '../services/http_client_service.dart';
 import 'map_screen.dart';
+import 'emt_license_verification_screen.dart'; // Import EMT license screen
 import 'dart:async';
 import 'package:uni_links/uni_links.dart';
 import 'package:http/http.dart' as http;
@@ -135,20 +136,14 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.loadCurrentUser();
+        
+        // Fetch additional user data
+        await _fetchUserInfoAndNavigate();
       } catch (authProviderError) {
         print("AuthProvider error: $authProviderError");
       }
 
       _sub?.cancel();
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => MapScreen()),
-          (route) => false,
-        );
-      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -197,18 +192,10 @@ class _LoginScreenState extends State<LoginScreen> {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.loadCurrentUser();
 
+        // Fetch additional user data
+        await _fetchUserInfoAndNavigate();
+
         _sub?.cancel();
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-          if (ModalRoute.of(context)?.isCurrent ?? true) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => MapScreen()),
-              (route) => false,
-            );
-          }
-        }
       } else {
         if (mounted) {
           setState(() {
@@ -223,6 +210,77 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
           _statusMessage = "Login processing error: $e";
         });
+      }
+    }
+  }
+
+  // New method to fetch user info and navigate accordingly
+  Future<void> _fetchUserInfoAndNavigate() async {
+    try {
+      final httpClient = Provider.of<HttpClientService>(context, listen: false);
+      final response = await httpClient.get('api/v1/members');
+      
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        print("User data: $userData");
+        
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          
+          // Check if role and certificationType exist
+          final String? role = userData['role'];
+          final String? certificationType = userData['certification_type'];
+          
+          if (role == null || role.isEmpty) {
+            // Navigate to EMT license verification if no role
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
+              (route) => false,
+            );
+          } else if (role == 'admin' || (role == 'member' && certificationType != null && certificationType.isNotEmpty)) {
+            // Navigate to main map screen if admin or member with certification
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => MapScreen()),
+              (route) => false,
+            );
+          } else {
+            // Navigate to EMT license verification for member without certification
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
+              (route) => false,
+            );
+          }
+        }
+      } else {
+        print("Failed to fetch user info: ${response.statusCode} ${response.body}");
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _statusMessage = "Failed to fetch user info";
+          });
+          
+          // Default to EMT license verification screen on error
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      print("Error fetching user info: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _statusMessage = "Error fetching user info: $e";
+        });
+        
+        // Default to EMT license verification screen on error
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
+          (route) => false,
+        );
       }
     }
   }

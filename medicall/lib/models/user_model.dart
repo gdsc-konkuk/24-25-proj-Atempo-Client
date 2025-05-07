@@ -4,6 +4,10 @@ class User {
   final String email;
   final String? photoUrl;
   final String accessToken;
+  final String? role;  // Added role field
+  final String? nickName;  // Added nickname field
+  final String? certificationType;  // Added certification type field
+  final String? certificationNumber;  // Added certification number field
 
   User({
     required this.id,
@@ -11,15 +15,23 @@ class User {
     required this.email,
     this.photoUrl,
     required this.accessToken,
+    this.role,
+    this.nickName,
+    this.certificationType,
+    this.certificationNumber,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'].toString(),
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
       email: json['email'] ?? '',
-      photoUrl: json['photoUrl'],
+      photoUrl: json['photoUrl'] ?? json['profile_url'],
       accessToken: json['accessToken'] ?? '',
+      role: json['role'],
+      nickName: json['nick_name'],
+      certificationType: json['certification_type'],
+      certificationNumber: json['certification_number'],
     );
   }
 
@@ -30,6 +42,10 @@ class User {
       'email': email,
       'photoUrl': photoUrl,
       'accessToken': accessToken,
+      'role': role,
+      'nick_name': nickName,
+      'certification_type': certificationType,
+      'certification_number': certificationNumber,
     };
   }
 }

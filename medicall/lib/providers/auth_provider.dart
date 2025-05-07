@@ -9,6 +9,7 @@ class AuthProvider with ChangeNotifier {
   String? _errorMessage;
 
   User? get user => _user;
+  User? get currentUser => _user;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _user != null;
   String? get errorMessage => _errorMessage;

@@ -59,11 +59,15 @@ class AuthService {
       await _storage.write(key: 'user_id', value: userData['id'].toString());
       
       return User(
-        id: userData['id'].toString(),
+        id: userData['id']?.toString() ?? '',
         email: userData['email'] ?? '',
         name: userData['name'] ?? '',
-        photoUrl: userData['photoUrl'],
+        photoUrl: userData['profile_url'],
         accessToken: accessToken,
+        role: userData['role'],
+        nickName: userData['nick_name'],
+        certificationType: userData['certification_type'],
+        certificationNumber: userData['certification_number'],
       );
     } catch (e) {
       debugPrint('Login completion error: $e');
@@ -109,11 +113,15 @@ class AuthService {
       await _storage.write(key: 'user_id', value: userData['id'].toString());
       
       return User(
-        id: userData['id'].toString(),
+        id: userData['id']?.toString() ?? '',
         email: userData['email'] ?? '',
         name: userData['name'] ?? '',
-        photoUrl: userData['photoUrl'],
+        photoUrl: userData['profile_url'],
         accessToken: accessToken,
+        role: userData['role'],
+        nickName: userData['nick_name'],
+        certificationType: userData['certification_type'],
+        certificationNumber: userData['certification_number'],
       );
     } catch (e) {
       debugPrint('Token request after login error: $e');
@@ -217,11 +225,15 @@ class AuthService {
     if (response.statusCode == 200) {
       final userData = jsonDecode(response.body);
       return User(
-        id: userData['id'].toString(),
+        id: userData['id']?.toString() ?? '',
         email: userData['email'] ?? '',
         name: userData['name'] ?? '',
-        photoUrl: userData['photoUrl'],
+        photoUrl: userData['profile_url'],
         accessToken: accessToken,
+        role: userData['role'],
+        nickName: userData['nick_name'],
+        certificationType: userData['certification_type'],
+        certificationNumber: userData['certification_number'],
       );
     } else if (response.statusCode == 401) {
       // Token expired - attempt refresh or return null

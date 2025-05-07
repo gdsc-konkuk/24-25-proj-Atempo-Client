@@ -13,6 +13,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import 'settings_screen.dart';
+import 'emt_license_verification_screen.dart';
+import 'user_profile_screen.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -27,6 +29,7 @@ class _MapScreenState extends State<MapScreen> {
   Set<Circle> _circles = {};
   bool _isMapLoading = true;
   String _mapLoadError = "";
+  bool _isCheckingAuth = true;
 
   String get _googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
@@ -39,10 +42,47 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    Provider.of<AuthProvider>(context, listen: false).loadCurrentUser();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _safeInitialize();
+      _checkUserAuthorization();
     });
+  }
+
+  // 사용자 권한 체크
+  Future<void> _checkUserAuthorization() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.loadCurrentUser();
+    
+    final user = authProvider.currentUser;
+    if (user == null) {
+      _redirectToLicenseVerification('로그인이 필요합니다.');
+      return;
+    }
+    
+    // admin 또는 certificationType이 있는 사용자만 접근 가능
+    if (user.role == 'admin' || (user.certificationType != null && user.certificationType!.isNotEmpty)) {
+      setState(() {
+        _isCheckingAuth = false;
+      });
+      _safeInitialize();
+    } else {
+      _redirectToLicenseVerification('EMT 자격증 인증이 필요합니다.');
+    }
+  }
+  
+  void _redirectToLicenseVerification(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red)
+      );
+      
+      Future.delayed(Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
+          );
+        }
+      });
+    }
   }
 
   Future<void> _safeInitialize() async {
@@ -308,8 +348,30 @@ class _MapScreenState extends State<MapScreen> {
             );
           },
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.person),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => UserProfileScreen()),
+              );
+            },
+          ),
+        ],
       ),
-      body: Column(
+      body: _isCheckingAuth
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: const Color(0xFFD94B4B)),
+                  SizedBox(height: 16),
+                  Text('권한 확인 중...'),
+                ],
+              ),
+            )
+          : Column(
         children: [
           Expanded(
             child: _isSupportedPlatform()

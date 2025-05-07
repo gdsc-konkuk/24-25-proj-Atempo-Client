@@ -132,5 +132,35 @@ class HttpClientService {
     }
   }
 
+  // HTTP PATCH 요청 메서드
+  Future<http.Response> patch(String endpoint, dynamic body) async {
+    final uri = Uri.parse(buildUrl(endpoint));
+    
+    try {
+      final response = await http.patch(
+        uri, 
+        headers: _headers,
+        body: body is String ? body : jsonEncode(body),
+      );
+      
+      // 401 Unauthorized - 토큰 갱신 시도
+      if (response.statusCode == 401) {
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          // 토큰 갱신 성공 시 요청 재시도
+          return http.patch(
+            uri, 
+            headers: _headers,
+            body: body is String ? body : jsonEncode(body),
+          );
+        }
+      }
+      
+      return response;
+    } catch (e) {
+      throw Exception('PATCH 요청 오류: $e');
+    }
+  }
+
   // 기타 필요한 HTTP 메서드 (PUT, DELETE 등) 구현 가능
 }

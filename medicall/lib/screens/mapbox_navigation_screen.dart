@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_mapbox_navigation/flutter_mapbox_navigation.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import 'emt_license_verification_screen.dart';
 
 class MapboxNavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -24,6 +27,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   bool _isLoading = true;
   bool _isInitialized = false;
   String _errorMessage = '';
+  bool _isCheckingAuth = true;
   
   // Mapbox token (fetched from environment variable)
   String? _mapboxPublicToken;
@@ -39,6 +43,50 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   void initState() {
     super.initState();
     print("Initializing MapboxNavigationScreen...");
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkUserAuthorization();
+    });
+  }
+  
+  // 사용자 권한 체크
+  Future<void> _checkUserAuthorization() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.loadCurrentUser();
+    
+    final user = authProvider.currentUser;
+    if (user == null) {
+      _redirectToLicenseVerification('로그인이 필요합니다.');
+      return;
+    }
+    
+    // admin 또는 certificationType이 있는 사용자만 접근 가능
+    if (user.role == 'admin' || (user.certificationType != null && user.certificationType!.isNotEmpty)) {
+      setState(() {
+        _isCheckingAuth = false;
+      });
+      _initializeNavigation();
+    } else {
+      _redirectToLicenseVerification('EMT 자격증 인증이 필요합니다.');
+    }
+  }
+  
+  void _redirectToLicenseVerification(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red)
+      );
+      
+      Future.delayed(Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
+          );
+        }
+      });
+    }
+  }
+  
+  void _initializeNavigation() {
     _mapboxPublicToken = dotenv.env['MAPBOX_PUBLIC_TOKEN'];
     print("Mapbox token: $_mapboxPublicToken");
     
@@ -128,11 +176,22 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
         title: Text('Mapbox Navigation'),
         backgroundColor: Color(0xFFE93C4A),
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _errorMessage.isNotEmpty
-              ? _buildErrorWidget()
-              : _buildNavigationWidget(),
+      body: _isCheckingAuth
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFFE93C4A)),
+                  SizedBox(height: 16),
+                  Text('권한 확인 중...'),
+                ],
+              ),
+            )
+          : _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : _errorMessage.isNotEmpty
+                  ? _buildErrorWidget()
+                  : _buildNavigationWidget(),
     );
   }
   
