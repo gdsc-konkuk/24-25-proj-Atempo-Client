@@ -66,7 +66,7 @@ class _ChatPageState extends State<ChatPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '주소 검색',
+                      'Address Search',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -88,7 +88,6 @@ class _ChatPageState extends State<ChatPage> {
                         });
 
                         try {
-                          // 주소 검색 - Geocoding API 사용
                           // Address search - Using Geocoding API
                           List<Location> locations = await locationFromAddress(query);
                           List<String> addresses = [];
@@ -147,7 +146,7 @@ class _ChatPageState extends State<ChatPage> {
                         Navigator.pop(context);
                       },
                       child: Text(
-                        '취소',
+                        'Cancel',
                         style: TextStyle(
                           color: const Color(0xFFD94B4B),
                         ),
@@ -262,93 +261,26 @@ class _ChatPageState extends State<ChatPage> {
       onTap: _dismissKeyboard,
       child: Scaffold(
         resizeToAvoidBottomInset: true, // when keyboard is open, the screen will be resized
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 16.0,
-              right: 16.0,
-              top: 16.0,
-              bottom: 16.0 + keyboardPadding,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Current Location',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                // press the text field to edit
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                top: 16.0,
+                bottom: 16.0 + keyboardPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Current Location',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.location_pin, color: Colors.red),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: _isAddressEditable
-                            ? TextField(
-                                controller: _addressController,
-                                focusNode: _addressFocusNode,
-                                textInputAction: TextInputAction.done, 
-                                decoration: InputDecoration(
-                                  hintText: 'Enter address',
-                                  border: InputBorder.none,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(Icons.check),
-                                    onPressed: () {
-                                      setState(() {
-                                        _isAddressEditable = false;
-                                      });
-                                      _dismissKeyboard();
-                                    },
-                                  ),
-                                ),
-                                onSubmitted: (value) {
-                                  setState(() {
-                                    _isAddressEditable = false;
-                                  });
-                                },
-                              )
-                            : GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isAddressEditable = true;
-                                  });
-                                  // Focus on the text field after a short delay
-                                  Future.delayed(Duration(milliseconds: 50), () {
-                                    FocusScope.of(context).requestFocus(_addressFocusNode);
-                                  });
-                                },
-                                child: Text(
-                                  _addressController.text,
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.search),
-                        onPressed: () {
-                          _dismissKeyboard();
-                          _showAddressSearchDialog();
-                        },
-                        color: Colors.red,
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Search radius
-                SizedBox(height: 16),
-                InkWell(
-                  onTap: _showSearchRadiusModal,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  SizedBox(height: 8),
+                  // press the text field to edit
+                  Container(
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
@@ -356,85 +288,154 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.radar,
-                          color: Colors.red,
-                          size: 24,
-                        ),
-                        SizedBox(width: 12),
+                        Icon(Icons.location_pin, color: Colors.red),
+                        SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            'Search Radius: ${searchRadius.toInt()}km',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          child: _isAddressEditable
+                              ? TextField(
+                                  controller: _addressController,
+                                  focusNode: _addressFocusNode,
+                                  textInputAction: TextInputAction.done, 
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter address',
+                                    border: InputBorder.none,
+                                    suffixIcon: IconButton(
+                                      icon: Icon(Icons.check),
+                                      onPressed: () {
+                                        setState(() {
+                                          _isAddressEditable = false;
+                                        });
+                                        _dismissKeyboard();
+                                      },
+                                    ),
+                                  ),
+                                  onSubmitted: (value) {
+                                    setState(() {
+                                      _isAddressEditable = false;
+                                    });
+                                  },
+                                )
+                              : GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _isAddressEditable = true;
+                                    });
+                                    // Focus on the text field after a short delay
+                                    Future.delayed(Duration(milliseconds: 50), () {
+                                      FocusScope.of(context).requestFocus(_addressFocusNode);
+                                    });
+                                  },
+                                  child: Text(
+                                    _addressController.text,
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                ),
                         ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEEBEB),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Edit',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        IconButton(
+                          icon: Icon(Icons.search),
+                          onPressed: () {
+                            _dismissKeyboard();
+                            _showAddressSearchDialog();
+                          },
+                          color: Colors.red,
                         ),
                       ],
                     ),
                   ),
-                ),
 
-                SizedBox(height: 20),
-                Text(
-                  'Patient Condition',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Container(
-                  height: 200, // Fixed height instead of Expanded
-                  child: TextField(
-                    controller: _patientConditionController,
-                    focusNode: _patientConditionFocusNode,
-                    maxLines: null,
-                    expands: true,
-                    textInputAction: TextInputAction.newline,
-                    keyboardType: TextInputType.multiline,
-                    decoration: InputDecoration(
-                      hintText: 'Describe the patient\'s condition...',
-                      border: OutlineInputBorder(
+                  // Search radius
+                  SizedBox(height: 16),
+                  InkWell(
+                    onTap: _showSearchRadiusModal,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.radar,
+                            color: Colors.red,
+                            size: 24,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Search Radius: ${searchRadius.toInt()}km',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEEBEB),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _dismissKeyboard();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => EmergencyRoomListScreen()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: EdgeInsets.symmetric(vertical: 15),
-                    ),
-                    child: Text(
-                      'Find Emergency Room',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+
+                  SizedBox(height: 20),
+                  Text(
+                    'Patient Condition',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    height: 200, // Fixed height instead of Expanded
+                    child: TextField(
+                      controller: _patientConditionController,
+                      focusNode: _patientConditionFocusNode,
+                      maxLines: null,
+                      expands: true,
+                      textInputAction: TextInputAction.newline,
+                      keyboardType: TextInputType.multiline,
+                      decoration: InputDecoration(
+                        hintText: 'Describe the patient\'s condition...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _dismissKeyboard();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => EmergencyRoomListScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: EdgeInsets.symmetric(vertical: 15),
+                      ),
+                      child: Text(
+                        'Find Emergency Room',
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
