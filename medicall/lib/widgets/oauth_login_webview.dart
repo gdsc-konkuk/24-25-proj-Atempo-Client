@@ -27,7 +27,7 @@ class _OAuthLoginWebviewState extends State<OAuthLoginWebview> {
   void initState() {
     super.initState();
     
-    // 웹뷰 컨트롤러 초기화
+    // Initialize WebView controller
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -36,27 +36,27 @@ class _OAuthLoginWebviewState extends State<OAuthLoginWebview> {
             setState(() {
               _isLoading = true;
             });
-            debugPrint('페이지 로딩 시작: $url');
+            debugPrint('Page loading started: $url');
           },
           onPageFinished: (String url) {
             setState(() {
               _isLoading = false;
             });
-            debugPrint('페이지 로딩 완료: $url');
+            debugPrint('Page loading completed: $url');
           },
           onNavigationRequest: (NavigationRequest request) {
-            // OAuth 콜백 URL 감지
+            // OAuth callback URL detection
             if (request.url.contains('/oauth2/redirect') || 
                 request.url.contains('/login/oauth2/code/')) {
-              debugPrint('OAuth 리디렉션 감지: ${request.url}');
+              debugPrint('OAuth redirection detected: ${request.url}');
               _handleRedirect(request.url);
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
           },
           onWebResourceError: (WebResourceError error) {
-            debugPrint('웹뷰 오류: ${error.description}');
-            widget.onLoginError('웹뷰 오류: ${error.description}');
+            debugPrint('WebView error: ${error.description}');
+            widget.onLoginError('WebView error: ${error.description}');
           },
         ),
       )
@@ -65,10 +65,10 @@ class _OAuthLoginWebviewState extends State<OAuthLoginWebview> {
 
   Future<void> _handleRedirect(String url) async {
     try {
-      // 여기서는 리디렉션 URL에서 쿼리 파라미터나 경로에서 필요한 정보를 추출합니다
-      // 이 부분은 백엔드 구현에 따라 다를 수 있습니다
+      // Extract necessary information from the redirect URL query parameters or path
+      // This part may vary depending on the backend implementation
       
-      // 예: ?token=xxx&refreshToken=yyy 형태의 쿼리 파라미터
+      // Example: Query parameters in the form ?token=xxx&refreshToken=yyy
       final uri = Uri.parse(url);
       final Map<String, dynamic> authData = {};
       
@@ -76,37 +76,37 @@ class _OAuthLoginWebviewState extends State<OAuthLoginWebview> {
         authData[key] = value;
       });
       
-      // 토큰이 없는 경우 (백엔드에서 다른 방식으로 전달할 수 있음)
+      // If tokens are not in the URL (backend may deliver them differently)
       if (!authData.containsKey('accessToken')) {
-        // 여기서는 페이지 내용에서 데이터를 추출하는 자바스크립트를 실행할 수 있습니다
+        // Here we can execute JavaScript to extract data from the page content
         final String? pageContent = await _controller.runJavaScriptReturningResult(
           'document.body.innerText'
         ) as String?;
         
         if (pageContent != null && pageContent.isNotEmpty) {
           try {
-            // 페이지가 JSON 형태로 데이터를 제공하는 경우
+            // If the page provides data in JSON format
             final jsonData = json.decode(pageContent);
             authData.addAll(jsonData);
           } catch (e) {
-            debugPrint('페이지 내용 파싱 실패: $e');
+            debugPrint('Failed to parse page content: $e');
           }
         }
       }
       
-      // 필요한 데이터가 있는지 확인
+      // Check if the necessary data is available
       if (authData.containsKey('accessToken') && authData.containsKey('refreshToken')) {
-        // 로그인 성공 처리
+        // Process successful login
         final user = await widget.loginResult.onLoginSuccess(authData);
         widget.onLoginSuccess(user);
-        Navigator.of(context).pop(); // 웹뷰 닫기
+        Navigator.of(context).pop(); // Close WebView
       } else {
-        debugPrint('인증 데이터가 없습니다: $authData');
-        widget.onLoginError('인증 데이터 추출 실패');
+        debugPrint('No authentication data: $authData');
+        widget.onLoginError('Failed to extract authentication data');
       }
     } catch (e) {
-      debugPrint('리디렉션 처리 오류: $e');
-      widget.onLoginError('리디렉션 처리 오류: $e');
+      debugPrint('Redirect handling error: $e');
+      widget.onLoginError('Redirect handling error: $e');
     }
   }
 
@@ -114,7 +114,7 @@ class _OAuthLoginWebviewState extends State<OAuthLoginWebview> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Google 로그인'),
+        title: Text('Google Login'),
         actions: [
           IconButton(
             icon: Icon(Icons.close),

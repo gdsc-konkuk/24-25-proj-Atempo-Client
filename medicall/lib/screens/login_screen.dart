@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class LoginScreen extends StatefulWidget {
-  final String? code; // 딥링크로 전달받은 인증 코드
+  final String? code; // Authentication code received via deep link
 
   const LoginScreen({Key? key, this.code}) : super(key: key);
 
@@ -49,40 +49,40 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _checkInitialLink() async {
     final initialLink = await getInitialLink();
     if (initialLink != null) {
-      print('초기 딥링크 감지: $initialLink');
+      print('Initial deep link detected: $initialLink');
       try {
         final uri = Uri.parse(initialLink);
-        print('파싱된 URI: $uri');
-        print('URI 쿼리 파라미터: ${uri.queryParameters}');
+        print('Parsed URI: $uri');
+        print('URI query parameters: ${uri.queryParameters}');
         
-        // 먼저 atk, rtk 파라미터 체크
+        // First check for atk, rtk parameters
         final atk = uri.queryParameters['atk'];
         final rtk = uri.queryParameters['rtk'];
-        print('파라미터 체크: atk=${atk != null}, rtk=${rtk != null}');
+        print('Parameter check: atk=${atk != null}, rtk=${rtk != null}');
         
         if (atk != null && rtk != null) {
           setState(() {
             _isLoading = true;
-            _statusMessage = "토큰 처리 중...";
+            _statusMessage = "Processing tokens...";
           });
           await _handleOAuthTokens(atk, rtk);
         } else {
           final code = uri.queryParameters['code'];
-          print('인증 코드: $code');
+          print('Authentication code: $code');
           if (code != null) {
             setState(() {
               _isLoading = true;
-              _statusMessage = "로그인 처리 중...";
+              _statusMessage = "Processing login...";
             });
             await _handleOAuthCode(code);
           } else {
-            print('인식 가능한 인증 파라미터가 없습니다: $initialLink');
+            print('No recognizable authentication parameters: $initialLink');
           }
         }
       } catch (e) {
-        print('딥링크 파싱 오류: $e');
+        print('Deep link parsing error: $e');
         setState(() {
-          _statusMessage = "딥링크 처리 오류: $e";
+          _statusMessage = "Deep link processing error: $e";
           _isLoading = false;
         });
       }
@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _listenDeepLink() {
     _sub = uriLinkStream.listen((Uri? uri) async {
       if (uri != null) {
-        // 먼저 atk, rtk 파라미터 체크
+        // First check for atk, rtk parameters
         final atk = uri.queryParameters['atk'];
         final rtk = uri.queryParameters['rtk'];
         if (atk != null && rtk != null && !_processingDeepLink) {
@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (mounted) {
             setState(() {
               _isLoading = true;
-              _statusMessage = "토큰 처리 중...";
+              _statusMessage = "Processing tokens...";
             });
           }
           await _handleOAuthTokens(atk, rtk);
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (mounted) {
             setState(() {
               _isLoading = true;
-              _statusMessage = "로그인 처리 중...";
+              _statusMessage = "Processing login...";
             });
           }
           await _handleOAuthCode(code);
@@ -127,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }, onError: (err) {
       if (mounted) {
         setState(() {
-          _statusMessage = "딥링크 오류: $err";
+          _statusMessage = "Deep link error: $err";
         });
       }
     });
@@ -231,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // New method to fetch user info and navigate accordingly
+  // Method to fetch user info and navigate accordingly
   Future<void> _fetchUserInfoAndNavigate() async {
     try {
       final httpClient = Provider.of<HttpClientService>(context, listen: false);
@@ -246,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
             _isLoading = false;
           });
           
-          // Check if role exists (certificationType 체크 제거)
+          // Check if role exists
           final String? role = userData['role'];
           
           if (role == null || role.isEmpty) {
@@ -256,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
               (route) => false,
             );
           } else {
-            // Navigate to main map screen (certification 체크 제거)
+            // Navigate to main map screen
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => MapScreen()),
               (route) => false,
@@ -316,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // AuthProvider 인스턴스 가져오기
+    // Get AuthProvider instance
     final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
       backgroundColor: Colors.grey[50],

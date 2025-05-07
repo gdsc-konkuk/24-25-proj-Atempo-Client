@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // 자동 로그인 시도
+    // Attempt auto-login
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _attemptAutoLogin();
     });
@@ -29,26 +29,26 @@ class _SplashScreenState extends State<SplashScreen> {
   
   Future<void> _attemptAutoLogin() async {
     try {
-      // 저장된 토큰 확인
+      // Check for saved tokens
       final accessToken = await storage.read(key: 'access_token');
       final refreshToken = await storage.read(key: 'refresh_token');
       
       if (accessToken == null || refreshToken == null) {
-        // 토큰이 없으면 로그인 화면으로 이동
+        // Navigate to login screen if no tokens
         _navigateToLogin();
         return;
       }
       
-      // 토큰이 있으면 HTTP 클라이언트 설정
+      // Configure HTTP client if tokens exist
       final httpClient = Provider.of<HttpClientService>(context, listen: false);
       httpClient.setAuthorizationHeader('Bearer $accessToken');
       httpClient.updateRefreshToken(refreshToken);
       
-      // 사용자 정보 로드
+      // Load user information
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.loadCurrentUser();
       
-      // 사용자 권한 확인
+      // Verify user authorization
       await _checkUserAuthorization();
     } catch (e) {
       print("Auto login error: $e");
@@ -64,18 +64,18 @@ class _SplashScreenState extends State<SplashScreen> {
       if (response.statusCode == 200) {
         final userData = jsonDecode(response.body);
         
-        // role 확인 (certificationType 체크 제거)
+        // Check role
         final String? role = userData['role'];
         
         if (role == null || role.isEmpty) {
-          // 역할이 없으면 자격증 인증 화면으로
+          // Navigate to license verification if no role
           _navigateToLicenseVerification();
         } else {
-          // 로그인된 사용자는 지도 화면으로 이동 (certification 체크 제거)
+          // Navigate to map screen for authenticated users
           _navigateToMap();
         }
       } else {
-        // API 오류 시 로그인 화면으로
+        // Navigate to login screen if API error
         _navigateToLogin();
       }
     } catch (e) {

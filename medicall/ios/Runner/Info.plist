@@ -40,9 +40,9 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Shows your location on the map and helps with navigation.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>네비게이션을 위해 위치 접근 권한이 필요합니다</string>
+	<string>Location access permission is required for navigation</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>네비게이션을 위해 위치 접근 권한이 필요합니다</string>
+	<string>Location access permission is required for navigation</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
 
@@ -72,6 +72,7 @@
 		<string>https</string>
 	</array>
 	<!-- URL 스킴 등록 (딥링크) -->
+	<!-- URL scheme registration (deep link) -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -86,6 +87,7 @@
 		</dict>
 	</array>
 	<!-- 백그라운드 모드 설정 -->
+	<!-- Background mode settings -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

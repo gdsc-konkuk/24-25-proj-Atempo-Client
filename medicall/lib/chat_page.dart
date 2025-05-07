@@ -61,7 +61,7 @@ class _ChatPageState extends State<ChatPage> {
               ),
               child: Container(
                 padding: EdgeInsets.all(16),
-                width: MediaQuery.of(context).size.width * 0.9,
+                width: MediaQuery.of(context).size.width ,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -89,6 +89,7 @@ class _ChatPageState extends State<ChatPage> {
 
                         try {
                           // 주소 검색 - Geocoding API 사용
+                          // Address search - Using Geocoding API
                           List<Location> locations = await locationFromAddress(query);
                           List<String> addresses = [];
 

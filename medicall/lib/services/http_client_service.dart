@@ -9,45 +9,45 @@ class HttpClientService {
   Map<String, String> _headers = {'Content-Type': 'application/json'};
   String? _refreshToken;
 
-  // 액세스 토큰으로 인증 헤더 설정
+  // Set authorization header with access token
   void setAuthorizationHeader(String bearerToken) {
     _headers['Authorization'] = bearerToken;
-    print('HttpClient: Authorization 헤더 설정됨 - $bearerToken');
+    print('HttpClient: Authorization header set - $bearerToken');
   }
 
-  // 리프레시 토큰 저장
+  // Store refresh token
   void updateRefreshToken(String refreshToken) {
     _refreshToken = refreshToken;
-    print('HttpClient: Refresh 토큰 업데이트됨');
+    print('HttpClient: Refresh token updated');
   }
 
-  // 초기화 메서드 - 앱 시작 시 호출해야 함
+  // Initialization method - must be called at app start
   Future<void> initialize() async {
-    print('HttpClient: 초기화 시작');
+    print('HttpClient: Initialization started');
     final accessToken = await storage.read(key: 'access_token');
     final refreshToken = await storage.read(key: 'refresh_token');
     
     if (accessToken != null) {
       setAuthorizationHeader('Bearer $accessToken');
-      print('HttpClient: 저장된 액세스 토큰으로 초기화됨');
+      print('HttpClient: Initialized with stored access token');
     }
     
     if (refreshToken != null) {
       updateRefreshToken(refreshToken);
-      print('HttpClient: 저장된 리프레시 토큰으로 초기화됨');
+      print('HttpClient: Initialized with stored refresh token');
     }
     
-    print('HttpClient: 초기화 완료, 현재 헤더: $_headers');
+    print('HttpClient: Initialization complete, current headers: $_headers');
   }
 
-  // 토큰 갱신 메서드
+  // Token refresh method
   Future<bool> refreshAccessToken() async {
     if (_refreshToken == null) {
-      print('HttpClient: 리프레시 토큰 없음');
+      print('HttpClient: No refresh token available');
       return false;
     }
     
-    print('HttpClient: 토큰 갱신 시도');
+    print('HttpClient: Attempting token refresh');
     
     try {
       final headers = {
@@ -55,44 +55,42 @@ class HttpClientService {
         'Authorization': 'Bearer $_refreshToken'
       };
       
-      // 베이스 URL 정규화
+      // Base URL normalization
       final baseWithoutSlash = baseUrl.endsWith('/') ? 
           baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
       
-      // 액세스 토큰 갱신 URL
+      // Access token refresh URL
       final url = '$baseWithoutSlash/auth/access-token';
-      print('HttpClient: 토큰 갱신 요청 URL - $url');
-      print('HttpClient: 토큰 갱신 요청 헤더 - $headers');
+      print('HttpClient: Token refresh request URL - $url');
       
-      // 리프레시 토큰을 Authorization 헤더에 포함
+      // Include refresh token in Authorization header
       final response = await http.post(
         Uri.parse(url),
         headers: headers,
       );
       
-      print('HttpClient: 토큰 갱신 응답 상태 코드 - ${response.statusCode}');
-      print('HttpClient: 토큰 갱신 응답 본문 - ${response.body}');
+      print('HttpClient: Token refresh response status code - ${response.statusCode}');
       
       if (response.statusCode == 200) {
-        // 헤더에서 새 액세스 토큰 추출
+        // Extract new access token from header
         final newAccessToken = response.headers['authorization'];
         
         if (newAccessToken != null && newAccessToken.isNotEmpty) {
-          // Bearer 접두사 제거
+          // Remove Bearer prefix if present
           final token = newAccessToken.startsWith('Bearer ') 
               ? newAccessToken.substring(7) 
               : newAccessToken;
           
           setAuthorizationHeader('Bearer $token');
           await storage.write(key: 'access_token', value: token);
-          print('HttpClient: 헤더에서 새 액세스 토큰으로 갱신 성공');
+          print('HttpClient: Successfully refreshed access token from header');
           return true;
         } else {
-          print('HttpClient: 응답 헤더에 액세스 토큰이 없습니다');
+          print('HttpClient: No access token in response header');
           
-          // 헤더에 토큰이 없는 경우 응답 본문 검사
+          // Check response body if no token in header
           if (response.body.contains('AccessToken Reissued')) {
-            // 별도 호출을 통해 토큰 확인
+            // Try to get token with a separate call
             final tokenCheckResponse = await http.get(
               Uri.parse('$baseWithoutSlash/auth/token'),
               headers: headers,
@@ -107,43 +105,43 @@ class HttpClientService {
                 
                 setAuthorizationHeader('Bearer $token');
                 await storage.write(key: 'access_token', value: token);
-                print('HttpClient: 토큰 확인 후 새 액세스 토큰으로 갱신 성공');
+                print('HttpClient: Successfully refreshed access token after verification call');
                 return true;
               }
             }
           }
           
-          print('HttpClient: 액세스 토큰을 추출할 수 없습니다');
+          print('HttpClient: Unable to extract access token');
           return false;
         }
       } else {
-        print('HttpClient: 토큰 갱신 실패 - ${response.statusCode}, ${response.body}');
+        print('HttpClient: Token refresh failed - ${response.statusCode}, ${response.body}');
         return false;
       }
     } catch (e) {
-      print('HttpClient: 토큰 갱신 중 오류 - $e');
+      print('HttpClient: Error during token refresh - $e');
       return false;
     }
   }
 
-  // 디버깅용 - 헤더 확인
+  // For debugging - check headers
   Map<String, String> getHeaders() {
     return Map.from(_headers);
   }
   
-  // URL 조합 헬퍼 (슬래시 중복 방지)
+  // URL helper (prevent duplicate slashes)
   String buildUrl(String endpoint) {
-    // baseUrl에서 끝 슬래시 제거
+    // Remove trailing slash from baseUrl
     final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
     
-    // endpoint에서 시작 슬래시 제거
+    // Remove leading slash from endpoint
     final path = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
     
-    // 슬래시로 올바르게 연결
+    // Correctly connect with slash
     return '$base/$path';
   }
 
-  // HTTP GET 요청 메서드
+  // HTTP GET request method
   Future<http.Response> get(String endpoint, {Map<String, String>? queryParams}) async {
     final uri = Uri.parse(buildUrl(endpoint))
         .replace(queryParameters: queryParams);
@@ -151,24 +149,24 @@ class HttpClientService {
     try {
       final response = await http.get(uri, headers: _headers);
       
-      // 401 Unauthorized - 토큰 갱신 시도
+      // 401 Unauthorized - try to refresh token
       if (response.statusCode == 401) {
-        // 응답 헤더에서 토큰 확인
+        // Check response header for token
         final authHeader = response.headers['authorization'];
         if (authHeader != null && authHeader.isNotEmpty) {
-          // 헤더에 토큰이 있으면 바로 적용
+          // Apply token directly if present in header
           final token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
           setAuthorizationHeader('Bearer $token');
           await storage.write(key: 'access_token', value: token);
-          print('HttpClient: 응답 헤더에서 토큰 갱신됨');
+          print('HttpClient: Token refreshed from response header');
           
-          // 새 토큰으로 요청 재시도
+          // Retry request with new token
           return http.get(uri, headers: _headers);
         } else {
-          // 헤더에 토큰이 없으면 토큰 갱신 요청
+          // Request token refresh if not in header
           final refreshed = await refreshAccessToken();
           if (refreshed) {
-            // 토큰 갱신 성공 시 요청 재시도
+            // Retry request after token refresh
             return http.get(uri, headers: _headers);
           }
         }
@@ -176,11 +174,11 @@ class HttpClientService {
       
       return response;
     } catch (e) {
-      throw Exception('GET 요청 오류: $e');
+      throw Exception('GET request error: $e');
     }
   }
 
-  // HTTP POST 요청 메서드
+  // HTTP POST request method
   Future<http.Response> post(String endpoint, dynamic body) async {
     final uri = Uri.parse(buildUrl(endpoint));
     
@@ -191,28 +189,28 @@ class HttpClientService {
         body: body is String ? body : jsonEncode(body),
       );
       
-      // 401 Unauthorized - 토큰 갱신 시도
+      // 401 Unauthorized - try to refresh token
       if (response.statusCode == 401) {
-        // 응답 헤더에서 토큰 확인
+        // Check response header for token
         final authHeader = response.headers['authorization'];
         if (authHeader != null && authHeader.isNotEmpty) {
-          // 헤더에 토큰이 있으면 바로 적용
+          // Apply token directly if present in header
           final token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
           setAuthorizationHeader('Bearer $token');
           await storage.write(key: 'access_token', value: token);
-          print('HttpClient: 응답 헤더에서 토큰 갱신됨');
+          print('HttpClient: Token refreshed from response header');
           
-          // 새 토큰으로 요청 재시도
+          // Retry request with new token
           return http.post(
             uri, 
             headers: _headers,
             body: body is String ? body : jsonEncode(body),
           );
         } else {
-          // 헤더에 토큰이 없으면 토큰 갱신 요청
+          // Request token refresh if not in header
           final refreshed = await refreshAccessToken();
           if (refreshed) {
-            // 토큰 갱신 성공 시 요청 재시도
+            // Retry request after token refresh
             return http.post(
               uri, 
               headers: _headers,
@@ -224,11 +222,11 @@ class HttpClientService {
       
       return response;
     } catch (e) {
-      throw Exception('POST 요청 오류: $e');
+      throw Exception('POST request error: $e');
     }
   }
 
-  // HTTP PATCH 요청 메서드
+  // HTTP PATCH request method
   Future<http.Response> patch(String endpoint, dynamic body) async {
     final uri = Uri.parse(buildUrl(endpoint));
     
@@ -239,28 +237,28 @@ class HttpClientService {
         body: body is String ? body : jsonEncode(body),
       );
       
-      // 401 Unauthorized - 토큰 갱신 시도
+      // 401 Unauthorized - try to refresh token
       if (response.statusCode == 401) {
-        // 응답 헤더에서 토큰 확인
+        // Check response header for token
         final authHeader = response.headers['authorization'];
         if (authHeader != null && authHeader.isNotEmpty) {
-          // 헤더에 토큰이 있으면 바로 적용
+          // Apply token directly if present in header
           final token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
           setAuthorizationHeader('Bearer $token');
           await storage.write(key: 'access_token', value: token);
-          print('HttpClient: 응답 헤더에서 토큰 갱신됨');
+          print('HttpClient: Token refreshed from response header');
           
-          // 새 토큰으로 요청 재시도
+          // Retry request with new token
           return http.patch(
             uri, 
             headers: _headers,
             body: body is String ? body : jsonEncode(body),
           );
         } else {
-          // 헤더에 토큰이 없으면 토큰 갱신 요청
+          // Request token refresh if not in header
           final refreshed = await refreshAccessToken();
           if (refreshed) {
-            // 토큰 갱신 성공 시 요청 재시도
+            // Retry request after token refresh
             return http.patch(
               uri, 
               headers: _headers,
@@ -272,11 +270,11 @@ class HttpClientService {
       
       return response;
     } catch (e) {
-      throw Exception('PATCH 요청 오류: $e');
+      throw Exception('PATCH request error: $e');
     }
   }
 
-  // HTTP PUT 요청 메서드
+  // HTTP PUT request method
   Future<http.Response> put(String endpoint, dynamic body) async {
     final uri = Uri.parse(buildUrl(endpoint));
     
@@ -287,11 +285,11 @@ class HttpClientService {
         body: body is String ? body : jsonEncode(body),
       );
       
-      // 401 Unauthorized - 토큰 갱신 시도
+      // 401 Unauthorized - try to refresh token
       if (response.statusCode == 401) {
         final refreshed = await refreshAccessToken();
         if (refreshed) {
-          // 토큰 갱신 성공 시 요청 재시도
+          // Retry request after token refresh
           return http.put(
             uri, 
             headers: _headers,
@@ -302,9 +300,9 @@ class HttpClientService {
       
       return response;
     } catch (e) {
-      throw Exception('PUT 요청 오류: $e');
+      throw Exception('PUT request error: $e');
     }
   }
 
-  // 기타 필요한 HTTP 메서드 (DELETE 등) 구현 가능
+  // Other necessary HTTP methods (DELETE, etc.) can be implemented here
 }

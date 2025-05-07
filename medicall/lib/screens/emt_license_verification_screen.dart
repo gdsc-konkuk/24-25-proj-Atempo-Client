@@ -28,7 +28,7 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
   // Define the license types and their formats
   final Map<String, String> licenseFormats = {
     'NREMT': 'Alphanumeric (e.g., GDG143, MED911)',
-    'EMT(KOREA)': '제 + 6 digits + 호 (e.g., 제123456호)',
+    'EMT(KOREA)': '6 digits (e.g 123456)',
     'EMS': '12 digits (e.g., 123456789012)',
   };
   
@@ -41,29 +41,29 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
 
   Future<void> _setupAuthToken() async {
     try {
-      print('EMT 화면: 인증 토큰 설정 시작');
+      print('EMT Screen: Starting auth token setup');
       final accessToken = await storage.read(key: 'access_token');
-      print('EMT 화면: 현재 액세스 토큰 - ${accessToken != null ? "토큰 있음" : "토큰 없음"}');
+      print('EMT Screen: Current access token - ${accessToken != null ? "token present" : "no token"}');
       
       if (accessToken != null) {
-        // HttpClientService와 AuthProvider 모두 토큰 설정
+        // Set token for both HttpClientService and AuthProvider
         final httpClient = Provider.of<HttpClientService>(context, listen: false);
         httpClient.setAuthorizationHeader('Bearer $accessToken');
-        print("EMT 화면: HttpClient에 인증 헤더 설정됨 - ${httpClient.getHeaders()}");
+        print("EMT Screen: Auth header set on HttpClient - ${httpClient.getHeaders()}");
         
-        // 인증 상태 확인을 위해 AuthProvider 업데이트
+        // Update AuthProvider to check authentication status
         try {
           final authProvider = Provider.of<AuthProvider>(context, listen: false);
           await authProvider.loadCurrentUser();
-          print('EMT 화면: AuthProvider 사용자 정보 로드됨');
+          print('EMT Screen: AuthProvider user info loaded');
         } catch (e) {
-          print('EMT 화면: 사용자 정보 로드 실패, 계속 진행: $e');
+          print('EMT Screen: Failed to load user info, continuing: $e');
         }
       } else {
-        print('EMT 화면: 액세스 토큰이 없어서 인증 헤더를 설정할 수 없음');
+        print('EMT Screen: No access token available to set auth header');
       }
     } catch (e) {
-      print("EMT 화면: 인증 토큰 설정 중 오류 발생 - $e");
+      print("EMT Screen: Error setting up auth token - $e");
     }
   }
 
@@ -134,11 +134,10 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
     try {
       final httpClient = Provider.of<HttpClientService>(context, listen: false);
       
-      // 요청 전 헤더와 바디 로깅
       final accessToken = await storage.read(key: 'access_token');
       final refreshToken = await storage.read(key: 'refresh_token');
       
-      print('EMT 화면: 인증 전 토큰 - 액세스 토큰: ${accessToken != null ? "있음" : "없음"}, 리프레시 토큰: ${refreshToken != null ? "있음" : "없음"}');
+      print('EMT Screen: Tokens before authentication - Access token: ${accessToken != null ? "exists" : "missing"}, Refresh token: ${refreshToken != null ? "exists" : "missing"}');
       
       if (accessToken != null) {
         httpClient.setAuthorizationHeader('Bearer $accessToken');
@@ -152,9 +151,9 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
       final endpoint = 'members/certification';
       final url = httpClient.buildUrl(endpoint);
       
-      print('EMT 화면: 요청 헤더 - ${httpClient.getHeaders()}');
-      print('EMT 화면: 요청 바디 - $requestBody');
-      print('EMT 화면: 요청 URL - $url');
+      print('EMT Screen: Request headers - ${httpClient.getHeaders()}');
+      print('EMT Screen: Request body - $requestBody');
+      print('EMT Screen: Request URL - $url');
       
       // Send license verification request to server
       final response = await httpClient.patch(
@@ -162,31 +161,31 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
         jsonEncode(requestBody),
       );
       
-      print('EMT 화면: 응답 상태 코드 - ${response.statusCode}');
-      print('EMT 화면: 응답 본문 - ${response.body}');
+      print('EMT Screen: Response status code - ${response.statusCode}');
+      print('EMT Screen: Response body - ${response.body}');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // AuthProvider를 통해 사용자 정보 업데이트
+        // Update user info via AuthProvider
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         
-        // 현재 토큰 다시 확인
+        // Verify current tokens again
         final updatedAccessToken = await storage.read(key: 'access_token');
         final updatedRefreshToken = await storage.read(key: 'refresh_token');
-        print('EMT 화면: 인증 성공 후 토큰 - 액세스 토큰: ${updatedAccessToken != null ? "있음" : "없음"}, 리프레시 토큰: ${updatedRefreshToken != null ? "있음" : "없음"}');
+        print('EMT Screen: Tokens after successful verification - Access token: ${updatedAccessToken != null ? "present" : "missing"}, Refresh token: ${updatedRefreshToken != null ? "present" : "missing"}');
         
-        // 토큰이 없거나 만료된 경우를 대비해 먼저 확인
+        // Check for missing or expired tokens
         if (updatedAccessToken == null || updatedAccessToken.isEmpty) {
-          print('EMT 화면: 액세스 토큰이 없어 로그인 화면으로 이동합니다.');
+          print('EMT Screen: No access token, redirecting to login screen');
           setState(() {
             _isVerifying = false;
-            _verificationMessage = '인증 세션이 만료되었습니다. 다시 로그인해주세요.';
+            _verificationMessage = 'Authentication session expired. Please login again.';
             _isVerificationError = true;
           });
           
-          // 잠시 후 로그인 화면으로 이동
+          // Navigate to login screen after a short delay
           Future.delayed(Duration(seconds: 2), () {
             if (mounted) {
-              // 모든 화면을 제거하고 로그인 화면으로 이동
+              // Remove all screens and navigate to login
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => LoginScreen()),
                 (route) => false,
@@ -196,25 +195,25 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
           return;
         }
         
-        // HttpClient 갱신
+        // Update HttpClient
         httpClient.setAuthorizationHeader('Bearer $updatedAccessToken');
         if (updatedRefreshToken != null) {
           httpClient.updateRefreshToken(updatedRefreshToken);
         }
         
-        // 사용자 정보 다시 로드
+        // Reload user information
         await authProvider.loadCurrentUser();
-        print('EMT 화면: 사용자 정보 업데이트 완료');
+        print('EMT Screen: User information updated successfully');
         
         setState(() {
           _isVerifying = false;
-          _verificationMessage = '자격증 인증이 성공적으로 완료되었습니다.';
+          _verificationMessage = 'License verification completed successfully.';
         });
         
-        // 잠시 기다린 후 지도 화면으로 이동
+        // Navigate to map screen after a short delay
         Future.delayed(Duration(seconds: 2), () {
           if (mounted) {
-            // 백스택을 정리하고 새로운 MapScreen으로 이동
+            // Clear back stack and navigate to new MapScreen
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => MapScreen()),
               (route) => false,
@@ -223,19 +222,19 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
         });
       } else {
         final errorData = jsonDecode(response.body);
-        print('EMT 화면: 오류 데이터 - $errorData');
+        print('EMT Screen: Error data - $errorData');
         setState(() {
           _isVerifying = false;
-          _verificationMessage = errorData['message'] ?? '자격증 인증에 실패했습니다. 다시 시도해주세요.';
+          _verificationMessage = errorData['message'] ?? 'License verification failed. Please try again.';
           _isVerificationError = true;
         });
       }
     } catch (e, stackTrace) {
-      print('EMT 화면: 인증 중 오류 발생 - $e');
-      print('EMT 화면: 스택 트레이스 - $stackTrace');
+      print('EMT Screen: Error during authentication - $e');
+      print('EMT Screen: Stack trace - $stackTrace');
       setState(() {
         _isVerifying = false;
-        _verificationMessage = '자격증 인증 중 오류가 발생했습니다: $e';
+        _verificationMessage = 'License verification failed: $e';
         _isVerificationError = true;
       });
     }

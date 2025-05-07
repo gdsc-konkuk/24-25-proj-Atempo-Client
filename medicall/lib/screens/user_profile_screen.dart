@@ -34,7 +34,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = '사용자 정보를 불러오는데 실패했습니다: $e';
+        _error = 'Failed to load user information: $e';
         _isLoading = false;
       });
     }
@@ -44,7 +44,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('사용자 정보'),
+        title: Text('User Profile'),
         backgroundColor: const Color(0xFFD94B4B),
         actions: [
           IconButton(
@@ -75,7 +75,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFD94B4B),
                         ),
-                        child: Text('다시 시도'),
+                        child: Text('Try Again'),
                       ),
                     ],
                   ),
@@ -120,7 +120,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '기본 정보',
+              'Profile Details',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -128,10 +128,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             Divider(height: 24),
-            _buildInfoRow('이름', _user?.name ?? '-'),
-            _buildInfoRow('이메일', _user?.email ?? '-'),
-            _buildInfoRow('닉네임', _user?.nickName ?? '-'),
-            _buildInfoRow('권한', _getRoleText(_user?.role)),
+            _buildInfoRow('Name', _user?.name ?? '-'),
+            _buildInfoRow('Email', _user?.email ?? '-'),
+            _buildInfoRow('Nickname', _user?.nickName ?? '-'),
+            _buildInfoRow('Role', _getRoleText(_user?.role)),
           ],
         ),
       ),
@@ -150,7 +150,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '인증 정보',
+              'Certification Information',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -158,8 +158,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             Divider(height: 24),
-            _buildInfoRow('인증 유형', _getCertificationTypeText(_user?.certificationType)),
-            _buildInfoRow('인증 번호', _user?.certificationNumber ?? '-'),
+            _buildInfoRow('Certification Type', _getCertificationTypeText(_user?.certificationType)),
+            _buildInfoRow('Certification Number', _user?.certificationNumber ?? '-'),
           ],
         ),
       ),
@@ -200,9 +200,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     switch (role) {
       case 'ADMIN':
-        return '관리자';
+        return 'Emergency Medical Technician';
       case 'USER':
-        return '일반 사용자';
+        return 'Regular User';
       default:
         return role;
     }
@@ -213,11 +213,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     switch (type) {
       case 'KOREA':
-        return '한국 응급구조사';
+        return 'Korean EMT';
       case 'US':
-        return '미국 응급구조사';
+        return 'US EMT';
       case 'EMT':
-        return '응급구조사';
+        return 'EMT';
       default:
         return type;
     }

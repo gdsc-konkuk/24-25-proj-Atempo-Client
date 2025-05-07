@@ -38,18 +38,18 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      print('AuthProvider: 사용자 정보 로딩 시작');
+      print('AuthProvider: Loading user information');
       _user = await _authService.getCurrentUser();
       
       if (_user != null) {
-        print('AuthProvider: 사용자 정보 로드 성공 - 이름: ${_user!.name}, 이메일: ${_user!.email}, 역할: ${_user!.role}, 인증: ${_user!.certificationType}');
+        print('AuthProvider: User information loaded successfully - Name: ${_user!.name}, Email: ${_user!.email}, Role: ${_user!.role}, Certification: ${_user!.certificationType}');
       } else {
-        print('AuthProvider: 사용자 정보를 가져올 수 없음');
+        print('AuthProvider: Could not retrieve user information');
       }
       
       _errorMessage = null;
     } catch (e) {
-      print('AuthProvider: 사용자 정보 로드 실패 - $e');
+      print('AuthProvider: Failed to load user information - $e');
       _errorMessage = 'User: ${e.toString()}';
     } finally {
       _isLoading = false;
@@ -88,7 +88,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Oauth redirection
+  // OAuth redirection
   Future<bool> handleOAuthRedirect(String code) async {
     _isLoading = true;
     _errorMessage = null;
@@ -107,7 +107,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // request token after login
+  // Request token after login
   Future<bool> requestTokenAfterLogin(String redirectUrl) async {
     _isLoading = true;
     _errorMessage = null;
@@ -126,7 +126,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // logout
+  // Logout
   Future<bool> signOut() async {
     _isLoading = true;
     notifyListeners();

@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'auth_service.dart';
 
 class ApiService {
-  // 슬래시 정규화를 위해 baseUrl 재정의
+  // Redefine baseUrl for slash normalization
   final String _baseUrl;
   final AuthService _authService = AuthService();
   
@@ -14,22 +14,22 @@ class ApiService {
       ? (dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080').substring(0, (dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080').length - 1) 
       : (dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080');
 
-  // URL 정규화 메서드
+  // URL normalization method
   String _buildUrl(String endpoint) {
-    // endpoint에서 시작 슬래시 제거
+    // Remove starting slash from endpoint
     final path = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
     return '$_baseUrl/$path';
   }
 
-  // 인증된 GET 요청
+  // Authenticated GET request
   Future<dynamic> get(String endpoint) async {
     try {
-      print('ApiService: GET 요청 시작 - $endpoint');
+      print('ApiService: GET request started - $endpoint');
       final token = await _authService.getToken();
-      print('ApiService: 인증 토큰 - ${token != null ? "토큰 있음" : "토큰 없음"}');
+      print('ApiService: Auth token - ${token != null ? "token exists" : "no token"}');
       
       final url = _buildUrl(endpoint);
-      print('ApiService: GET 요청 URL - $url');
+      print('ApiService: GET request URL - $url');
       
       final response = await http.get(
         Uri.parse(url),
@@ -39,28 +39,28 @@ class ApiService {
         },
       );
 
-      print('ApiService: GET 응답 상태 코드 - ${response.statusCode}');
+      print('ApiService: GET response status code - ${response.statusCode}');
       
-      // 토큰 만료 시 처리 (401 Unauthorized)
+      // Handle token expiration (401 Unauthorized)
       if (response.statusCode == 401) {
-        print('ApiService: 401 Unauthorized - 토큰 갱신 시도');
-        // 토큰 갱신 후 재시도
+        print('ApiService: 401 Unauthorized - attempting token refresh');
+        // Retry after token refresh
         return await _retryWithNewToken(() => get(endpoint));
       }
 
       return _handleResponse(response);
     } catch (e) {
-      debugPrint('GET 요청 오류: $e');
+      debugPrint('GET request error: $e');
       rethrow;
     }
   }
 
-  // 인증된 POST 요청
+  // Authenticated POST request
   Future<dynamic> post(String endpoint, Map<String, dynamic> data) async {
     try {
       final token = await _authService.getToken();
       final url = _buildUrl(endpoint);
-      print('ApiService: POST 요청 URL - $url');
+      print('ApiService: POST request URL - $url');
       
       final response = await http.post(
         Uri.parse(url),
@@ -71,25 +71,25 @@ class ApiService {
         body: jsonEncode(data),
       );
 
-      // 토큰 만료 시 처리 (401 Unauthorized)
+      // Handle token expiration (401 Unauthorized)
       if (response.statusCode == 401) {
-        // 토큰 갱신 후 재시도
+        // Retry after token refresh
         return await _retryWithNewToken(() => post(endpoint, data));
       }
 
       return _handleResponse(response);
     } catch (e) {
-      debugPrint('POST 요청 오류: $e');
+      debugPrint('POST request error: $e');
       rethrow;
     }
   }
 
-  // 인증된 PUT 요청 
+  // Authenticated PUT request
   Future<dynamic> put(String endpoint, Map<String, dynamic> data) async {
     try {
       final token = await _authService.getToken();
       final url = _buildUrl(endpoint);
-      print('ApiService: PUT 요청 URL - $url');
+      print('ApiService: PUT request URL - $url');
       
       final response = await http.put(
         Uri.parse(url),
@@ -100,24 +100,24 @@ class ApiService {
         body: jsonEncode(data),
       );
 
-      // 토큰 만료 시 처리
+      // Handle token expiration
       if (response.statusCode == 401) {
         return await _retryWithNewToken(() => put(endpoint, data));
       }
 
       return _handleResponse(response);
     } catch (e) {
-      debugPrint('PUT 요청 오류: $e');
+      debugPrint('PUT request error: $e');
       rethrow;
     }
   }
 
-  // 인증된 DELETE 요청
+  // Authenticated DELETE request
   Future<dynamic> delete(String endpoint) async {
     try {
       final token = await _authService.getToken();
       final url = _buildUrl(endpoint);
-      print('ApiService: DELETE 요청 URL - $url');
+      print('ApiService: DELETE request URL - $url');
       
       final response = await http.delete(
         Uri.parse(url),
@@ -127,24 +127,24 @@ class ApiService {
         },
       );
 
-      // 토큰 만료 시 처리
+      // Handle token expiration
       if (response.statusCode == 401) {
         return await _retryWithNewToken(() => delete(endpoint));
       }
 
       return _handleResponse(response);
     } catch (e) {
-      debugPrint('DELETE 요청 오류: $e');
+      debugPrint('DELETE request error: $e');
       rethrow;
     }
   }
 
-  // 인증된 PATCH 요청
+  // Authenticated PATCH request
   Future<dynamic> patch(String endpoint, Map<String, dynamic> data) async {
     try {
       final token = await _authService.getToken();
       final url = _buildUrl(endpoint);
-      print('ApiService: PATCH 요청 URL - $url');
+      print('ApiService: PATCH request URL - $url');
       
       final response = await http.patch(
         Uri.parse(url),
@@ -155,45 +155,45 @@ class ApiService {
         body: jsonEncode(data),
       );
 
-      // 토큰 만료 시 처리
+      // Handle token expiration
       if (response.statusCode == 401) {
         return await _retryWithNewToken(() => patch(endpoint, data));
       }
 
       return _handleResponse(response);
     } catch (e) {
-      debugPrint('PATCH 요청 오류: $e');
+      debugPrint('PATCH request error: $e');
       rethrow;
     }
   }
 
-  // 토큰 갱신 후 요청 재시도
+  // Retry request after token refresh
   Future<dynamic> _retryWithNewToken(Future<dynamic> Function() request) async {
-    print('ApiService: 토큰 갱신 시도');
+    print('ApiService: Attempting token refresh');
     try {
-      // 직접 토큰 갱신 시도
+      // Direct token refresh attempt
       final newToken = await _authService.refreshAccessToken();
       
       if (newToken.isNotEmpty) {
-        print('ApiService: 토큰 갱신 성공, 요청 재시도');
+        print('ApiService: Token refresh successful, retrying request');
         return await request();
       } else {
-        print('ApiService: 토큰 갱신 실패');
-        throw Exception('인증이 만료되었습니다. 다시 로그인해주세요.');
+        print('ApiService: Token refresh failed');
+        throw Exception('Authentication expired. Please login again.');
       }
     } catch (e) {
-      print('ApiService: 토큰 갱신 중 오류 발생 - $e');
-      throw Exception('인증이 만료되었습니다. 다시 로그인해주세요.');
+      print('ApiService: Error during token refresh - $e');
+      throw Exception('Authentication expired. Please login again.');
     }
   }
 
-  // 응답 처리 공통 메서드
+  // Common response handling method
   dynamic _handleResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return null;
       return jsonDecode(response.body);
     } else {
-      throw Exception('서버 오류: ${response.statusCode} - ${response.body}');
+      throw Exception('Server error: ${response.statusCode} - ${response.body}');
     }
   }
 }

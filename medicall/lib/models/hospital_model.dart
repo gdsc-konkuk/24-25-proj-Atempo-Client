@@ -49,7 +49,7 @@ class Hospital {
     };
   }
 
-  // 거리(미터) 기준으로 예상 소요 시간 계산
+  // Calculate estimated arrival time based on distance (meters)
   String estimatedTime(double distanceInMeters) {
     // Calculate estimated time based on distance (in meters)
     // Using average ambulance speed (approx. 50 km/h = 13.89 m/s)

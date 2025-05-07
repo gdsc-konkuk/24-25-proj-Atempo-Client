@@ -6,16 +6,16 @@ class UserService {
   final ApiService _apiService = ApiService();
   final FlutterSecureStorage _storage = FlutterSecureStorage();
 
-  // 사용자 정보 조회 API
+  // User information retrieval API
   Future<User> getUserInfo() async {
     try {
       final dynamic apiResponse = await _apiService.get('api/v1/members');
       final accessToken = await _storage.read(key: 'access_token') ?? '';
       
-      // 응답에 id가 없을 경우를 대비해 저장된 ID 조회
+      // Retrieve stored ID in case the response doesn't have an ID
       final storedId = await _storage.read(key: 'user_id') ?? '';
       
-      // Map<dynamic, dynamic>을 Map<String, dynamic>으로 변환
+      // Convert Map<dynamic, dynamic> to Map<String, dynamic>
       final Map<String, dynamic> response = {};
       if (apiResponse is Map) {
         apiResponse.forEach((key, value) {
@@ -25,7 +25,7 @@ class UserService {
         });
       }
       
-      // API 응답과 저장된 값을 병합
+      // Merge API response with stored values
       final userData = <String, dynamic>{
         ...response,
         'id': response['id'] ?? storedId,
@@ -34,11 +34,11 @@ class UserService {
       
       return User.fromJson(userData);
     } catch (e) {
-      throw Exception('사용자 정보 조회 실패: $e');
+      throw Exception('Failed to retrieve user information: $e');
     }
   }
   
-  // 사용자 정보 업데이트 API (PATCH 메서드 사용)
+  // User information update API (Using PATCH method)
   Future<User> updateUserInfo({
     String? nickName,
     String? role,
@@ -48,46 +48,46 @@ class UserService {
     try {
       final Map<String, dynamic> updateData = {};
       
-      // 변경할 값이 있는 필드만 포함
+      // Only include fields that have values to change
       if (nickName != null) updateData['nick_name'] = nickName;
       if (role != null) updateData['role'] = role;
       if (certificationType != null) updateData['certification_type'] = certificationType;
       if (certificationNumber != null) updateData['certification_number'] = certificationNumber;
       
       if (updateData.isEmpty) {
-        throw Exception('업데이트할 정보가 없습니다.');
+        throw Exception('No information to update.');
       }
       
-      // PATCH 메서드로 사용자 정보 업데이트
+      // Update user information with PATCH method
       final response = await _apiService.patch('api/v1/members', updateData);
       
       if (response == null) {
-        throw Exception('서버 응답이 없습니다.');
+        throw Exception('No server response.');
       }
       
-      // 업데이트된 사용자 정보 반환
+      // Return updated user information
       return await getUserInfo();
     } catch (e) {
-      throw Exception('사용자 정보 업데이트 실패: $e');
+      throw Exception('Failed to update user information: $e');
     }
   }
   
-  // 사용자 역할 변경 API (PATCH 메서드 사용)
+  // User role update API (Using PATCH method)
   Future<User> updateUserRole(String userId, String newRole) async {
     try {
-      // PATCH 메서드로 사용자 역할 업데이트
+      // Update user role with PATCH method
       final response = await _apiService.patch('api/v1/members/$userId/role', {
         'role': newRole
       });
       
       if (response == null) {
-        throw Exception('서버 응답이 없습니다.');
+        throw Exception('No server response.');
       }
       
-      // 업데이트된 사용자 정보 반환
+      // Return updated user information
       return await getUserInfo();
     } catch (e) {
-      throw Exception('사용자 역할 업데이트 실패: $e');
+      throw Exception('Failed to update user role: $e');
     }
   }
 } 

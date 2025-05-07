@@ -9,12 +9,12 @@ class AuthService {
   final FlutterSecureStorage _storage = FlutterSecureStorage();
   final String _baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080';
   
-  // API 엔드포인트 상수
+  // API endpoint constants
   static const String _AUTH_TOKEN_PATH = '/api/v1/auth/token';
   static const String _AUTH_ACCESS_TOKEN_PATH = '/api/v1/auth/access-token';
   static const String _USER_INFO_PATH = '/api/v1/members';
   
-  // URL 정규화 헬퍼 메서드
+  // URL normalization helper method
   String _normalizeUrl(String baseUrl, String path) {
     final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
     final endpoint = path.startsWith('/') ? path : '/$path';
@@ -198,10 +198,10 @@ class AuthService {
   // Refresh access token
   Future<String> refreshAccessToken() async {
     try {
-      print('AuthService: 액세스 토큰 갱신 시작');
+      print('AuthService: Starting access token refresh');
       final refreshToken = await _storage.read(key: 'refresh_token');
       if (refreshToken == null) {
-        print('AuthService: 리프레시 토큰 없음');
+        print('AuthService: No refresh token available');
         throw Exception('Refresh token is missing');
       }
       
@@ -210,20 +210,20 @@ class AuthService {
         'Authorization': 'Bearer $refreshToken',
       };
       
-      // URL 정규화 및 엔드포인트 상수 사용
+      // URL normalization
       final url = _normalizeUrl(_baseUrl, _AUTH_ACCESS_TOKEN_PATH);
-      print('AuthService: 토큰 갱신 요청 URL - $url');
+      print('AuthService: Token refresh request URL - $url');
       
       final response = await http.post(
         Uri.parse(url),
         headers: headers,
       );
       
-      print('AuthService: 토큰 갱신 응답 상태 코드 - ${response.statusCode}');
-      print('AuthService: 토큰 갱신 응답 헤더 - ${response.headers}');
+      print('AuthService: Token refresh response status code - ${response.statusCode}');
+      print('AuthService: Token refresh response headers - ${response.headers}');
       
       if (response.statusCode == 200) {
-        // 헤더에서 액세스 토큰 추출
+        // Extract access token from header
         final newAccessToken = response.headers['authorization'];
         
         if (newAccessToken != null && newAccessToken.isNotEmpty) {
@@ -235,7 +235,7 @@ class AuthService {
           return token;
         }
         
-        // 헤더에 토큰이 없는 경우
+        // If no token in header
         final currentToken = await _storage.read(key: 'access_token') ?? '';
         return currentToken;
       } else {
@@ -243,7 +243,7 @@ class AuthService {
       }
     } catch (e) {
       debugPrint('Access token refresh error: $e');
-      // 오류 발생 시 현재 토큰 반환
+      // Return current token on error
       final currentToken = await _storage.read(key: 'access_token') ?? '';
       return currentToken;
     }
@@ -256,15 +256,15 @@ class AuthService {
   
   // Get current user
   Future<User?> getCurrentUser() async {
-    print('AuthService: getCurrentUser 호출됨');
+    print('AuthService: getCurrentUser called');
     final accessToken = await _storage.read(key: 'access_token');
     
     if (accessToken == null) {
-      print('AuthService: 액세스 토큰 없음');
+      print('AuthService: No access token available');
       return null;
     }
     
-    print('AuthService: 액세스 토큰으로 사용자 정보 요청');
+    print('AuthService: Requesting user information with access token');
     try {
       final url = _normalizeUrl(_baseUrl, _USER_INFO_PATH);
       final response = await http.get(
@@ -275,11 +275,11 @@ class AuthService {
         },
       );
       
-      print('AuthService: 사용자 정보 응답 상태 코드 - ${response.statusCode}');
+      print('AuthService: User information response status code - ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final userData = jsonDecode(response.body);
-        print('AuthService: 사용자 정보 로드 성공');
+        print('AuthService: User information loaded successfully');
         
         return User(
           id: userData['id']?.toString() ?? '',
@@ -293,13 +293,13 @@ class AuthService {
           certificationNumber: userData['certification_number'],
         );
       } else if (response.statusCode == 401) {
-        print('AuthService: 토큰 만료, 갱신 시도');
-        // 토큰 갱신 시도
+        print('AuthService: Token expired, attempting to refresh');
+        // Try to refresh token
         try {
           final newToken = await refreshAccessToken();
           if (newToken.isNotEmpty) {
-            // 새 토큰으로 다시 시도
-            print('AuthService: 토큰 갱신 성공, 다시 시도');
+            // Retry with new token
+            print('AuthService: Token refresh successful, retrying');
             final retryUrl = _normalizeUrl(_baseUrl, _USER_INFO_PATH);
             final retryResponse = await http.get(
               Uri.parse(retryUrl),
@@ -311,7 +311,7 @@ class AuthService {
             
             if (retryResponse.statusCode == 200) {
               final userData = jsonDecode(retryResponse.body);
-              print('AuthService: 재시도 성공');
+              print('AuthService: Retry successful');
               return User(
                 id: userData['id']?.toString() ?? '',
                 email: userData['email'] ?? '',
@@ -324,21 +324,21 @@ class AuthService {
                 certificationNumber: userData['certification_number'],
               );
             } else {
-              print('AuthService: 재시도 실패 - ${retryResponse.statusCode}, ${retryResponse.body}');
+              print('AuthService: Retry failed - ${retryResponse.statusCode}, ${retryResponse.body}');
             }
           }
         } catch (refreshError) {
-          print('AuthService: 토큰 갱신 오류 - $refreshError');
+          print('AuthService: Token refresh error - $refreshError');
         }
         
         return null;
       } else {
         debugPrint('Failed to fetch user info: ${response.statusCode}, ${response.body}');
-        print('AuthService: 사용자 정보 요청 실패');
+        print('AuthService: User information request failed');
         return null;
       }
     } catch (e) {
-      print('AuthService: 사용자 정보 요청 중 예외 발생 - $e');
+      print('AuthService: Exception during user information request - $e');
       return null;
     }
   }

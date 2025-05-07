@@ -48,18 +48,18 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
     });
   }
   
-  // 사용자 권한 체크
+  // Check user authorization
   Future<void> _checkUserAuthorization() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.loadCurrentUser();
     
     final user = authProvider.currentUser;
     if (user == null) {
-      _redirectToLicenseVerification('로그인이 필요합니다.');
+      _redirectToLicenseVerification('Login required.');
       return;
     }
     
-    // certification 체크 제거, 사용자 객체가 존재하는지만 확인
+    // Removed certification check, only verify that the user object exists
     setState(() {
       _isCheckingAuth = false;
     });
@@ -157,7 +157,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
       mode: MapBoxNavigationMode.drivingWithTraffic,
       units: VoiceUnits.metric,
       simulateRoute: true,
-      language: "ko",
+      language: "en",
     );
     
     setState(() {
@@ -179,7 +179,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
                 children: [
                   CircularProgressIndicator(color: Color(0xFFE93C4A)),
                   SizedBox(height: 16),
-                  Text('권한 확인 중...'),
+                  Text('Checking authorization...'),
                 ],
               ),
             )

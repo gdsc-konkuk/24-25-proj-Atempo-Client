@@ -2,7 +2,7 @@
 # source 'https://github.com/CocoaPods/Specs.git'
 source 'https://cdn.cocoapods.org/'
 
-platform :ios, '15.0'             # 최소 타깃 14.0으로 상향
+platform :ios, '15.0'             # Minimum target version raised to 14.0
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -37,29 +37,29 @@ target 'Runner' do
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   
   # Google Maps and utils
-  pod 'GoogleMaps', '8.4.0'  # 8.4.0으로 변경 (google_maps_flutter_ios가 요구하는 최소 버전)
+  pod 'GoogleMaps', '8.4.0'  # Changed to 8.4.0 (minimum version required by google_maps_flutter_ios)
   pod 'Google-Maps-iOS-Utils', '5.0.0'
   
-  # Mapbox SDKs: 버전 호환성 조정
-  # pod 'MapboxNavigation', '2.14.0'       # 이 버전 유지
-  # pod 'MapboxMaps', '10.14.0'            # 10.10.0에서 10.14.0으로 변경 (MapboxNavigation 2.14.0이 요구하는 버전)
-  # pod 'MapboxCommon', '23.2.0'           # 이 버전 유지
-  # pod 'MapboxCoreMaps', '10.14.0'        # 10.10.0에서 10.14.0으로 변경 (Maps와 일치)
+  # Mapbox SDKs: Version compatibility adjustment
+  # pod 'MapboxNavigation', '2.14.0'       # Keep this version
+  # pod 'MapboxMaps', '10.14.0'            # Changed from 10.10.0 to 10.14.0 (version required by MapboxNavigation 2.14.0)
+  # pod 'MapboxCommon', '23.2.0'           # Keep this version
+  # pod 'MapboxCoreMaps', '10.14.0'        # Changed from 10.10.0 to 10.14.0 (matches Maps version)
   # pod 'MapboxCommon',     '23.6.0'
   # pod 'MapboxCoreMaps',   '10.14.0'
   # pod 'MapboxMaps',       '11.12.0-rc.1'
   # pod 'MapboxNavigation', '2.19.0'
-  # pod 'MapboxMobileEvents', '1.0.8'      # 이 버전 유지
+  # pod 'MapboxMobileEvents', '1.0.8'      # Keep this version
   # pod 'MapboxCommon',     '24.12.0-rc.1'
   # pod 'MapboxCoreMaps',   '11.12.0-rc.1'
   # pod 'MapboxMaps',       '11.12.0-rc.1'
   # pod 'MapboxNavigation', '2.19.0'
 
-  # Mapbox 호환 버전 재설정 25.5.5
-  pod 'MapboxMaps', '10.4.0'          # Turf 2.8.0 사용
-  pod 'MapboxDirections', '2.12.0'     # Turf 2.7.0 -> 2.8.0 호환 가능 버전
-  pod 'MapboxNavigation', '2.11.0'     # 최신 안정화 버전
-  pod 'Turf', '2.7.0'                 # 버전 고정
+  # Mapbox compatible version reset 25.5.5
+  pod 'MapboxMaps', '10.4.0'          # Using Turf 2.8.0
+  pod 'MapboxDirections', '2.12.0'     # Turf 2.7.0 -> 2.8.0 compatible version
+  pod 'MapboxNavigation', '2.11.0'     # Latest stable version
+  pod 'Turf', '2.7.0'                 # Version fixed
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -117,17 +117,17 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
-      # Swift 5.5 강제 설정
+      # Force Swift 5.5 setting
       config.build_settings['SWIFT_VERSION'] = '5.5'
       
-      # 프레임워크 검색 경로 확장
+      # Expand framework search paths
       config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= [
         '$(inherited)',
         '${PODS_ROOT}/MapboxMaps',
         '${PODS_ROOT}/MapboxNavigation'
       ]
       
-      # Xcode 15 호환성 설정
+      # Xcode 15 compatibility settings
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       config.build_settings['ENABLE_BITCODE'] = 'NO'
     end

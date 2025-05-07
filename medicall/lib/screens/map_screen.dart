@@ -48,51 +48,51 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  // 사용자 권한 체크
+  // User authorization check
   Future<void> _checkUserAuthorization() async {
     try {
       final storage = FlutterSecureStorage();
       final accessToken = await storage.read(key: 'access_token');
       final refreshToken = await storage.read(key: 'refresh_token');
       
-      print('MapScreen - 토큰 확인: 액세스 토큰 ${accessToken != null ? "있음" : "없음"}, 리프레시 토큰 ${refreshToken != null ? "있음" : "없음"}');
+      print('MapScreen - Token check: Access token ${accessToken != null ? "present" : "missing"}, Refresh token ${refreshToken != null ? "present" : "missing"}');
       
       if (accessToken == null || accessToken.isEmpty) {
-        print('MapScreen - 액세스 토큰 없음, EMT 화면으로 이동');
-        _redirectToLicenseVerification('로그인이 필요합니다.');
+        print('MapScreen - No access token, redirecting to EMT screen');
+        _redirectToLicenseVerification('Login required');
         return;
       }
       
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      // 사용자 정보 로드 시도하되, 실패해도 계속 진행
+      // Try to load user info, but continue even if it fails
       try {
         await authProvider.loadCurrentUser();
         final user = authProvider.currentUser;
         print('MapScreen - Current user: ${user?.name}, Role: ${user?.role}, Certification: ${user?.certificationType}');
       } catch (e) {
-        print('MapScreen - 사용자 정보 로드 실패, 무시하고 계속: $e');
+        print('MapScreen - Failed to load user info, continuing anyway: $e');
       }
       
-      // 토큰이 있으면 사용자 정보 여부와 관계없이 지도 화면으로 진행
+      // Continue to map screen if token exists, regardless of user info
       setState(() {
         _isCheckingAuth = false;
       });
       _safeInitialize();
       
     } catch (e) {
-      print('MapScreen - 권한 체크 중 오류 발생: $e');
+      print('MapScreen - Error checking authorization: $e');
       
-      // 오류가 발생해도 토큰이 있으면 계속 진행
+      // Continue if token exists, even with errors
       final storage = FlutterSecureStorage();
       final accessToken = await storage.read(key: 'access_token');
       if (accessToken != null && accessToken.isNotEmpty) {
-        print('MapScreen - 오류 발생했지만 토큰 있음, 지도 표시 계속 진행');
+        print('MapScreen - Error occurred but token exists, continuing to display map');
         setState(() {
           _isCheckingAuth = false;
         });
         _safeInitialize();
       } else {
-        _redirectToLicenseVerification('권한 확인 중 오류가 발생했습니다.');
+        _redirectToLicenseVerification('Error occurred while checking authorization');
       }
     }
   }
@@ -395,7 +395,7 @@ class _MapScreenState extends State<MapScreen> {
                 children: [
                   CircularProgressIndicator(color: const Color(0xFFD94B4B)),
                   SizedBox(height: 16),
-                  Text('권한 확인 중...'),
+                  Text('Checking authorization...'),
                 ],
               ),
             )

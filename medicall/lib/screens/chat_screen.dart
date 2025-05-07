@@ -221,7 +221,7 @@ color: Colors.grey[400],
           // Chat message list
           Expanded(
             child: ListView.builder(
-              itemCount: 10, // 예시 데이터 개수
+              itemCount: 10, // Sample data count
               itemBuilder: (context, index) {
                 return ListTile(
                   title: Text('Message $index'),
