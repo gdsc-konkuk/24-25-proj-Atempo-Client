@@ -196,4 +196,15 @@ class ApiService {
       throw Exception('Server error: ${response.statusCode} - ${response.body}');
     }
   }
+  
+  // 토큰 갱신 메소드 - HospitalService에서 사용
+  Future<String> refreshToken() async {
+    try {
+      print('ApiService: Attempting direct token refresh');
+      return await _authService.refreshAccessToken();
+    } catch (e) {
+      print('ApiService: Error during direct token refresh: $e');
+      return '';
+    }
+  }
 }

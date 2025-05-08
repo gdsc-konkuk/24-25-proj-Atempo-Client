@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:async';
+import '../services/hospital_service.dart';
+import '../models/hospital_model.dart';
 import 'navigation_screen.dart';
 
 class EmergencyRoomListScreen extends StatefulWidget {
   // 서버에서 받아온 병원 목록 데이터
-  final List<dynamic> hospitals;
+  final List<Hospital> hospitals;
+  final String admissionId;
+  final HospitalService hospitalService;
 
   const EmergencyRoomListScreen({
     Key? key,
     required this.hospitals,
+    required this.admissionId,
+    required this.hospitalService,
   }) : super(key: key);
 
   @override
@@ -19,20 +26,65 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   int? selectedHospitalIndex;
   bool isLoading = false;
   String errorMessage = '';
-
-  // 더 이상 샘플 데이터를 사용하지 않음
-  // final List<Map<String, dynamic>> hospitals = [ ... ];
-
-  void selectHospital(int index) {
-    setState(() {
-      selectedHospitalIndex = index;
-    });
-  }
+  late List<Hospital> _hospitals;
+  StreamSubscription? _hospitalSubscription;
 
   @override
   void initState() {
     super.initState();
-    // API 호출이 이미 ChatPage에서 완료되었으므로 여기서는 필요 없음
+    print('[EmergencyRoomListScreen] 🏥 Initializing with ${widget.hospitals.length} hospitals');
+    print('[EmergencyRoomListScreen] 🔑 Admission ID: ${widget.admissionId}');
+    _hospitals = List.from(widget.hospitals);
+    _subscribeToHospitalUpdates();
+  }
+
+  @override
+  void dispose() {
+    print('[EmergencyRoomListScreen] 🧹 Disposing screen resources');
+    _hospitalSubscription?.cancel();
+    super.dispose();
+  }
+
+  // 병원 목록 실시간 업데이트 구독
+  void _subscribeToHospitalUpdates() {
+    print('[EmergencyRoomListScreen] 📡 Setting up hospital updates subscription');
+    _hospitalSubscription = widget.hospitalService.subscribeToHospitalUpdates().listen(
+      (hospital) {
+        print('[EmergencyRoomListScreen] 📥 Received hospital update: ${hospital.name} (ID: ${hospital.id})');
+        
+        setState(() {
+          // 동일한 ID의 병원이 있는지 확인
+          final index = _hospitals.indexWhere((h) => h.id == hospital.id);
+          
+          if (index >= 0) {
+            print('[EmergencyRoomListScreen] 🔄 Updating existing hospital at index $index');
+            // 기존 병원 정보 업데이트
+            _hospitals[index] = hospital;
+          } else {
+            print('[EmergencyRoomListScreen] ➕ Adding new hospital to list (total: ${_hospitals.length + 1})');
+            // 새 병원 추가
+            _hospitals.add(hospital);
+          }
+        });
+      },
+      onError: (error) {
+        print('[EmergencyRoomListScreen] ❌ Hospital subscription error: $error');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('병원 정보 업데이트 중 오류가 발생했습니다: $error'))
+        );
+      },
+      onDone: () {
+        print('[EmergencyRoomListScreen] ✅ Hospital subscription completed');
+      },
+    );
+    print('[EmergencyRoomListScreen] ✅ Hospital updates subscription setup completed');
+  }
+
+  void selectHospital(int index) {
+    print('[EmergencyRoomListScreen] 👆 Hospital selected at index $index: ${_hospitals[index].name}');
+    setState(() {
+      selectedHospitalIndex = index;
+    });
   }
 
   @override
@@ -124,25 +176,71 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                           ],
                         ),
                       ),
+                      // 실시간 상태 정보
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: Colors.blue[700]),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  '계속해서 병원을 찾는 중입니다. 새로운 병원이 응답하면 자동으로 목록에 추가됩니다.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue[800],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16),
                       // Scrollable list that takes remaining space
                       Expanded(
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            itemCount: widget.hospitals.length,
-                            itemBuilder: (context, index) {
-                              final isSelected = selectedHospitalIndex == index;
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16.0),
-                                child: HospitalCard(
-                                  hospital: widget.hospitals[index],
-                                  isSelected: isSelected,
-                                  onSelect: () => selectHospital(index),
+                          child: _hospitals.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    CircularProgressIndicator(color: Color(0xFFE93C4A)),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      '병원 응답을 기다리는 중입니다...',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
-                          ),
+                              )
+                            : ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                itemCount: _hospitals.length,
+                                itemBuilder: (context, index) {
+                                  final isSelected = selectedHospitalIndex == index;
+                                  final hospital = _hospitals[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 16.0),
+                                    child: HospitalCard(
+                                      hospital: hospital,
+                                      isSelected: isSelected,
+                                      onSelect: () => selectHospital(index),
+                                    ),
+                                  );
+                                },
+                              ),
                         ),
                       ),
                     ],
@@ -156,7 +254,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => NavigationScreen(
-                      hospital: widget.hospitals[selectedHospitalIndex!],
+                      hospital: _hospitals[selectedHospitalIndex!].toJson(),
                     ),
                   ),
                 );
@@ -171,7 +269,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
 }
 
 class HospitalCard extends StatelessWidget {
-  final Map<String, dynamic> hospital;
+  final Hospital hospital;
   final bool isSelected;
   final VoidCallback onSelect;
 
@@ -224,7 +322,7 @@ class HospitalCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        hospital['name'],
+                        hospital.name,
                         style: GoogleFonts.notoSans(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -233,7 +331,7 @@ class HospitalCard extends StatelessWidget {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        hospital['address'],
+                        hospital.address,
                         style: GoogleFonts.notoSans(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -250,13 +348,13 @@ class HospitalCard extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.directions_car,
+                              Icons.hotel,
                               size: 16,
                               color: Colors.black54,
                             ),
                             SizedBox(width: 6),
                             Text(
-                              hospital['distance'],
+                              '빈 병상: ${hospital.availableBeds}개',
                               style: GoogleFonts.notoSans(
                                 fontSize: 14,
                                 color: Colors.black87,
@@ -264,13 +362,13 @@ class HospitalCard extends StatelessWidget {
                             ),
                             SizedBox(width: 16),
                             Icon(
-                              Icons.access_time,
+                              Icons.phone,
                               size: 16,
                               color: Colors.black54,
                             ),
                             SizedBox(width: 6),
                             Text(
-                              hospital['time'],
+                              hospital.phoneNumber,
                               style: GoogleFonts.notoSans(
                                 fontSize: 14,
                                 color: Colors.black87,
@@ -294,12 +392,30 @@ class HospitalCard extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: Text('Hospital Details'),
-                        content: Text('Detailed information about ${hospital['name']} will be shown here.'),
+                        title: Text('병원 상세 정보'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('병원명: ${hospital.name}'),
+                            SizedBox(height: 8),
+                            Text('주소: ${hospital.address}'),
+                            SizedBox(height: 8),
+                            Text('전화번호: ${hospital.phoneNumber}'),
+                            SizedBox(height: 8),
+                            Text('빈 병상: ${hospital.availableBeds}개'),
+                            if (hospital.specialties != null) ...[
+                              SizedBox(height: 8),
+                              Text('특수 진료과: ${hospital.specialties}'),
+                            ],
+                            SizedBox(height: 8),
+                            Text('상태: ${hospital.isAvailable ? "환자 수락 가능" : "환자 수락 불가"}'),
+                          ],
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: Text('Close'),
+                            child: Text('닫기'),
                           )
                         ],
                       ),
@@ -326,12 +442,14 @@ class HospitalCard extends StatelessWidget {
               ),
               Expanded(
                 child: InkWell(
-                  onTap: onSelect,
+                  onTap: hospital.isAvailable ? onSelect : null,
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 14),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isSelected ? Color(0xFFE93C4A) : null,
+                      color: isSelected 
+                          ? Color(0xFFE93C4A) 
+                          : (hospital.isAvailable ? null : Colors.grey[200]),
                       borderRadius: BorderRadius.only(
                         bottomRight: Radius.circular(12),
                       ),
@@ -340,9 +458,13 @@ class HospitalCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      isSelected ? 'Selected' : 'Select',
+                      isSelected 
+                          ? 'Selected' 
+                          : (hospital.isAvailable ? 'Select' : 'Not Available'),
                       style: GoogleFonts.notoSans(
-                        color: isSelected ? Colors.white : Color(0xFFE93C4A),
+                        color: isSelected 
+                            ? Colors.white 
+                            : (hospital.isAvailable ? Color(0xFFE93C4A) : Colors.grey[600]),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
