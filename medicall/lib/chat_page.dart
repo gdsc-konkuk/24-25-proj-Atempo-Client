@@ -12,6 +12,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'services/hospital_service.dart';
 import 'dart:async';
 import 'models/hospital_model.dart';
+import 'dart:math' as math;
 
 class ChatPage extends StatefulWidget {
   final String currentAddress;
@@ -190,11 +191,68 @@ class _ChatPageState extends State<ChatPage> {
                                 itemBuilder: (context, index) {
                                   return ListTile(
                                     title: Text(_placeList[index]["description"]),
-                                    onTap: () {
+                                    onTap: () async {
                                       Navigator.pop(context);
+                                      final selectedAddress = _placeList[index]["description"];
+                                      
+                                      // 선택한 주소 업데이트
                                       setState(() {
-                                        _addressController.text = _placeList[index]["description"];
+                                        _addressController.text = selectedAddress;
+                                        _isLoading = true; // 위치 변환 중 로딩 표시
                                       });
+                                      
+                                      try {
+                                        print('[ChatPage] 🔍 선택한 주소로 좌표 변환 중: $selectedAddress');
+                                        
+                                        // 선택한 주소의 placeId 가져오기
+                                        final placeId = _placeList[index]["place_id"];
+                                        
+                                        // Google Maps Places API로 상세 정보 가져오기
+                                        final detailsUrl = 'https://maps.googleapis.com/maps/api/place/details/json'
+                                          '?place_id=$placeId'
+                                          '&fields=geometry'
+                                          '&key=AIzaSyAw92wiRgypo3fVZ4-R5CbpB4x_Pcj1gwk';
+                                        
+                                        final detailsResponse = await http.get(Uri.parse(detailsUrl));
+                                        final detailsData = json.decode(detailsResponse.body);
+                                        
+                                        if (detailsData['status'] == 'OK') {
+                                          final location = detailsData['result']['geometry']['location'];
+                                          final newLat = location['lat'];
+                                          final newLng = location['lng'];
+                                          
+                                          print('[ChatPage] 📍 주소에서 변환된 좌표: lat=$newLat, lng=$newLng');
+                                          
+                                          setState(() {
+                                            _latitude = newLat;
+                                            _longitude = newLng;
+                                            _isLoading = false;
+                                          });
+                                        } else {
+                                          print('[ChatPage] ⚠️ 좌표 변환 실패: ${detailsData['status']}');
+                                          // 지오코딩 실패 시 Google Geocoding API로 시도
+                                          final List<Location> locations = await locationFromAddress(selectedAddress);
+                                          
+                                          if (locations.isNotEmpty) {
+                                            setState(() {
+                                              _latitude = locations.first.latitude;
+                                              _longitude = locations.first.longitude;
+                                              _isLoading = false;
+                                            });
+                                            print('[ChatPage] 📍 Geocoding API에서 변환된 좌표: lat=${locations.first.latitude}, lng=${locations.first.longitude}');
+                                          } else {
+                                            throw Exception('좌표를 찾을 수 없습니다');
+                                          }
+                                        }
+                                      } catch (e) {
+                                        print('[ChatPage] ❌ 주소 변환 오류: $e');
+                                        setState(() {
+                                          _isLoading = false;
+                                        });
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('주소 좌표 변환 중 오류가 발생했습니다. 기본 위치를 사용합니다.'))
+                                        );
+                                      }
                                     },
                                   );
                                 },
@@ -505,6 +563,9 @@ class _ChatPageState extends State<ChatPage> {
       final storage = FlutterSecureStorage();
       String? token = await storage.read(key: 'access_token');
       
+      // searchRadius를 Provider에서 가져오기
+      final searchRadius = context.read<SettingsProvider>().searchRadius.toInt();
+      
       if (token == null || token.isEmpty) {
         print('[ChatPage] ⚠️ No token found for retry, attempting to load from AuthProvider');
         // AuthProvider에서 토큰 가져오기 시도
@@ -526,13 +587,40 @@ class _ChatPageState extends State<ChatPage> {
       
       // SSE 구독 후 입원 요청 재시도
       print('[ChatPage] 🔄 Now calling hospital service to retry admission');
-      await _hospitalService.retryAdmission(_admissionId!);
+      final retryHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      };
+
+      print('[HospitalService] 🔍 재시도 요청 헤더: $retryHeaders');
+      print('[HospitalService] 🔑 갱신된 토큰 길이: ${token.length}, 토큰 시작: ${token.substring(0, math.min(15, token.length))}');
+
+      final retryResponse = await http.post(
+        Uri.parse(_apiUrl),
+        headers: retryHeaders,
+        body: json.encode({
+          'admissionId': _admissionId,
+          'latitude': _latitude,
+          'longitude': _longitude,
+          'searchRadius': searchRadius,
+          'patientCondition': _patientConditionController.text
+        }),
+      );
       
-      // 메시지 업데이트
-      setState(() {
-        _processingMessage = "병원 연락 중...";
-      });
-      print('[ChatPage] 📢 Processing message updated: $_processingMessage');
+      if (retryResponse.statusCode == 200) {
+        print('[ChatPage] ✅ Admission retry successful');
+        setState(() {
+          _processingMessage = "병원 연락 중...";
+        });
+        print('[ChatPage] 📢 Processing message updated: $_processingMessage');
+      } else {
+        print('[ChatPage] 📄 Admission retry response status: ${retryResponse.statusCode}');
+        print('[ChatPage] 📄 Admission retry response body: ${retryResponse.body}');
+        setState(() {
+          _processingMessage = "입원 요청 재시도 중 오류가 발생했습니다. 다시 시도해주세요.";
+        });
+        print('[ChatPage] 📢 Processing message updated: $_processingMessage');
+      }
       
     } catch (e) {
       print('[ChatPage] ❌ Error retrying admission: $e');
