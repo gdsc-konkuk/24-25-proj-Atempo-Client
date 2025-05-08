@@ -6,6 +6,8 @@ import 'providers/settings_provider.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+import 'providers/auth_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ChatPage extends StatefulWidget {
   final String currentAddress;
@@ -29,6 +31,8 @@ class _ChatPageState extends State<ChatPage> {
   String _sessionToken = '1234567890';
   List<dynamic> _placeList = [];
   bool _isSearching = false;
+  bool _isLoading = false;
+  final String _apiUrl = 'http://avenir.my:8080/api/v1/admissions';
 
   @override
   void initState() {
@@ -46,12 +50,10 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
-  // down the keyboard
   void _dismissKeyboard() {
     FocusScope.of(context).unfocus();
   }
 
-  // search address dialog
   void _showAddressSearchDialog() {
     showDialog(
       context: context,
@@ -160,24 +162,14 @@ class _ChatPageState extends State<ChatPage> {
       String baseURL = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
       String request = '$baseURL?input=$input&key=$apiKey&sessiontoken=$_sessionToken';
       
-      // 병원 검색을 위한 파라미터 설정
-      // 'establishment'은 시설을 의미하며, 여기에 키워드로 hospital을 추가
       request += '&types=establishment';
       request += '&keyword=hospital,clinic,medical,emergency';
-      
-      // 현재 디바이스 언어로 결과 표시 (선택적)
-      // request += '&language=ko'; // 한국어 결과 - 필요 시 활성화
-      
-      // 위치 바이어싱을 추가하면 현재 위치 주변의 병원을 우선적으로 보여줌
-      // 실제 구현 시 현재 사용자 위치를 가져와서 사용
-      // request += '&location=37.5665,126.9780&radius=50000';
       
       var response = await http.get(Uri.parse(request));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         
-        // 디버깅용 로그
         print('Places API response status: ${data['status']}');
         if (data['status'] != 'OK' && data['status'] != 'ZERO_RESULTS') {
           print('Places API error: ${data['error_message']}');
@@ -202,7 +194,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  // change search radius
   void _showSearchRadiusModal() {
     final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
     double tempRadius = settingsProvider.searchRadius;
@@ -291,16 +282,103 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
+  Future<List<dynamic>> _fetchHospitals() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('Starting hospital search...');
+      
+      print('1. Converting address to coordinates: ${_addressController.text}');
+      List<Location> locations = await locationFromAddress(_addressController.text);
+      if (locations.isEmpty) {
+        print('ERROR: Unable to retrieve location information.');
+        throw Exception('위치 정보를 가져올 수 없습니다.');
+      }
+
+      Location location = locations.first;
+      print('Success: Coordinates conversion complete: latitude=${location.latitude}, longitude=${location.longitude}');
+      
+      final searchRadius = context.read<SettingsProvider>().searchRadius.toInt();
+      final patientCondition = _patientConditionController.text;
+      print('Search parameters: radius=${searchRadius}km, patient condition=${patientCondition}');
+
+      // 토큰을 직접 가져오도록 수정
+      print('2. Retrieving authentication token...');
+      final storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'access_token');
+
+      if (token == null || token.isEmpty) {
+        print('ERROR: No authentication token found.');
+        throw Exception('로그인이 필요합니다.');
+      }
+      print('Success: Authentication token verified');
+
+      final requestBody = jsonEncode({
+        "location": {
+          "latitude": location.latitude,
+          "longitude": location.longitude
+        },
+        "search_radius": searchRadius,
+        "patient_condition": patientCondition
+      });
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      };
+
+      print('3. API request preparation');
+      print('API URL: $_apiUrl');
+      print('Request headers: ${headers.toString()}');
+      print('Request body: $requestBody');
+
+      print('4. Sending request to server...');
+      final response = await http.post(
+        Uri.parse(_apiUrl),
+        headers: headers,
+        body: requestBody,
+      );
+
+      print('5. Server response received');
+      print('Status code: ${response.statusCode}');
+      print('Response headers: ${response.headers}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final hospitals = data['hospitals'] ?? [];
+        print('Success: Retrieved ${hospitals.length} hospitals');
+        return hospitals;
+      } else {
+        print('ERROR: Server error: ${response.statusCode}');
+        print('ERROR: Response content: ${response.body}');
+        throw Exception('서버 오류: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('ERROR: Exception while requesting hospital information: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('병원 정보를 가져오는 중 오류가 발생했습니다: $e'))
+      );
+      return [];
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+      print('Hospital search process completed');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final searchRadius = context.watch<SettingsProvider>().searchRadius;
     final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return GestureDetector(
-      // if you tap outside of the text field, the keyboard will be dismissed
       onTap: _dismissKeyboard,
       child: Scaffold(
-        resizeToAvoidBottomInset: true, // when keyboard is open, the screen will be resized
+        resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
@@ -318,7 +396,6 @@ class _ChatPageState extends State<ChatPage> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
-                  // press the text field to edit
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -360,7 +437,6 @@ class _ChatPageState extends State<ChatPage> {
                                     setState(() {
                                       _isAddressEditable = true;
                                     });
-                                    // Focus on the text field after a short delay
                                     Future.delayed(Duration(milliseconds: 50), () {
                                       FocusScope.of(context).requestFocus(_addressFocusNode);
                                     });
@@ -383,7 +459,6 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
 
-                  // Search radius
                   SizedBox(height: 16),
                   InkWell(
                     onTap: _showSearchRadiusModal,
@@ -437,7 +512,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                   SizedBox(height: 8),
                   Container(
-                    height: 200, // Fixed height instead of Expanded
+                    height: 200,
                     child: TextField(
                       controller: _patientConditionController,
                       focusNode: _patientConditionFocusNode,
@@ -456,23 +531,32 @@ class _ChatPageState extends State<ChatPage> {
                   SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _dismissKeyboard();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => EmergencyRoomListScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: EdgeInsets.symmetric(vertical: 15),
-                      ),
-                      child: Text(
-                        'Find Emergency Room',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
-                    ),
+                    child: _isLoading
+                      ? Center(child: CircularProgressIndicator(color: Colors.red))
+                      : ElevatedButton(
+                          onPressed: () async {
+                            _dismissKeyboard();
+                            final hospitals = await _fetchHospitals();
+                            if (hospitals.isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EmergencyRoomListScreen(
+                                    hospitals: hospitals,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            padding: EdgeInsets.symmetric(vertical: 15),
+                          ),
+                          child: Text(
+                            'Find Emergency Room',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
                   ),
                 ],
               ),

@@ -3,6 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'navigation_screen.dart';
 
 class EmergencyRoomListScreen extends StatefulWidget {
+  // 서버에서 받아온 병원 목록 데이터
+  final List<dynamic> hospitals;
+
+  const EmergencyRoomListScreen({
+    Key? key,
+    required this.hospitals,
+  }) : super(key: key);
+
   @override
   _EmergencyRoomListScreenState createState() => _EmergencyRoomListScreenState();
 }
@@ -12,77 +20,8 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   bool isLoading = false;
   String errorMessage = '';
 
-  // Sample hospital data - in the future, this would come from an API
-  final List<Map<String, dynamic>> hospitals = [
-    {
-      'name': 'Seoul National University Hospital',
-      'address': 'Seoul, Jongno-gu, Daehak-ro 101',
-      'distance': '2.3km',
-      'time': '12 min'
-    },
-    {
-      'name': 'Seoul National University Hospital',
-      'address': 'Seoul, Jongno-gu, Daehak-ro 101',
-      'distance': '3.3 km',
-      'time': '15 min'
-    },
-    {
-      'name': 'Seoul National University Hospital',
-      'address': 'Seoul, Jongno-gu, Daehak-ro 101',
-      'distance': '5.3 km',
-      'time': '20 min'
-    },
-     {
-      'name': 'Seoul National University Hospital',
-      'address': 'Seoul, Jongno-gu, Daehak-ro 101',
-      'distance': '5.3 km',
-      'time': '20 min'
-    },    {
-      'name': 'Seoul National University Hospital',
-      'address': 'Seoul, Jongno-gu, Daehak-ro 101',
-      'distance': '5.3 km',
-      'time': '20 min'
-    },
-    {
-      'name': 'Seoul National University Hospital',
-      'address': 'Seoul, Jongno-gu, Daehak-ro 101',
-      'distance': '5.3 km',
-      'time': '20 min'
-    },
-  ];
-
-  // This will be used in the future to fetch hospital data from the server
-  Future<void> _fetchHospitals() async {
-    try {
-      setState(() {
-        isLoading = true;
-        errorMessage = '';
-      });
-
-      // Simulate API request with delay
-      await Future.delayed(Duration(seconds: 1));
-
-      // In the future, this would be an actual API call:
-      // final response = await apiService.getNearbyHospitals(latitude, longitude);
-      // if (response.success) {
-      //   setState(() {
-      //     hospitals = response.data;
-      //     isLoading = false;
-      //   });
-      // } else {
-      //   throw Exception(response.message);
-      // }
-
-      setState(() {
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-        errorMessage = 'Failed to load hospitals: $e';
-      });
-    }
-  }
+  // 더 이상 샘플 데이터를 사용하지 않음
+  // final List<Map<String, dynamic>> hospitals = [ ... ];
 
   void selectHospital(int index) {
     setState(() {
@@ -93,8 +32,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   @override
   void initState() {
     super.initState();
-    // Uncomment this when you implement the API
-    // _fetchHospitals();
+    // API 호출이 이미 ChatPage에서 완료되었으므로 여기서는 필요 없음
   }
 
   @override
@@ -150,9 +88,9 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                         ),
                         SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: _fetchHospitals,
+                          onPressed: () => Navigator.pop(context),
                           style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFE93C4A)),
-                          child: Text('Try Again'),
+                          child: Text('Go Back'),
                         ),
                       ],
                     ),
@@ -192,13 +130,13 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            itemCount: hospitals.length,
+                            itemCount: widget.hospitals.length,
                             itemBuilder: (context, index) {
                               final isSelected = selectedHospitalIndex == index;
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 16.0),
                                 child: HospitalCard(
-                                  hospital: hospitals[index],
+                                  hospital: widget.hospitals[index],
                                   isSelected: isSelected,
                                   onSelect: () => selectHospital(index),
                                 ),
@@ -218,7 +156,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => NavigationScreen(
-                      hospital: hospitals[selectedHospitalIndex!],
+                      hospital: widget.hospitals[selectedHospitalIndex!],
                     ),
                   ),
                 );

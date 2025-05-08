@@ -345,10 +345,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void navigateToEmergencyRoomList() async {
     if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => EmergencyRoomListScreen()),
-      );
+      _showChatBottomSheet(context);
     }
   }
 
