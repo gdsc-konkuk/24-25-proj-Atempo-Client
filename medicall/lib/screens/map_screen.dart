@@ -40,12 +40,12 @@ class _MapScreenState extends State<MapScreen> {
   // Image asset path
   final String _pinAsset = 'assets/images/location_pin.png';  // Pin image asset path (modify with actual path if needed)
 
-  String get _googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+  String get _googleMapsApiKey => 'AIzaSyDmTtOUvQEXE6ZUOeb5YlzZG55qaEiGhSU';
 
   // Neutral initial position in global coordinate system (mid-Atlantic point)
   static final CameraPosition _initialCameraPosition = CameraPosition(
     target: LatLng(0, 0),
-    zoom: 2.0,
+    zoom: 4.0,
   );
 
   @override
