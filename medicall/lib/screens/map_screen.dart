@@ -18,6 +18,7 @@ import 'emt_license_verification_screen.dart';
 import 'user_profile_screen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'chat_page.dart';
+import '../services/hospital_service.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -34,6 +35,10 @@ class _MapScreenState extends State<MapScreen> {
   String _mapLoadError = "";
   bool _isCheckingAuth = true;
   
+  // SSE 관련 변수
+  late HospitalService _hospitalService;
+  bool _sseSubscribed = false;
+  
   // Reverse geocoding loading state
   bool _isReverseGeocodingLoading = false;
   
@@ -45,7 +50,7 @@ class _MapScreenState extends State<MapScreen> {
   // Neutral initial position in global coordinate system (mid-Atlantic point)
   static final CameraPosition _initialCameraPosition = CameraPosition(
     target: LatLng(0, 0),
-    zoom: 4.0,
+    zoom: 10.0,
   );
 
   @override
@@ -123,12 +128,21 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _safeInitialize() async {
     try {
+      // 병원 서비스 초기화
+      _hospitalService = HospitalService();
+      
       if (kIsWeb) {
         _checkMapsApiLoaded();
       }
 
       try {
         await _getCurrentLocation();
+        
+        // 앱 시작시 SSE 구독 시작
+        if (!_sseSubscribed) {
+          print('[MapScreen] 🔄 초기 SSE 구독 시작');
+          _subscribeToSSE();
+        }
       } catch (e) {
         debugPrint('Location services initialization error: $e');
         if (mounted) {
@@ -146,6 +160,31 @@ class _MapScreenState extends State<MapScreen> {
           _mapLoadError = "An error occurred during initialization: $e";
         });
       }
+    }
+  }
+
+  // SSE 구독 메소드
+  void _subscribeToSSE() {
+    try {
+      print('[MapScreen] 📡 SSE 구독 설정 중...');
+      _hospitalService.subscribeToHospitalUpdates().listen(
+        (hospital) {
+          print('[MapScreen] 📥 병원 업데이트 수신: ${hospital.name} (ID: ${hospital.id})');
+          // 여기서는 단순히 구독만 하고, 데이터 처리는 하지 않음
+        },
+        onError: (error) {
+          print('[MapScreen] ❌ SSE 구독 오류: $error');
+        },
+        onDone: () {
+          print('[MapScreen] ✅ SSE 구독 완료');
+          _sseSubscribed = false;
+        },
+      );
+      _sseSubscribed = true;
+      print('[MapScreen] ✅ SSE 구독 설정 완료');
+    } catch (e) {
+      print('[MapScreen] ❌ SSE 구독 설정 오류: $e');
+      _sseSubscribed = false;
     }
   }
 
@@ -343,6 +382,12 @@ class _MapScreenState extends State<MapScreen> {
   void dispose() {
     if (_mapController != null) {
       _mapController!.dispose();
+    }
+    // SSE 연결 종료
+    if (_sseSubscribed) {
+      print('[MapScreen] 🔌 SSE 연결 종료');
+      _hospitalService.closeSSEConnection();
+      _sseSubscribed = false;
     }
     super.dispose();
   }

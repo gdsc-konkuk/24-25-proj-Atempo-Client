@@ -4,6 +4,7 @@ import 'package:flutter_mapbox_navigation/flutter_mapbox_navigation.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'emt_license_verification_screen.dart';
+import '../services/hospital_service.dart';
 
 class MapboxNavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;

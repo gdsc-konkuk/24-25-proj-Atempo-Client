@@ -279,83 +279,160 @@ class HospitalService {
     try {
       if (_sseClient != null) {
         print('[HospitalService] ⚠️ SSE client already exists, skipping connection');
-        return; // Already connected
+        return;
       }
       
       print('[HospitalService] 🔄 Connecting to SSE...');
-      final token = await _storage.read(key: 'access_token');
+      String? token = await _storage.read(key: 'access_token');
       
       if (token == null) {
         print('[HospitalService] ❌ Authentication token not found for SSE connection');
         throw Exception('Authentication token not found');
       }
-      print('[HospitalService] 🔑 Authentication token retrieved for SSE connection');
       
-      _sseClient = http.Client();
-      final sseUrl = '$_baseUrl/api/v1/notifications/subscribe';
-      final request = http.Request('GET', Uri.parse(sseUrl));
-      request.headers['Accept'] = 'text/event-stream';
-      request.headers['Cache-Control'] = 'no-cache';
-      request.headers['Authorization'] = 'Bearer $token';
+      // SSE 연결 시도
+      await _tryConnectWithToken(token);
       
-      print('[HospitalService] 🌐 SSE connection URL: $sseUrl');
-      print('[HospitalService] 📤 SSE connection headers: ${request.headers}');
-      
-      final response = await _sseClient!.send(request);
-      print('[HospitalService] 📊 SSE connection status: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        print('[HospitalService] ✅ SSE connection established successfully');
-        response.stream.transform(utf8.decoder).listen((data) {
-          print('[HospitalService] 📡 SSE raw data received: $data');
-          _processSSEData(data);
-        }, onDone: () {
-          print('[HospitalService] ⚠️ SSE connection closed by server');
-          closeSSEConnection();
-        }, onError: (error) {
-          print('[HospitalService] ❌ SSE connection error: $error');
-          closeSSEConnection();
-        });
-      } else {
-        print('[HospitalService] ❌ Failed to establish SSE connection: ${response.statusCode}');
-        closeSSEConnection();
-      }
     } catch (e) {
       print('[HospitalService] ❌ Error connecting to SSE: $e');
       closeSSEConnection();
     }
   }
   
+  Future<void> _tryConnectWithToken(String token) async {
+    _sseClient = http.Client();
+    final sseUrl = '$_baseUrl/api/v1/notifications/subscribe';
+    final request = http.Request('GET', Uri.parse(sseUrl));
+    request.headers['Accept'] = 'text/event-stream';
+    request.headers['Cache-Control'] = 'no-cache';
+    request.headers['Authorization'] = 'Bearer $token';
+    
+    print('[HospitalService] 📡 SSE 요청 정보:');
+    print('[HospitalService] 🌐 SSE URL: $sseUrl');
+    print('[HospitalService] 📤 SSE 요청 헤더: ${request.headers}');
+    print('[HospitalService] 📦 SSE 요청 방식: ${request.method}');
+    
+    try {
+      final response = await _sseClient!.send(request);
+      
+      print('[HospitalService] 📊 SSE 응답 상태 코드: ${response.statusCode}');
+      print('[HospitalService] 📥 SSE 응답 헤더: ${response.headers}');
+      
+      if (response.statusCode == 401) {
+        // 토큰 갱신 시도
+        print('[HospitalService] ⚠️ SSE 연결 401 오류 - 토큰 갱신 시도');
+        final newToken = await _apiService.refreshToken();
+        if (newToken.isNotEmpty) {
+          print('[HospitalService] ✅ 토큰 갱신 성공, SSE 연결 재시도');
+          // 이전 클라이언트 정리
+          _sseClient!.close();
+          _sseClient = http.Client();
+          
+          // 새 토큰으로 재시도
+          final newRequest = http.Request('GET', Uri.parse(sseUrl));
+          newRequest.headers['Accept'] = 'text/event-stream';
+          newRequest.headers['Cache-Control'] = 'no-cache';
+          newRequest.headers['Authorization'] = 'Bearer $newToken';
+          
+          print('[HospitalService] 📡 토큰 갱신 후 SSE 재요청 정보:');
+          print('[HospitalService] 🌐 SSE URL: $sseUrl');
+          print('[HospitalService] 📤 SSE 재요청 헤더: ${newRequest.headers}');
+          
+          final newResponse = await _sseClient!.send(newRequest);
+          print('[HospitalService] 📊 토큰 갱신 후 SSE 응답 상태 코드: ${newResponse.statusCode}');
+          print('[HospitalService] 📥 토큰 갱신 후 SSE 응답 헤더: ${newResponse.headers}');
+          
+          _handleSseResponse(newResponse);
+        } else {
+          print('[HospitalService] ❌ 토큰 갱신 실패');
+          throw Exception('토큰 갱신 실패');
+        }
+      } else {
+        _handleSseResponse(response);
+      }
+    } catch (e) {
+      print('[HospitalService] ❌ SSE 요청 중 예외 발생: $e');
+      rethrow;
+    }
+  }
+  
+  void _handleSseResponse(http.StreamedResponse response) {
+    print('[HospitalService] 🔄 SSE 응답 처리 시작');
+    
+    if (response.statusCode == 200) {
+      print('[HospitalService] ✅ SSE 연결 성공 (상태 코드: ${response.statusCode})');
+      print('[HospitalService] 📥 응답 헤더: ${response.headers}');
+      print('[HospitalService] 🔄 스트림 리스닝 시작...');
+      
+      response.stream.transform(utf8.decoder).listen(
+        (data) {
+          print('[HospitalService] 📥 SSE 데이터 수신: $data');
+          _processSSEData(data);
+        },
+        onDone: () {
+          print('[HospitalService] ⚠️ SSE 연결 서버에 의해 종료됨');
+          closeSSEConnection();
+        },
+        onError: (error) {
+          print('[HospitalService] ❌ SSE 스트림 에러: $error');
+          print('[HospitalService] ❌ 에러 상세: ${error.toString()}');
+          closeSSEConnection();
+        }
+      );
+    } else {
+      print('[HospitalService] ❌ SSE 연결 실패: ${response.statusCode}');
+      print('[HospitalService] ❌ 응답 헤더: ${response.headers}');
+      
+      // 응답 본문도 로깅 시도
+      response.stream.transform(utf8.decoder).listen(
+        (data) {
+          print('[HospitalService] ❌ SSE 연결 실패 응답 본문: $data');
+        },
+        onDone: () {
+          closeSSEConnection();
+        },
+        onError: (error) {
+          print('[HospitalService] ❌ SSE 연결 실패 응답 읽기 오류: $error');
+          closeSSEConnection();
+        }
+      );
+    }
+  }
+  
   // Process SSE data
   void _processSSEData(String data) {
     try {
-      print('[HospitalService] 🔄 Processing SSE data');
+      print('[HospitalService] 🔄 SSE 데이터 처리 중');
+      print('[HospitalService] 📦 원본 데이터: $data');
+      
       // SSE data format: data: {...JSON data...}
       if (data.startsWith('data:')) {
         final jsonData = data.substring(5).trim();
-        print('[HospitalService] 📦 Extracted JSON data: $jsonData');
+        print('[HospitalService] 📦 추출된 JSON 데이터: $jsonData');
         
         if (jsonData.isNotEmpty) {
           try {
             final hospitalData = json.decode(jsonData);
-            print('[HospitalService] 🏥 Parsed hospital data: $hospitalData');
+            print('[HospitalService] 🏥 파싱된 병원 데이터: $hospitalData');
             
             final hospital = Hospital.fromJson(hospitalData);
-            print('[HospitalService] ✅ Created Hospital object: ${hospital.name}, ID: ${hospital.id}');
+            print('[HospitalService] ✅ 생성된 병원 객체: 이름=${hospital.name}, ID=${hospital.id}');
             
             _hospitalsStreamController?.add(hospital);
-            print('[HospitalService] 📢 Hospital added to stream');
+            print('[HospitalService] 📢 스트림에 병원 객체 추가 완료');
           } catch (e) {
-            print('[HospitalService] ❌ Error parsing hospital data: $e');
+            print('[HospitalService] ❌ 병원 데이터 파싱 오류: $e');
+            print('[HospitalService] ❌ 파싱 시도한 원본 데이터: $jsonData');
           }
         } else {
-          print('[HospitalService] ⚠️ Empty JSON data in SSE message');
+          print('[HospitalService] ⚠️ SSE 메시지의 JSON 데이터가 비어있음');
         }
       } else {
-        print('[HospitalService] ⚠️ Not a data event: $data');
+        print('[HospitalService] ⚠️ 데이터 이벤트가 아님: $data');
       }
     } catch (e) {
-      print('[HospitalService] ❌ Error processing SSE data: $e');
+      print('[HospitalService] ❌ SSE 데이터 처리 오류: $e');
+      print('[HospitalService] ❌ 오류 발생 원본 데이터: $data');
     }
   }
 
