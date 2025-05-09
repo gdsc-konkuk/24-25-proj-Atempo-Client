@@ -12,6 +12,7 @@ import 'emergency_room_list_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/location_provider.dart';
 import 'settings_screen.dart';
 import 'emt_license_verification_screen.dart';
 import 'user_profile_screen.dart';
@@ -31,6 +32,11 @@ class _MapScreenState extends State<MapScreen> {
   bool _isMapLoading = true;
   String _mapLoadError = "";
   bool _isCheckingAuth = true;
+  
+  // 새로 추가된 변수들
+  bool _isReverseGeocodingLoading = false;
+  double _latitude = 37.5662;  // 기본값: 서울 시청
+  double _longitude = 126.9785;  // 기본값: 서울 시청
 
   String get _googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
@@ -197,17 +203,36 @@ class _MapScreenState extends State<MapScreen> {
 
       debugPrint('Location received: $position');
 
+      // 위치 프로바이더 업데이트
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      locationProvider.updateLocation(position.latitude, position.longitude);
+
       if (mounted) {
         setState(() {
           _currentPosition = position;
+          _latitude = position.latitude;
+          _longitude = position.longitude;
           _isMapLoading = false;
 
+          // 드래그 가능한 마커 추가
           _markers.clear();
           _markers.add(
             Marker(
               markerId: MarkerId('currentLocation'),
               position: LatLng(position.latitude, position.longitude),
               infoWindow: InfoWindow(title: 'Current Location'),
+              draggable: true,
+              onDragEnd: (newPosition) {
+                setState(() {
+                  _latitude = newPosition.latitude;
+                  _longitude = newPosition.longitude;
+                });
+                
+                // 위치 프로바이더 업데이트
+                locationProvider.updateLocation(newPosition.latitude, newPosition.longitude);
+                
+                print('Marker dragged to: lat=${_latitude}, lng=${_longitude}');
+              },
             ),
           );
 
@@ -222,7 +247,8 @@ class _MapScreenState extends State<MapScreen> {
         });
       }
 
-      await _getAddressFromLatLng(position);
+      // 위치 프로바이더에서 주소 업데이트를 처리하므로 이 메서드는 호출하지 않음
+      // await _getAddressFromLatLng(position);
     } catch (e) {
       debugPrint('Error retrieving location: $e');
       if (mounted) {
@@ -234,30 +260,19 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  // 이 메서드는 위치 프로바이더로 대체되므로 사용하지 않지만 일단 유지
   Future<void> _getAddressFromLatLng(Position position) async {
     try {
       debugPrint('Location info: Latitude ${position.latitude}, Longitude ${position.longitude}');
 
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude, position.longitude,
-          localeIdentifier: 'ko_KR');
-
-      Placemark place = placemarks[0];
-      debugPrint('Received location info: $place');
-
-      String address = "";
-      if (place.country == 'South Korea' || place.country == '대한민국') {
-        address = "${place.administrativeArea ?? ''} ${place.locality ?? ''} ${place.subLocality ?? ''} ${place.thoroughfare ?? ''} ${place.subThoroughfare ?? ''}";
-      } else {
-        address = "${place.street}, ${place.subLocality}, "
-            "${place.locality}, ${place.administrativeArea}";
-      }
-
-      address = address.replaceAll(RegExp(r'\s+'), ' ').trim();
-
+      // 위치 프로바이더를 통해 주소 가져오기
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      await locationProvider.updateAddressFromCoordinates(position.latitude, position.longitude);
+      
       setState(() {
-        _currentAddress = address;
+        _currentAddress = locationProvider.address;
       });
+      
     } catch (e) {
       debugPrint('Address conversion error: $e');
       setState(() {
@@ -287,6 +302,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showChatBottomSheet(BuildContext context) {
+    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -307,7 +324,9 @@ class _MapScreenState extends State<MapScreen> {
               ),
               child: PatientInfoWidget(
                 scrollController: scrollController,
-                currentAddress: _currentAddress,
+                currentAddress: locationProvider.address,  // 프로바이더에서 주소 가져오기
+                latitude: locationProvider.latitude,       // 프로바이더에서 위도 가져오기
+                longitude: locationProvider.longitude,     // 프로바이더에서 경도 가져오기
               ),
             );
           },
@@ -359,6 +378,8 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locationProvider = Provider.of<LocationProvider>(context);
+    
     return Scaffold(
       appBar: AppBar(
         title: Text('Medicall'),
@@ -410,6 +431,30 @@ class _MapScreenState extends State<MapScreen> {
                           setState(() {
                             _mapController = controller;
                             _isMapLoading = false;
+                            
+                            // 지도가 생성될 때 마커 추가
+                            if (_currentPosition != null) {
+                              _markers.clear();
+                              _markers.add(
+                                Marker(
+                                  markerId: MarkerId('currentLocation'),
+                                  position: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                                  infoWindow: InfoWindow(title: 'Current Location'),
+                                  draggable: true,
+                                  onDragEnd: (newPosition) {
+                                    setState(() {
+                                      _latitude = newPosition.latitude;
+                                      _longitude = newPosition.longitude;
+                                    });
+                                    
+                                    // 위치 프로바이더 업데이트
+                                    locationProvider.updateLocation(newPosition.latitude, newPosition.longitude);
+                                    
+                                    print('Marker dragged to: lat=${_latitude}, lng=${_longitude}');
+                                  },
+                                ),
+                              );
+                            }
                           });
                           if (_currentPosition != null) {
                             controller.animateCamera(
@@ -427,7 +472,38 @@ class _MapScreenState extends State<MapScreen> {
                         compassEnabled: true,
                         buildingsEnabled: true,
                         padding: EdgeInsets.only(bottom: 50),
-                        onTap: (_) {},
+                        onTap: (LatLng location) {
+                          // 지도를 탭하면 마커 위치 변경
+                          setState(() {
+                            _latitude = location.latitude;
+                            _longitude = location.longitude;
+                            _markers.clear();
+                            _markers.add(
+                              Marker(
+                                markerId: MarkerId('currentLocation'),
+                                position: location,
+                                infoWindow: InfoWindow(title: 'Selected Location'),
+                                draggable: true,
+                                onDragEnd: (newPosition) {
+                                  setState(() {
+                                    _latitude = newPosition.latitude;
+                                    _longitude = newPosition.longitude;
+                                  });
+                                  
+                                  // 위치 프로바이더 업데이트
+                                  locationProvider.updateLocation(newPosition.latitude, newPosition.longitude);
+                                  
+                                  print('Marker dragged to: lat=${_latitude}, lng=${_longitude}');
+                                },
+                              ),
+                            );
+                          });
+                          
+                          // 위치 프로바이더 업데이트
+                          locationProvider.updateLocation(location.latitude, location.longitude);
+                          
+                          print('Map tapped at: lat=${location.latitude}, lng=${location.longitude}');
+                        },
                       ),
                       if (_isMapLoading)
                         Center(
@@ -481,6 +557,72 @@ class _MapScreenState extends State<MapScreen> {
                             ),
                           ),
                         ),
+                      // 주소 및 좌표 정보 표시 패널 추가
+                      Positioned(
+                        bottom: 80,
+                        left: 16,
+                        right: 16,
+                        child: Column(
+                          children: [
+                            // 주소 표시
+                            Container(
+                              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.location_on, color: const Color(0xFFD94B4B)),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: locationProvider.isLoading
+                                      ? Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: const Color(0xFFD94B4B),
+                                              ),
+                                            ),
+                                            SizedBox(width: 12),
+                                            Text('주소 확인 중...'),
+                                          ],
+                                        )
+                                      : Text(
+                                          locationProvider.address,  // 프로바이더에서 주소 가져오기
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            // 좌표 표시
+                            Container(
+                              padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Color(0xFFF0F0F0),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '위도: ${locationProvider.latitude.toStringAsFixed(6)}, 경도: ${locationProvider.longitude.toStringAsFixed(6)}',  // 프로바이더에서 좌표 가져오기
+                                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   )
                 : Container(

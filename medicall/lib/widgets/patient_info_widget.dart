@@ -4,11 +4,15 @@ import '../chat_page.dart';
 class PatientInfoWidget extends StatelessWidget {
   final ScrollController scrollController;
   final String currentAddress;
+  final double latitude;
+  final double longitude;
 
   const PatientInfoWidget({
     Key? key,
     required this.scrollController,
     required this.currentAddress,
+    this.latitude = 37.5662,
+    this.longitude = 126.9785,
   }) : super(key: key);
 
   @override
@@ -36,7 +40,11 @@ class PatientInfoWidget extends StatelessWidget {
           
           // Content
           Expanded(
-            child: ChatPage(currentAddress: currentAddress),
+            child: ChatPage(
+              currentAddress: currentAddress,
+              latitude: latitude,
+              longitude: longitude,
+            ),
           ),
         ],
       ),

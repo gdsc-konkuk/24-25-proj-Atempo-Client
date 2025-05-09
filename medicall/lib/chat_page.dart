@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';  // 현재 위치를 얻기 위해 
 import 'package:provider/provider.dart';
 import 'screens/emergency_room_list_screen.dart';
 import 'providers/settings_provider.dart';
+import 'providers/location_provider.dart';  // 위치 프로바이더 추가
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
@@ -13,13 +14,19 @@ import 'services/hospital_service.dart';
 import 'dart:async';
 import 'models/hospital_model.dart';
 import 'dart:math' as math;
+import 'screens/map_screen.dart';  // 지도 화면 불러오기
 
 class ChatPage extends StatefulWidget {
   final String currentAddress;
+  // 위도와 경도를 전달받도록 추가
+  final double latitude;
+  final double longitude;
 
   const ChatPage({
     Key? key,
     required this.currentAddress,
+    this.latitude = 37.5662,  // 기본값: 서울 시청
+    this.longitude = 126.9785, // 기본값: 서울 시청
   }) : super(key: key);
 
   @override
@@ -29,20 +36,16 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   late TextEditingController _addressController;
   late TextEditingController _patientConditionController;
-  bool _isAddressEditable = false;
-  final FocusNode _addressFocusNode = FocusNode();
   final FocusNode _patientConditionFocusNode = FocusNode();
   var uuid = Uuid();
   String _sessionToken = '1234567890';
-  List<dynamic> _placeList = [];
-  bool _isSearching = false;
   bool _isLoading = false;
   bool _isProcessing = false;
   final String _apiUrl = 'http://avenir.my:8080/api/v1/admissions';
   
-  // 현재 위치 좌표
-  double _latitude = 37.5662;  // 기본값: 서울 시청
-  double _longitude = 126.9785;  // 기본값: 서울 시청
+  // 현재 위치 좌표 (map_screen에서 전달받음)
+  late double _latitude;
+  late double _longitude;
   
   // 병원 서비스
   final HospitalService _hospitalService = HospitalService();
@@ -67,14 +70,22 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
     _addressController = TextEditingController(text: widget.currentAddress);
     _patientConditionController = TextEditingController();
-    _getCurrentLocation();  // 초기화 시 현재 위치 가져오기
+    
+    // LocationProvider에 초기 값 설정
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      // 위젯에서 전달받은 좌표와 주소로 위치 프로바이더 초기화
+      locationProvider.updateLocation(widget.latitude, widget.longitude);
+      if (widget.currentAddress != "Finding your location...") {
+        locationProvider.updateAddress(widget.currentAddress);
+      }
+    });
   }
 
   @override
   void dispose() {
     _addressController.dispose();
     _patientConditionController.dispose();
-    _addressFocusNode.dispose();
     _patientConditionFocusNode.dispose();
     _messageTimer?.cancel();
     _hospitalSubscription?.cancel();
@@ -82,241 +93,25 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
   
-  // 현재 위치 가져오기
-  Future<void> _getCurrentLocation() async {
-    try {
-      print('[ChatPage] 🌎 Getting current device location...');
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          print('[ChatPage] ⚠️ Location permission denied');
-          return;
-        }
-      }
-      
-      if (permission == LocationPermission.deniedForever) {
-        print('[ChatPage] ⚠️ Location permission permanently denied');
-        return;
-      }
-      
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high
-      );
-      
+  // 위치 선택 화면으로 이동
+  Future<void> _navigateToMapScreen() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => MapScreen()),
+    );
+    
+    // MapScreen에서 돌아왔을 때, 위치 정보 업데이트
+    if (mounted) {
       setState(() {
-        _latitude = position.latitude;
-        _longitude = position.longitude;
+        // 현재는 위치 정보를 직접 업데이트하지 않지만,
+        // 필요하다면 여기서 MapScreen에서 반환한 위치 정보를 사용할 수 있음
       });
-      
-      print('[ChatPage] 📍 Current location: lat=${_latitude}, lng=${_longitude}');
-    } catch (e) {
-      print('[ChatPage] ⚠️ Error getting location: $e');
-      // 오류 발생 시 기본값(서울 시청) 유지
     }
   }
 
   // 키보드 내리기
   void _dismissKeyboard() {
     FocusScope.of(context).unfocus();
-  }
-
-  // 주소 검색 다이얼로그
-  void _showAddressSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        final TextEditingController searchController = TextEditingController();
-        _placeList = [];
-        _sessionToken = uuid.v4();
-
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Container(
-                padding: EdgeInsets.all(16),
-                width: MediaQuery.of(context).size.width,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Address Search',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search for an address',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onChanged: (query) async {
-                        if (query.length > 2) {
-                          setState(() {
-                            _isSearching = true;
-                          });
-                          await _getSuggestions(query, setState);
-                        } else if (query.isEmpty) {
-                          setState(() {
-                            _placeList = [];
-                          });
-                        }
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    if (_isSearching)
-                      CircularProgressIndicator(color: const Color(0xFFD94B4B))
-                    else
-                      Container(
-                        constraints: BoxConstraints(
-                          maxHeight: 300,
-                        ),
-                        child: _placeList.isEmpty
-                            ? Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text('Type to search for locations'),
-                              )
-                            : ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: _placeList.length,
-                                itemBuilder: (context, index) {
-                                  return ListTile(
-                                    title: Text(_placeList[index]["description"]),
-                                    onTap: () async {
-                                      Navigator.pop(context);
-                                      final selectedAddress = _placeList[index]["description"];
-                                      
-                                      // 선택한 주소 업데이트
-                                      setState(() {
-                                        _addressController.text = selectedAddress;
-                                        _isLoading = true; // 위치 변환 중 로딩 표시
-                                      });
-                                      
-                                      try {
-                                        print('[ChatPage] 🔍 선택한 주소로 좌표 변환 중: $selectedAddress');
-                                        
-                                        // 선택한 주소의 placeId 가져오기
-                                        final placeId = _placeList[index]["place_id"];
-                                        
-                                        // Google Maps Places API로 상세 정보 가져오기
-                                        final detailsUrl = 'https://maps.googleapis.com/maps/api/place/details/json'
-                                          '?place_id=$placeId'
-                                          '&fields=geometry'
-                                          '&key=AIzaSyAw92wiRgypo3fVZ4-R5CbpB4x_Pcj1gwk';
-                                        
-                                        final detailsResponse = await http.get(Uri.parse(detailsUrl));
-                                        final detailsData = json.decode(detailsResponse.body);
-                                        
-                                        if (detailsData['status'] == 'OK') {
-                                          final location = detailsData['result']['geometry']['location'];
-                                          final newLat = location['lat'];
-                                          final newLng = location['lng'];
-                                          
-                                          print('[ChatPage] 📍 주소에서 변환된 좌표: lat=$newLat, lng=$newLng');
-                                          
-                                          setState(() {
-                                            _latitude = newLat;
-                                            _longitude = newLng;
-                                            _isLoading = false;
-                                          });
-                                        } else {
-                                          print('[ChatPage] ⚠️ 좌표 변환 실패: ${detailsData['status']}');
-                                          // 지오코딩 실패 시 Google Geocoding API로 시도
-                                          final List<Location> locations = await locationFromAddress(selectedAddress);
-                                          
-                                          if (locations.isNotEmpty) {
-                                            setState(() {
-                                              _latitude = locations.first.latitude;
-                                              _longitude = locations.first.longitude;
-                                              _isLoading = false;
-                                            });
-                                            print('[ChatPage] 📍 Geocoding API에서 변환된 좌표: lat=${locations.first.latitude}, lng=${locations.first.longitude}');
-                                          } else {
-                                            throw Exception('좌표를 찾을 수 없습니다');
-                                          }
-                                        }
-                                      } catch (e) {
-                                        print('[ChatPage] ❌ 주소 변환 오류: $e');
-                                        setState(() {
-                                          _isLoading = false;
-                                        });
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('주소 좌표 변환 중 오류가 발생했습니다. 기본 위치를 사용합니다.'))
-                                        );
-                                      }
-                                    },
-                                  );
-                                },
-                              ),
-                      ),
-                    SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: const Color(0xFFD94B4B),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _getSuggestions(String input, StateSetter setState) async {
-    const String apiKey = "AIzaSyAw92wiRgypo3fVZ4-R5CbpB4x_Pcj1gwk";
-    
-    try {
-      String baseURL = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
-      String request = '$baseURL?input=$input&key=$apiKey&sessiontoken=$_sessionToken';
-      
-      request += '&types=establishment';
-      request += '&keyword=hospital,clinic,medical,emergency';
-      
-      var response = await http.get(Uri.parse(request));
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        
-        print('Places API response status: ${data['status']}');
-        if (data['status'] != 'OK' && data['status'] != 'ZERO_RESULTS') {
-          print('Places API error: ${data['error_message']}');
-        }
-        
-        setState(() {
-          _placeList = data['predictions'] ?? [];
-          _isSearching = false;
-        });
-      } else {
-        setState(() {
-          _isSearching = false;
-        });
-        print('HTTP error: ${response.statusCode}');
-        throw Exception('Failed to load predictions');
-      }
-    } catch (e) {
-      setState(() {
-        _isSearching = false;
-      });
-      print('Error getting place suggestions: $e');
-    }
   }
 
   // 검색 반경 변경 모달
@@ -418,8 +213,12 @@ class _ChatPageState extends State<ChatPage> {
     try {
       print('[ChatPage] 🏥 Starting hospital search process');
       
-      // 주소 변환 과정을 생략하고 직접 좌표를 사용합니다
-      print('[ChatPage] 📍 Using coordinates: latitude=${_latitude}, longitude=${_longitude}');
+      // 위치 프로바이더에서 좌표 가져오기
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      final latitude = locationProvider.latitude;
+      final longitude = locationProvider.longitude;
+      
+      print('[ChatPage] 📍 Using coordinates: latitude=${latitude}, longitude=${longitude}');
       
       final searchRadius = context.read<SettingsProvider>().searchRadius.toInt();
       final patientCondition = _patientConditionController.text;
@@ -470,8 +269,8 @@ class _ChatPageState extends State<ChatPage> {
       // SSE 구독 후 입원 요청 생성
       print('[ChatPage] 🏥 Now calling hospital service to create admission');
       _admissionId = await _hospitalService.createAdmission(
-        _latitude,  // 현재 위치의 위도 사용
-        _longitude,  // 현재 위치의 경도 사용
+        latitude,
+        longitude,
         searchRadius,
         patientCondition
       );
@@ -558,6 +357,11 @@ class _ChatPageState extends State<ChatPage> {
     print('[ChatPage] 📢 Processing message updated: $_processingMessage');
     
     try {
+      // 위치 프로바이더에서 좌표 가져오기
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      final latitude = locationProvider.latitude;
+      final longitude = locationProvider.longitude;
+      
       // 토큰 유효성 확인
       print('[ChatPage] 🔑 Checking token validity for retry');
       final storage = FlutterSecureStorage();
@@ -600,8 +404,8 @@ class _ChatPageState extends State<ChatPage> {
         headers: retryHeaders,
         body: json.encode({
           'admissionId': _admissionId,
-          'latitude': _latitude,
-          'longitude': _longitude,
+          'latitude': latitude,
+          'longitude': longitude,
           'searchRadius': searchRadius,
           'patientCondition': _patientConditionController.text
         }),
@@ -666,6 +470,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final searchRadius = context.watch<SettingsProvider>().searchRadius;
+    final locationProvider = context.watch<LocationProvider>();  // 위치 프로바이더 추가
     final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return GestureDetector(
@@ -685,84 +490,71 @@ class _ChatPageState extends State<ChatPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Current Location',
+                    '위치 선택',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.location_pin, color: Colors.red),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: _isAddressEditable
-                              ? TextField(
-                                  controller: _addressController,
-                                  focusNode: _addressFocusNode,
-                                  textInputAction: TextInputAction.done, 
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter address',
-                                    border: InputBorder.none,
-                                    suffixIcon: IconButton(
-                                      icon: Icon(Icons.check),
-                                      onPressed: () {
-                                        setState(() {
-                                          _isAddressEditable = false;
-                                        });
-                                        _dismissKeyboard();
-                                      },
-                                    ),
-                                  ),
-                                  onSubmitted: (value) {
-                                    setState(() {
-                                      _isAddressEditable = false;
-                                    });
-                                  },
-                                )
-                              : GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _isAddressEditable = true;
-                                    });
-                                    Future.delayed(Duration(milliseconds: 50), () {
-                                      FocusScope.of(context).requestFocus(_addressFocusNode);
-                                    });
-                                  },
-                                  child: Text(
-                                    _addressController.text,
-                                    style: TextStyle(fontSize: 14),
-                                  ),
+                  
+                  // 지도 대신 현재 위치 정보를 보여주는 카드
+                  InkWell(
+                    onTap: () {
+                      // 지도 화면으로 이동
+                      Navigator.push(
+                        context, 
+                        MaterialPageRoute(builder: (context) => MapScreen())
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, color: Colors.red),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  locationProvider.address,  // 위치 프로바이더에서 주소 가져오기
+                                  style: TextStyle(fontSize: 14),
                                 ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.search),
-                          onPressed: () {
-                            _dismissKeyboard();
-                            _showAddressSearchDialog();
-                          },
-                          color: Colors.red,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // 현재 좌표 표시 추가
-                  SizedBox(height: 8),
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFF0F0F0),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '위도: ${_latitude.toStringAsFixed(6)}, 경도: ${_longitude.toStringAsFixed(6)}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                              ),
+                              Icon(Icons.map, color: Colors.blue),
+                            ],
+                          ),
+                          SizedBox(height: 12),
+                          Container(
+                            padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFF0F0F0),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '위도: ${locationProvider.latitude.toStringAsFixed(6)}, 경도: ${locationProvider.longitude.toStringAsFixed(6)}',  // 위치 프로바이더에서 좌표 가져오기
+                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '지도에서 위치 선택하기',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
