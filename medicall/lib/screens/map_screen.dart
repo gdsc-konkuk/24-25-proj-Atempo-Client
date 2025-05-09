@@ -299,8 +299,8 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
+          initialChildSize: 0.85,
+          minChildSize: 0.75,
           maxChildSize: 0.95,
           builder: (context, scrollController) {
             return Container(
@@ -513,7 +513,7 @@ class _MapScreenState extends State<MapScreen> {
                                 );
                               }
                             },
-                            myLocationEnabled: true,
+                            myLocationEnabled: false,
                             myLocationButtonEnabled: false,
                             markers: _markers, // Empty marker set (using fixed center pin instead)
                             zoomControlsEnabled: false,
@@ -545,14 +545,19 @@ class _MapScreenState extends State<MapScreen> {
                                       ),
                                     ),
                                   ),
-                                // Pin image (assets folder must contain the image)
-                                Container(
-                                  margin: EdgeInsets.only(bottom: 20), // Adjust to position pin end at center
-                                  child: Icon(
-                                    Icons.location_pin,
-                                    color: Colors.red,
-                                    size: 40,
-                                  ),
+                                // Pin image with shadow
+                                Stack(
+                                  alignment: Alignment.bottomCenter,
+                                  children: [
+                                    // Use custom Pin icon 
+                                    Container(
+                                      child: Image.asset(
+                                        _pinAsset,
+                                        width: 40,
+                                        height: 40,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -578,7 +583,6 @@ class _MapScreenState extends State<MapScreen> {
                                 ],
                               ),
                               alignment: Alignment.center,
-                              textAlign: TextAlign.center,
                               child: Text(
                                 "Move the map to select your location",
                                 style: TextStyle(
@@ -724,33 +728,6 @@ class _MapScreenState extends State<MapScreen> {
                               ),
                             ),
                           ),
-                          
-                          // Confirm location button
-                          Positioned(
-                            bottom: 16,
-                            left: 16,
-                            right: 16,
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _onConfirmLocation,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: Text(
-                                  "Confirm Location",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
                         ],
                       )
                     : Container(
@@ -794,16 +771,5 @@ class _MapScreenState extends State<MapScreen> {
               ],
             ),
     );
-  }
-
-  // Confirm selected location
-  void _onConfirmLocation() {
-    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-    // Return to previous screen with selected location
-    Navigator.pop(context, {
-      'address': locationProvider.address,
-      'latitude': locationProvider.latitude,
-      'longitude': locationProvider.longitude,
-    });
   }
 }

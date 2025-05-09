@@ -15,6 +15,7 @@ import 'dart:async';
 import 'models/hospital_model.dart';
 import 'dart:math' as math;
 import 'screens/map_screen.dart';  // Import map screen
+import 'services/api_service.dart'; // Added ApiService
 
 class ChatPage extends StatefulWidget {
   final String currentAddress;
@@ -49,6 +50,9 @@ class _ChatPageState extends State<ChatPage> {
   
   // Hospital service
   final HospitalService _hospitalService = HospitalService();
+  
+  // Added ApiService for token handling and HTTP requests
+  final ApiService _apiService = ApiService();
   
   // Hospital response list
   List<Hospital> _hospitals = [];
@@ -98,7 +102,7 @@ class _ChatPageState extends State<ChatPage> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => MapScreen()),
-    );
+            );
     
     // Update location information when returning from MapScreen
     if (mounted) {
@@ -242,40 +246,31 @@ class _ChatPageState extends State<ChatPage> {
         }
       });
 
-      // Check token validity and refresh if needed
-      print('[ChatPage] 🔑 Checking token validity');
-      final storage = FlutterSecureStorage();
-      String? token = await storage.read(key: 'access_token');
-      
-      if (token == null || token.isEmpty) {
-        print('[ChatPage] ⚠️ No token found, attempting to load from AuthProvider');
-        // Try to get token from AuthProvider
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        await authProvider.loadCurrentUser();
-        token = await storage.read(key: 'access_token');
-        
-        if (token == null || token.isEmpty) {
-          print('[ChatPage] ❌ Still no token available after refresh attempt');
-          throw Exception('Login required. Token not found.');
-        }
-      }
-      
-      print('[ChatPage] ✅ Token available, length: ${token.length}');
-      
       // Set up SSE subscription first
       print('[ChatPage] 📡 Setting up SSE subscription BEFORE admission request');
       _subscribeToHospitalUpdates();
       
-      // Create admission request after SSE subscription
-      print('[ChatPage] 🏥 Now calling hospital service to create admission');
-      _admissionId = await _hospitalService.createAdmission(
-        latitude,
-        longitude,
-        searchRadius,
-        patientCondition
-      );
+      // Create admission request after SSE subscription using ApiService
+      print('[ChatPage] 🏥 Now creating admission request using ApiService');
       
-      print('[ChatPage] ✅ Admission created with ID: $_admissionId');
+      final requestData = {
+        'location': {
+          'latitude': latitude,
+          'longitude': longitude
+        },
+        'search_radius': searchRadius,
+        'patient_condition': patientCondition
+      };
+      
+      final response = await _apiService.post('api/v1/admissions', requestData);
+      
+      if (response != null && response.containsKey('admissionId')) {
+        _admissionId = response['admissionId']?.toString() ?? '';
+        print('[ChatPage] ✅ Admission created with ID: $_admissionId');
+      } else {
+        print('[ChatPage] ⚠️ No admission ID received from server');
+        throw Exception('No admission ID received from server');
+      }
             
     } catch (e) {
       print('[ChatPage] ❌ ERROR: Exception while requesting hospital information: $e');
@@ -362,69 +357,32 @@ class _ChatPageState extends State<ChatPage> {
       final latitude = locationProvider.latitude;
       final longitude = locationProvider.longitude;
       
-      // Check token validity
-      print('[ChatPage] 🔑 Checking token validity for retry');
-      final storage = FlutterSecureStorage();
-      String? token = await storage.read(key: 'access_token');
-      
       // Get searchRadius from Provider
       final searchRadius = context.read<SettingsProvider>().searchRadius.toInt();
-      
-      if (token == null || token.isEmpty) {
-        print('[ChatPage] ⚠️ No token found for retry, attempting to load from AuthProvider');
-        // Try to get token from AuthProvider
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        await authProvider.loadCurrentUser();
-        token = await storage.read(key: 'access_token');
-        
-        if (token == null || token.isEmpty) {
-          print('[ChatPage] ❌ Still no token available for retry after refresh attempt');
-          throw Exception('Login required. Token not found.');
-        }
-      }
-      
-      print('[ChatPage] ✅ Token available for retry, length: ${token.length}');
       
       // Set up SSE subscription first
       print('[ChatPage] 📡 Setting up SSE subscription for retry BEFORE admission retry request');
       _subscribeToHospitalUpdates();
       
-      // Retry admission request after SSE subscription
-      print('[ChatPage] 🔄 Now calling hospital service to retry admission');
-      final retryHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
-
-      print('[HospitalService] 🔍 Retry request headers: $retryHeaders');
-      print('[HospitalService] 🔑 Renewed token length: ${token.length}, Token start: ${token.substring(0, math.min(15, token.length))}');
-
-      final retryResponse = await http.post(
-        Uri.parse(_apiUrl),
-        headers: retryHeaders,
-        body: json.encode({
-          'admissionId': _admissionId,
-          'latitude': latitude,
-          'longitude': longitude,
-          'searchRadius': searchRadius,
-          'patientCondition': _patientConditionController.text
-        }),
-      );
+      // Retry admission request after SSE subscription using ApiService
+      print('[ChatPage] 🔄 Now retrying admission using ApiService');
       
-      if (retryResponse.statusCode == 200) {
-        print('[ChatPage] ✅ Admission retry successful');
-        setState(() {
-          _processingMessage = "Contacting hospitals...";
-        });
-        print('[ChatPage] 📢 Processing message updated: $_processingMessage');
-      } else {
-        print('[ChatPage] 📄 Admission retry response status: ${retryResponse.statusCode}');
-        print('[ChatPage] 📄 Admission retry response body: ${retryResponse.body}');
-        setState(() {
-          _processingMessage = "Error during admission request retry. Please try again.";
-        });
-        print('[ChatPage] 📢 Processing message updated: $_processingMessage');
-      }
+      final requestData = {
+        'admissionId': _admissionId,
+        'location': {
+          'latitude': latitude,
+          'longitude': longitude
+        },
+        'search_radius': searchRadius,
+        'patient_condition': _patientConditionController.text
+      };
+      
+      await _apiService.post('api/v1/admissions', requestData);
+      
+      setState(() {
+        _processingMessage = "Contacting hospitals...";
+      });
+      print('[ChatPage] 📢 Processing message updated: $_processingMessage');
       
     } catch (e) {
       print('[ChatPage] ❌ Error retrying admission: $e');
@@ -517,7 +475,7 @@ class _ChatPageState extends State<ChatPage> {
                             offset: Offset(0, 2),
                           ),
                         ],
-                      ),
+                    ),
                       child: Column(
                         children: [
                           Row(
@@ -528,7 +486,7 @@ class _ChatPageState extends State<ChatPage> {
                                   child: Text(
                                   locationProvider.address,  // Get address from location provider
                                     style: TextStyle(fontSize: 14),
-                                ),
+                                  ),
                               ),
                               Icon(Icons.map, color: Colors.blue),
                             ],
@@ -543,7 +501,7 @@ class _ChatPageState extends State<ChatPage> {
                             child: Text(
                               'Lat: ${locationProvider.latitude.toStringAsFixed(6)}, Long: ${locationProvider.longitude.toStringAsFixed(6)}',  // Get coordinates from location provider
                               style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                            ),
+                        ),
                           ),
                           SizedBox(height: 8),
                           Text(
