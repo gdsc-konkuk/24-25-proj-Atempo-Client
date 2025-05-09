@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../chat_page.dart';
+import '../screens/chat_page.dart';
 
 class PatientInfoWidget extends StatelessWidget {
   final ScrollController scrollController;

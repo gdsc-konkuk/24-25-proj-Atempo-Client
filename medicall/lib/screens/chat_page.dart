@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';  // Added to get current location
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
-import 'screens/emergency_room_list_screen.dart';
-import 'providers/settings_provider.dart';
-import 'providers/location_provider.dart';  // Added location provider
+import 'emergency_room_list_screen.dart';
+import '../providers/settings_provider.dart';
+import '../providers/location_provider.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
-import 'providers/auth_provider.dart';
+import '../providers/auth_provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'services/hospital_service.dart';
+import '../services/hospital_service.dart';
 import 'dart:async';
-import 'models/hospital_model.dart';
+import '../models/hospital_model.dart';
 import 'dart:math' as math;
-import 'screens/map_screen.dart';  // Import map screen
-import 'services/api_service.dart'; // Added ApiService
+import 'map_screen.dart';
+import '../services/api_service.dart';
 
 class ChatPage extends StatefulWidget {
   final String currentAddress;
-  // Added latitude and longitude parameters
   final double latitude;
   final double longitude;
 
@@ -428,12 +427,17 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final searchRadius = context.watch<SettingsProvider>().searchRadius;
-    final locationProvider = context.watch<LocationProvider>();  // Added location provider
+    final locationProvider = context.watch<LocationProvider>();
     final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return GestureDetector(
       onTap: _dismissKeyboard,
       child: Scaffold(
+        appBar: AppBar(
+          title: Text('환자 상태 입력'),
+          backgroundColor: const Color(0xFFD94B4B),
+          centerTitle: true,
+        ),
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: SingleChildScrollView(
@@ -680,4 +684,4 @@ class _ChatPageState extends State<ChatPage> {
       ),
     );
   }
-}
+} 

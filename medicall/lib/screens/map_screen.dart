@@ -17,6 +17,7 @@ import 'settings_screen.dart';
 import 'emt_license_verification_screen.dart';
 import 'user_profile_screen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'chat_page.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -293,34 +294,15 @@ class _MapScreenState extends State<MapScreen> {
   void _showChatBottomSheet(BuildContext context) {
     final locationProvider = Provider.of<LocationProvider>(context, listen: false);
     
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          minChildSize: 0.75,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
-              child: PatientInfoWidget(
-                scrollController: scrollController,
-                currentAddress: locationProvider.address,  // Get address from provider
-                latitude: locationProvider.latitude,       // Get latitude from provider
-                longitude: locationProvider.longitude,     // Get longitude from provider
-              ),
-            );
-          },
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatPage(
+          currentAddress: locationProvider.address,
+          latitude: locationProvider.latitude,
+          longitude: locationProvider.longitude,
+        ),
+      ),
     );
   }
 
@@ -757,14 +739,26 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                 ),
                 GestureDetector(
-                  onTap: () => _showChatBottomSheet(context),
+                  onTap: () {
+                    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatPage(
+                          currentAddress: locationProvider.address,
+                          latitude: locationProvider.latitude,
+                          longitude: locationProvider.longitude,
+                        ),
+                      ),
+                    );
+                  },
                   child: Container(
-                    color: Colors.white,
+                    color: const Color(0xFFD94B4B),
                     padding: EdgeInsets.symmetric(vertical: 15),
                     alignment: Alignment.center,
                     child: Text(
-                      'Chat',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      '환자 상태 입력',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
                 ),
