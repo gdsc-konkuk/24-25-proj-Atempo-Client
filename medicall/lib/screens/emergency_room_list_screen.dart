@@ -6,7 +6,7 @@ import '../models/hospital_model.dart';
 import 'navigation_screen.dart';
 
 class EmergencyRoomListScreen extends StatefulWidget {
-  // 서버에서 받아온 병원 목록 데이터
+  // Hospital list data received from server
   final List<Hospital> hospitals;
   final String admissionId;
   final HospitalService hospitalService;
@@ -45,7 +45,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
     super.dispose();
   }
 
-  // 병원 목록 실시간 업데이트 구독
+  // Subscribe to real-time hospital list updates
   void _subscribeToHospitalUpdates() {
     print('[EmergencyRoomListScreen] 📡 Setting up hospital updates subscription');
     _hospitalSubscription = widget.hospitalService.subscribeToHospitalUpdates().listen(
@@ -53,16 +53,16 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
         print('[EmergencyRoomListScreen] 📥 Received hospital update: ${hospital.name} (ID: ${hospital.id})');
         
         setState(() {
-          // 동일한 ID의 병원이 있는지 확인
+          // Check if there's a hospital with the same ID
           final index = _hospitals.indexWhere((h) => h.id == hospital.id);
           
           if (index >= 0) {
             print('[EmergencyRoomListScreen] 🔄 Updating existing hospital at index $index');
-            // 기존 병원 정보 업데이트
+            // Update existing hospital information
             _hospitals[index] = hospital;
           } else {
             print('[EmergencyRoomListScreen] ➕ Adding new hospital to list (total: ${_hospitals.length + 1})');
-            // 새 병원 추가
+            // Add new hospital
             _hospitals.add(hospital);
           }
         });
@@ -70,7 +70,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
       onError: (error) {
         print('[EmergencyRoomListScreen] ❌ Hospital subscription error: $error');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('병원 정보 업데이트 중 오류가 발생했습니다: $error'))
+          SnackBar(content: Text('Error updating hospital information: $error'))
         );
       },
       onDone: () {
@@ -176,7 +176,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                           ],
                         ),
                       ),
-                      // 실시간 상태 정보
+                      // Real-time status information
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 20),
                         child: Container(
@@ -192,7 +192,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                               SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  '계속해서 병원을 찾는 중입니다. 새로운 병원이 응답하면 자동으로 목록에 추가됩니다.',
+                                  'We are continuously searching for hospitals. New hospitals will be added to the list automatically when they respond.',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.blue[800],
@@ -216,7 +216,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                     CircularProgressIndicator(color: Color(0xFFE93C4A)),
                                     SizedBox(height: 16),
                                     Text(
-                                      '병원 응답을 기다리는 중입니다...',
+                                      'Waiting for hospital responses...',
                                       style: TextStyle(
                                         fontSize: 16,
                                         color: Colors.grey[600],
@@ -354,7 +354,7 @@ class HospitalCard extends StatelessWidget {
                             ),
                             SizedBox(width: 6),
                             Text(
-                              '빈 병상: ${hospital.availableBeds}개',
+                              'Available beds: ${hospital.availableBeds}',
                               style: GoogleFonts.notoSans(
                                 fontSize: 14,
                                 color: Colors.black87,
@@ -392,30 +392,30 @@ class HospitalCard extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: Text('병원 상세 정보'),
+                        title: Text('Hospital Details'),
                         content: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('병원명: ${hospital.name}'),
+                            Text('Hospital Name: ${hospital.name}'),
                             SizedBox(height: 8),
-                            Text('주소: ${hospital.address}'),
+                            Text('Address: ${hospital.address}'),
                             SizedBox(height: 8),
-                            Text('전화번호: ${hospital.phoneNumber}'),
+                            Text('Phone Number: ${hospital.phoneNumber}'),
                             SizedBox(height: 8),
-                            Text('빈 병상: ${hospital.availableBeds}개'),
+                            Text('Available Beds: ${hospital.availableBeds}'),
                             if (hospital.specialties != null) ...[
                               SizedBox(height: 8),
-                              Text('특수 진료과: ${hospital.specialties}'),
+                              Text('Specialties: ${hospital.specialties}'),
                             ],
                             SizedBox(height: 8),
-                            Text('상태: ${hospital.isAvailable ? "환자 수락 가능" : "환자 수락 불가"}'),
+                            Text('Status: ${hospital.isAvailable ? "Can accept patients" : "Cannot accept patients"}'),
                           ],
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: Text('닫기'),
+                            child: Text('Close'),
                           )
                         ],
                       ),

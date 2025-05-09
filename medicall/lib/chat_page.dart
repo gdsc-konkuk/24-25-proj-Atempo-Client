@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';  // 현재 위치를 얻기 위해 추가
+import 'package:geolocator/geolocator.dart';  // Added to get current location
 import 'package:provider/provider.dart';
 import 'screens/emergency_room_list_screen.dart';
 import 'providers/settings_provider.dart';
-import 'providers/location_provider.dart';  // 위치 프로바이더 추가
+import 'providers/location_provider.dart';  // Added location provider
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
@@ -14,19 +14,19 @@ import 'services/hospital_service.dart';
 import 'dart:async';
 import 'models/hospital_model.dart';
 import 'dart:math' as math;
-import 'screens/map_screen.dart';  // 지도 화면 불러오기
+import 'screens/map_screen.dart';  // Import map screen
 
 class ChatPage extends StatefulWidget {
   final String currentAddress;
-  // 위도와 경도를 전달받도록 추가
+  // Added latitude and longitude parameters
   final double latitude;
   final double longitude;
 
   const ChatPage({
     Key? key,
     required this.currentAddress,
-    this.latitude = 37.5662,  // 기본값: 서울 시청
-    this.longitude = 126.9785, // 기본값: 서울 시청
+    this.latitude = 37.5662,  // Default: Seoul City Hall
+    this.longitude = 126.9785, // Default: Seoul City Hall
   }) : super(key: key);
 
   @override
@@ -43,26 +43,26 @@ class _ChatPageState extends State<ChatPage> {
   bool _isProcessing = false;
   final String _apiUrl = 'http://avenir.my:8080/api/v1/admissions';
   
-  // 현재 위치 좌표 (map_screen에서 전달받음)
+  // Current location coordinates (received from map_screen)
   late double _latitude;
   late double _longitude;
   
-  // 병원 서비스
+  // Hospital service
   final HospitalService _hospitalService = HospitalService();
   
-  // 병원 응답 목록
+  // Hospital response list
   List<Hospital> _hospitals = [];
   
-  // 입원 요청 ID
+  // Admission request ID
   String? _admissionId;
   
-  // 처리 상태 메시지
+  // Processing status message
   String _processingMessage = '';
   
-  // 타이머
+  // Timer
   Timer? _messageTimer;
   
-  // 구독 취소 객체
+  // Subscription cancellation object
   StreamSubscription? _hospitalSubscription;
 
   @override
@@ -71,10 +71,10 @@ class _ChatPageState extends State<ChatPage> {
     _addressController = TextEditingController(text: widget.currentAddress);
     _patientConditionController = TextEditingController();
     
-    // LocationProvider에 초기 값 설정
+    // Initialize location provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-      // 위젯에서 전달받은 좌표와 주소로 위치 프로바이더 초기화
+      // Initialize location provider with coordinates and address from widget
       locationProvider.updateLocation(widget.latitude, widget.longitude);
       if (widget.currentAddress != "Finding your location...") {
         locationProvider.updateAddress(widget.currentAddress);
@@ -92,29 +92,29 @@ class _ChatPageState extends State<ChatPage> {
     _hospitalService.closeSSEConnection();
     super.dispose();
   }
-  
-  // 위치 선택 화면으로 이동
+
+  // Navigate to map screen
   Future<void> _navigateToMapScreen() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => MapScreen()),
     );
     
-    // MapScreen에서 돌아왔을 때, 위치 정보 업데이트
+    // Update location information when returning from MapScreen
     if (mounted) {
       setState(() {
-        // 현재는 위치 정보를 직접 업데이트하지 않지만,
-        // 필요하다면 여기서 MapScreen에서 반환한 위치 정보를 사용할 수 있음
+        // Location information is not directly updated here,
+        // but can use location information returned from MapScreen if needed
       });
     }
   }
 
-  // 키보드 내리기
+  // Dismiss keyboard
   void _dismissKeyboard() {
     FocusScope.of(context).unfocus();
   }
 
-  // 검색 반경 변경 모달
+  // Search radius change modal
   void _showSearchRadiusModal() {
     final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
     double tempRadius = settingsProvider.searchRadius;
@@ -203,7 +203,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
   
-  // 입원 요청 생성
+  // Create admission request
   Future<void> _fetchHospitals() async {
     setState(() {
       _isLoading = true;
@@ -213,7 +213,7 @@ class _ChatPageState extends State<ChatPage> {
     try {
       print('[ChatPage] 🏥 Starting hospital search process');
       
-      // 위치 프로바이더에서 좌표 가져오기
+      // Get coordinates from location provider
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
       final latitude = locationProvider.latitude;
       final longitude = locationProvider.longitude;
@@ -224,49 +224,49 @@ class _ChatPageState extends State<ChatPage> {
       final patientCondition = _patientConditionController.text;
       print('[ChatPage] 🔍 Search parameters: radius=${searchRadius}km, patient condition=${patientCondition}');
 
-      // 입원 요청 생성 시작
+      // Start creating admission request
       setState(() {
         _isProcessing = true;
-        _processingMessage = "AI가 반경 ${searchRadius}km 안에 있는 병원 중 적합한 병원을 검색했습니다. 전화를 걸어 환자를 수용할 수 있는지 확인 중입니다. 잠시만 기다려주세요.";
+        _processingMessage = "AI has searched for suitable hospitals within ${searchRadius}km. Making calls to confirm if they can accept the patient. Please wait a moment.";
       });
       print('[ChatPage] 📢 Processing message updated: $_processingMessage');
       
-      // 처리 메시지 타이머 설정 (5초)
+      // Set processing message timer (5 seconds)
       print('[ChatPage] ⏱️ Starting 5-second timer for message update');
       _messageTimer = Timer(Duration(seconds: 5), () {
         if (mounted) {
           setState(() {
-            _processingMessage = "병원 연락 중...";
+            _processingMessage = "Contacting hospitals...";
           });
           print('[ChatPage] 📢 Processing message updated after timer: $_processingMessage');
         }
       });
 
-      // 토큰 유효성 확인 및 필요시 갱신
+      // Check token validity and refresh if needed
       print('[ChatPage] 🔑 Checking token validity');
       final storage = FlutterSecureStorage();
       String? token = await storage.read(key: 'access_token');
       
       if (token == null || token.isEmpty) {
         print('[ChatPage] ⚠️ No token found, attempting to load from AuthProvider');
-        // AuthProvider에서 토큰 가져오기 시도
+        // Try to get token from AuthProvider
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.loadCurrentUser();
         token = await storage.read(key: 'access_token');
         
         if (token == null || token.isEmpty) {
           print('[ChatPage] ❌ Still no token available after refresh attempt');
-          throw Exception('로그인이 필요합니다. 토큰을 찾을 수 없습니다.');
+          throw Exception('Login required. Token not found.');
         }
       }
       
       print('[ChatPage] ✅ Token available, length: ${token.length}');
       
-      // 먼저 SSE 구독을 설정 
+      // Set up SSE subscription first
       print('[ChatPage] 📡 Setting up SSE subscription BEFORE admission request');
       _subscribeToHospitalUpdates();
       
-      // SSE 구독 후 입원 요청 생성
+      // Create admission request after SSE subscription
       print('[ChatPage] 🏥 Now calling hospital service to create admission');
       _admissionId = await _hospitalService.createAdmission(
         latitude,
@@ -284,29 +284,29 @@ class _ChatPageState extends State<ChatPage> {
         _isProcessing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('병원 정보를 가져오는 중 오류가 발생했습니다: $e'))
+        SnackBar(content: Text('Error occurred while getting hospital information: $e'))
       );
     }
   }
   
-  // 병원 업데이트 구독
+  // Subscribe to hospital updates
   void _subscribeToHospitalUpdates() {
     print('[ChatPage] 📡 Setting up hospital updates subscription');
     
-    // 기존 구독 취소
+    // Cancel existing subscription
     if (_hospitalSubscription != null) {
       print('[ChatPage] 🔄 Cancelling existing subscription');
       _hospitalSubscription?.cancel();
     }
     
-    // 새로운 구독 시작
+    // Start new subscription
     print('[ChatPage] 🔄 Starting new hospital updates subscription');
     _hospitalSubscription = _hospitalService.subscribeToHospitalUpdates().listen(
       (hospital) {
         print('[ChatPage] 📥 Received hospital update: ${hospital.name} (ID: ${hospital.id})');
         
         setState(() {
-          // 동일한 ID의 병원이 있는지 확인
+          // Check if hospital with same ID exists
           final index = _hospitals.indexWhere((h) => h.id == hospital.id);
           
           if (index >= 0) {
@@ -317,7 +317,7 @@ class _ChatPageState extends State<ChatPage> {
             _hospitals.add(hospital);
           }
           
-          // 첫 번째 병원이 들어왔을 때 화면 전환
+          // Navigate to hospital list when first hospital arrives
           if (_hospitals.length == 1 && _isProcessing) {
             print('[ChatPage] 🚀 First hospital received, navigating to hospital list');
             _navigateToHospitalList();
@@ -327,7 +327,7 @@ class _ChatPageState extends State<ChatPage> {
       onError: (error) {
         print('[ChatPage] ❌ Hospital subscription error: $error');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('병원 정보 업데이트 중 오류가 발생했습니다: $error'))
+          SnackBar(content: Text('Error updating hospital information: $error'))
         );
       },
       onDone: () {
@@ -338,12 +338,12 @@ class _ChatPageState extends State<ChatPage> {
     print('[ChatPage] ✅ Hospital updates subscription setup completed');
   }
   
-  // 입원 요청 재시도
+  // Retry admission request
   Future<void> _retryAdmission() async {
     if (_admissionId == null) {
       print('[ChatPage] ❌ No previous admission ID found for retry');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('이전 입원 요청 정보가 없습니다.'))
+        SnackBar(content: Text('No previous admission request information.'))
       );
       return;
     }
@@ -352,52 +352,52 @@ class _ChatPageState extends State<ChatPage> {
     setState(() {
       _isLoading = true;
       _isProcessing = true;
-      _processingMessage = "이전 입원 요청을 다시 시도합니다...";
+      _processingMessage = "Retrying previous admission request...";
     });
     print('[ChatPage] 📢 Processing message updated: $_processingMessage');
     
     try {
-      // 위치 프로바이더에서 좌표 가져오기
+      // Get coordinates from location provider
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
       final latitude = locationProvider.latitude;
       final longitude = locationProvider.longitude;
       
-      // 토큰 유효성 확인
+      // Check token validity
       print('[ChatPage] 🔑 Checking token validity for retry');
       final storage = FlutterSecureStorage();
       String? token = await storage.read(key: 'access_token');
       
-      // searchRadius를 Provider에서 가져오기
+      // Get searchRadius from Provider
       final searchRadius = context.read<SettingsProvider>().searchRadius.toInt();
       
       if (token == null || token.isEmpty) {
         print('[ChatPage] ⚠️ No token found for retry, attempting to load from AuthProvider');
-        // AuthProvider에서 토큰 가져오기 시도
+        // Try to get token from AuthProvider
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.loadCurrentUser();
         token = await storage.read(key: 'access_token');
         
         if (token == null || token.isEmpty) {
           print('[ChatPage] ❌ Still no token available for retry after refresh attempt');
-          throw Exception('로그인이 필요합니다. 토큰을 찾을 수 없습니다.');
+          throw Exception('Login required. Token not found.');
         }
       }
       
       print('[ChatPage] ✅ Token available for retry, length: ${token.length}');
       
-      // 먼저 SSE 구독을 설정 
+      // Set up SSE subscription first
       print('[ChatPage] 📡 Setting up SSE subscription for retry BEFORE admission retry request');
       _subscribeToHospitalUpdates();
       
-      // SSE 구독 후 입원 요청 재시도
+      // Retry admission request after SSE subscription
       print('[ChatPage] 🔄 Now calling hospital service to retry admission');
       final retryHeaders = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token'
       };
 
-      print('[HospitalService] 🔍 재시도 요청 헤더: $retryHeaders');
-      print('[HospitalService] 🔑 갱신된 토큰 길이: ${token.length}, 토큰 시작: ${token.substring(0, math.min(15, token.length))}');
+      print('[HospitalService] 🔍 Retry request headers: $retryHeaders');
+      print('[HospitalService] 🔑 Renewed token length: ${token.length}, Token start: ${token.substring(0, math.min(15, token.length))}');
 
       final retryResponse = await http.post(
         Uri.parse(_apiUrl),
@@ -414,14 +414,14 @@ class _ChatPageState extends State<ChatPage> {
       if (retryResponse.statusCode == 200) {
         print('[ChatPage] ✅ Admission retry successful');
         setState(() {
-          _processingMessage = "병원 연락 중...";
+          _processingMessage = "Contacting hospitals...";
         });
         print('[ChatPage] 📢 Processing message updated: $_processingMessage');
       } else {
         print('[ChatPage] 📄 Admission retry response status: ${retryResponse.statusCode}');
         print('[ChatPage] 📄 Admission retry response body: ${retryResponse.body}');
         setState(() {
-          _processingMessage = "입원 요청 재시도 중 오류가 발생했습니다. 다시 시도해주세요.";
+          _processingMessage = "Error during admission request retry. Please try again.";
         });
         print('[ChatPage] 📢 Processing message updated: $_processingMessage');
       }
@@ -433,17 +433,17 @@ class _ChatPageState extends State<ChatPage> {
         _isProcessing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('입원 요청 재시도 중 오류가 발생했습니다: $e'))
+        SnackBar(content: Text('Error retrying admission request: $e'))
       );
     }
   }
   
-  // 병원 목록 화면으로 이동
+  // Navigate to hospital list screen
   void _navigateToHospitalList() {
     if (_hospitals.isEmpty) {
       print('[ChatPage] ⚠️ Cannot navigate - no hospitals in list');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('아직 응답한 병원이 없습니다.'))
+        SnackBar(content: Text('No hospitals have responded yet.'))
       );
       return;
     }
@@ -470,7 +470,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final searchRadius = context.watch<SettingsProvider>().searchRadius;
-    final locationProvider = context.watch<LocationProvider>();  // 위치 프로바이더 추가
+    final locationProvider = context.watch<LocationProvider>();  // Added location provider
     final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return GestureDetector(
@@ -490,15 +490,15 @@ class _ChatPageState extends State<ChatPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '위치 선택',
+                    'Select Location',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
                   
-                  // 지도 대신 현재 위치 정보를 보여주는 카드
+                  // Card showing current location information instead of map
                   InkWell(
                     onTap: () {
-                      // 지도 화면으로 이동
+                      // Navigate to map screen
                       Navigator.push(
                         context, 
                         MaterialPageRoute(builder: (context) => MapScreen())
@@ -506,8 +506,8 @@ class _ChatPageState extends State<ChatPage> {
                     },
                     child: Container(
                       padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.grey[300]!),
                         boxShadow: [
@@ -521,13 +521,13 @@ class _ChatPageState extends State<ChatPage> {
                       child: Column(
                         children: [
                           Row(
-                            children: [
+                      children: [
                               Icon(Icons.location_on, color: Colors.red),
                               SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  locationProvider.address,  // 위치 프로바이더에서 주소 가져오기
-                                  style: TextStyle(fontSize: 14),
+                        Expanded(
+                                  child: Text(
+                                  locationProvider.address,  // Get address from location provider
+                                    style: TextStyle(fontSize: 14),
                                 ),
                               ),
                               Icon(Icons.map, color: Colors.blue),
@@ -541,13 +541,13 @@ class _ChatPageState extends State<ChatPage> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              '위도: ${locationProvider.latitude.toStringAsFixed(6)}, 경도: ${locationProvider.longitude.toStringAsFixed(6)}',  // 위치 프로바이더에서 좌표 가져오기
+                              'Lat: ${locationProvider.latitude.toStringAsFixed(6)}, Long: ${locationProvider.longitude.toStringAsFixed(6)}',  // Get coordinates from location provider
                               style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                             ),
                           ),
                           SizedBox(height: 8),
                           Text(
-                            '지도에서 위치 선택하기',
+                            'Select location on map',
                             style: TextStyle(
                               color: Colors.blue,
                               fontWeight: FontWeight.bold,
@@ -628,7 +628,7 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   
-                  // 처리 중 상태 표시
+                  // Processing status display
                   if (_isProcessing)
                     Column(
                       children: [
@@ -664,7 +664,7 @@ class _ChatPageState extends State<ChatPage> {
                           ElevatedButton.icon(
                             onPressed: _navigateToHospitalList,
                             icon: Icon(Icons.local_hospital),
-                            label: Text('응답한 병원 보기 (${_hospitals.length})'),
+                            label: Text('View Responding Hospitals (${_hospitals.length})'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -676,11 +676,11 @@ class _ChatPageState extends State<ChatPage> {
                   SizedBox(height: 20),
                   Row(
                     children: [
-                      // 이전 요청이 있으면 재시도 버튼 표시
+                      // Show retry button if there was a previous request
                       if (_admissionId != null && !_isProcessing)
                         Expanded(
                           flex: 1,
-                          child: ElevatedButton(
+                    child: ElevatedButton(
                             onPressed: _retryAdmission,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.amber,
@@ -702,15 +702,15 @@ class _ChatPageState extends State<ChatPage> {
                           ? Center(child: CircularProgressIndicator(color: Colors.red))
                           : ElevatedButton(
                               onPressed: _isProcessing ? null : _fetchHospitals,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                padding: EdgeInsets.symmetric(vertical: 15),
-                              ),
-                              child: Text(
-                                'Find Emergency Room',
-                                style: TextStyle(fontSize: 16, color: Colors.white),
-                              ),
-                            ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: EdgeInsets.symmetric(vertical: 15),
+                      ),
+                      child: Text(
+                        'Find Emergency Room',
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
                       ),
                     ],
                   ),

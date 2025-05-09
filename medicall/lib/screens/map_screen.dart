@@ -33,10 +33,11 @@ class _MapScreenState extends State<MapScreen> {
   String _mapLoadError = "";
   bool _isCheckingAuth = true;
   
-  // 새로 추가된 변수들
+  // Reverse geocoding loading state
   bool _isReverseGeocodingLoading = false;
-  double _latitude = 37.5662;  // 기본값: 서울 시청
-  double _longitude = 126.9785;  // 기본값: 서울 시청
+  
+  // Image asset path
+  final String _pinAsset = 'assets/images/location_pin.png';  // Pin image asset path (modify with actual path if needed)
 
   String get _googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
@@ -203,52 +204,28 @@ class _MapScreenState extends State<MapScreen> {
 
       debugPrint('Location received: $position');
 
-      // 위치 프로바이더 업데이트
+      // Update location provider
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
       locationProvider.updateLocation(position.latitude, position.longitude);
 
       if (mounted) {
         setState(() {
           _currentPosition = position;
-          _latitude = position.latitude;
-          _longitude = position.longitude;
           _isMapLoading = false;
-
-          // 드래그 가능한 마커 추가
+          
+          // No longer adding markers (using fixed center pin)
           _markers.clear();
-          _markers.add(
-            Marker(
-              markerId: MarkerId('currentLocation'),
-              position: LatLng(position.latitude, position.longitude),
-              infoWindow: InfoWindow(title: 'Current Location'),
-              draggable: true,
-              onDragEnd: (newPosition) {
-                setState(() {
-                  _latitude = newPosition.latitude;
-                  _longitude = newPosition.longitude;
-                });
-                
-                // 위치 프로바이더 업데이트
-                locationProvider.updateLocation(newPosition.latitude, newPosition.longitude);
-                
-                print('Marker dragged to: lat=${_latitude}, lng=${_longitude}');
-              },
-            ),
-          );
-
-          if (_mapController != null) {
-            _mapController!.animateCamera(
-              CameraUpdate.newLatLngZoom(
-                LatLng(position.latitude, position.longitude),
-                16.0,
-              ),
-            );
-          }
         });
       }
 
-      // 위치 프로바이더에서 주소 업데이트를 처리하므로 이 메서드는 호출하지 않음
-      // await _getAddressFromLatLng(position);
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            LatLng(position.latitude, position.longitude),
+            16.0,
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error retrieving location: $e');
       if (mounted) {
@@ -260,23 +237,35 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // 이 메서드는 위치 프로바이더로 대체되므로 사용하지 않지만 일단 유지
-  Future<void> _getAddressFromLatLng(Position position) async {
+  // Get current center coordinates when camera stops moving
+  Future<void> _onCameraIdle() async {
+    if (_mapController == null) return;
+    
+    setState(() {
+      _isReverseGeocodingLoading = true;
+    });
+    
     try {
-      debugPrint('Location info: Latitude ${position.latitude}, Longitude ${position.longitude}');
-
-      // 위치 프로바이더를 통해 주소 가져오기
+      // Get visible region of the map
+      LatLngBounds bounds = await _mapController!.getVisibleRegion();
+      
+      // Calculate center coordinates
+      double centerLat = (bounds.northeast.latitude + bounds.southwest.latitude) / 2;
+      double centerLng = (bounds.northeast.longitude + bounds.southwest.longitude) / 2;
+      
+      print('[MapScreen] 📍 Map center: lat=$centerLat, lng=$centerLng');
+      
+      // Update location provider
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-      await locationProvider.updateAddressFromCoordinates(position.latitude, position.longitude);
+      await locationProvider.updateLocation(centerLat, centerLng);
       
       setState(() {
-        _currentAddress = locationProvider.address;
+        _isReverseGeocodingLoading = false;
       });
-      
     } catch (e) {
-      debugPrint('Address conversion error: $e');
+      print('[MapScreen] ❌ Error getting center coordinates: $e');
       setState(() {
-        _currentAddress = "Lat: ${position.latitude}, Lng: ${position.longitude}";
+        _isReverseGeocodingLoading = false;
       });
     }
   }
@@ -324,9 +313,9 @@ class _MapScreenState extends State<MapScreen> {
               ),
               child: PatientInfoWidget(
                 scrollController: scrollController,
-                currentAddress: locationProvider.address,  // 프로바이더에서 주소 가져오기
-                latitude: locationProvider.latitude,       // 프로바이더에서 위도 가져오기
-                longitude: locationProvider.longitude,     // 프로바이더에서 경도 가져오기
+                currentAddress: locationProvider.address,  // Get address from provider
+                latitude: locationProvider.latitude,       // Get latitude from provider
+                longitude: locationProvider.longitude,     // Get longitude from provider
               ),
             );
           },
@@ -376,6 +365,89 @@ class _MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
+  // Get center coordinate location
+  Future<void> _getAddressFromLatLng(double latitude, double longitude) async {
+    try {
+      setState(() {
+        _isReverseGeocodingLoading = true;
+      });
+      
+      // Update location in provider
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      locationProvider.updateLocation(latitude, longitude);
+      
+      // Try to get address via geocoding
+      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
+      
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String fullAddress = _formatAddress(place);
+        
+        // Update address in provider
+        locationProvider.updateAddress(fullAddress);
+        
+        setState(() {
+          _currentAddress = fullAddress;
+          _isReverseGeocodingLoading = false;
+        });
+      } else {
+        setState(() {
+          _currentAddress = "Address not found";
+          _isReverseGeocodingLoading = false;
+        });
+        locationProvider.updateAddress("Address not found");
+      }
+    } catch (e) {
+      debugPrint('Error getting address: $e');
+      setState(() {
+        _currentAddress = "Failed to get address";
+        _isReverseGeocodingLoading = false;
+      });
+      
+      // Update provider with error message
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      locationProvider.updateAddress("Failed to get address");
+    }
+  }
+  
+  // Format address from Placemark
+  String _formatAddress(Placemark place) {
+    List<String> addressParts = [];
+    
+    // Add non-empty parts to the address
+    if (place.street != null && place.street!.isNotEmpty) {
+      addressParts.add(place.street!);
+    }
+    
+    if (place.subLocality != null && place.subLocality!.isNotEmpty) {
+      addressParts.add(place.subLocality!);
+    }
+    
+    if (place.locality != null && place.locality!.isNotEmpty) {
+      addressParts.add(place.locality!);
+    }
+    
+    if (place.subAdministrativeArea != null && place.subAdministrativeArea!.isNotEmpty) {
+      addressParts.add(place.subAdministrativeArea!);
+    }
+    
+    if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) {
+      addressParts.add(place.administrativeArea!);
+    }
+    
+    if (place.postalCode != null && place.postalCode!.isNotEmpty) {
+      addressParts.add(place.postalCode!);
+    }
+    
+    if (place.country != null && place.country!.isNotEmpty) {
+      addressParts.add(place.country!);
+    }
+    
+    // Join all parts with commas
+    return addressParts.join(', ');
+  }
+
+  // Build function
   @override
   Widget build(BuildContext context) {
     final locationProvider = Provider.of<LocationProvider>(context);
@@ -418,159 +490,85 @@ class _MapScreenState extends State<MapScreen> {
               ),
             )
           : Column(
-        children: [
-          Expanded(
-            child: _isSupportedPlatform()
-                ? Stack(
-                    children: [
-                      GoogleMap(
-                        mapType: MapType.normal,
-                        initialCameraPosition: _initialCameraPosition,
-                        onMapCreated: (GoogleMapController controller) {
-                          print("Map created!");
-                          setState(() {
-                            _mapController = controller;
-                            _isMapLoading = false;
-                            
-                            // 지도가 생성될 때 마커 추가
-                            if (_currentPosition != null) {
-                              _markers.clear();
-                              _markers.add(
-                                Marker(
-                                  markerId: MarkerId('currentLocation'),
-                                  position: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                                  infoWindow: InfoWindow(title: 'Current Location'),
-                                  draggable: true,
-                                  onDragEnd: (newPosition) {
-                                    setState(() {
-                                      _latitude = newPosition.latitude;
-                                      _longitude = newPosition.longitude;
-                                    });
-                                    
-                                    // 위치 프로바이더 업데이트
-                                    locationProvider.updateLocation(newPosition.latitude, newPosition.longitude);
-                                    
-                                    print('Marker dragged to: lat=${_latitude}, lng=${_longitude}');
-                                  },
-                                ),
-                              );
-                            }
-                          });
-                          if (_currentPosition != null) {
-                            controller.animateCamera(
-                              CameraUpdate.newLatLngZoom(
-                                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                                16.0,
-                              ),
-                            );
-                          }
-                        },
-                        myLocationEnabled: true,
-                        myLocationButtonEnabled: false,
-                        markers: _markers,
-                        zoomControlsEnabled: false,
-                        compassEnabled: true,
-                        buildingsEnabled: true,
-                        padding: EdgeInsets.only(bottom: 50),
-                        onTap: (LatLng location) {
-                          // 지도를 탭하면 마커 위치 변경
-                          setState(() {
-                            _latitude = location.latitude;
-                            _longitude = location.longitude;
-                            _markers.clear();
-                            _markers.add(
-                              Marker(
-                                markerId: MarkerId('currentLocation'),
-                                position: location,
-                                infoWindow: InfoWindow(title: 'Selected Location'),
-                                draggable: true,
-                                onDragEnd: (newPosition) {
-                                  setState(() {
-                                    _latitude = newPosition.latitude;
-                                    _longitude = newPosition.longitude;
-                                  });
-                                  
-                                  // 위치 프로바이더 업데이트
-                                  locationProvider.updateLocation(newPosition.latitude, newPosition.longitude);
-                                  
-                                  print('Marker dragged to: lat=${_latitude}, lng=${_longitude}');
-                                },
-                              ),
-                            );
-                          });
-                          
-                          // 위치 프로바이더 업데이트
-                          locationProvider.updateLocation(location.latitude, location.longitude);
-                          
-                          print('Map tapped at: lat=${location.latitude}, lng=${location.longitude}');
-                        },
-                      ),
-                      if (_isMapLoading)
-                        Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(color: const Color(0xFFD94B4B)),
-                              SizedBox(height: 16),
-                              Text('Loading map...'),
-                            ],
+              children: [
+                Expanded(
+                  child: _isSupportedPlatform()
+                    ? Stack(
+                        children: [
+                          GoogleMap(
+                            mapType: MapType.normal,
+                            initialCameraPosition: _initialCameraPosition,
+                            onMapCreated: (GoogleMapController controller) {
+                              print("Map created!");
+                              setState(() {
+                                _mapController = controller;
+                                _isMapLoading = false;
+                              });
+                              if (_currentPosition != null) {
+                                controller.animateCamera(
+                                  CameraUpdate.newLatLngZoom(
+                                    LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                                    16.0,
+                                  ),
+                                );
+                              }
+                            },
+                            myLocationEnabled: true,
+                            myLocationButtonEnabled: false,
+                            markers: _markers, // Empty marker set (using fixed center pin instead)
+                            zoomControlsEnabled: false,
+                            compassEnabled: true,
+                            buildingsEnabled: true,
+                            padding: EdgeInsets.only(bottom: 50),
+                            onCameraIdle: _onCameraIdle, // Called when camera stops moving
                           ),
-                        ),
-                      if (_mapLoadError.isNotEmpty)
-                        Center(
-                          child: Container(
-                            padding: EdgeInsets.all(16),
-                            margin: EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
+                          
+                          // Fixed pin image at the center
+                          Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.error_outline, color: const Color(0xFFD94B4B), size: 48),
-                                SizedBox(height: 16),
-                                Text(
-                                  _mapLoadError,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _mapLoadError = "";
-                                      _isMapLoading = true;
-                                    });
-                                    _checkMapsApiLoaded();
-                                  },
-                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD94B4B)),
-                                  child: Text('Retry'),
+                                // Show loading indicator only when active
+                                if (_isReverseGeocodingLoading)
+                                  Container(
+                                    padding: EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.8),
+                                      borderRadius: BorderRadius.circular(10)
+                                    ),
+                                    child: SizedBox(
+                                      width: 10,
+                                      height: 10,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: const Color(0xFFD94B4B),
+                                      ),
+                                    ),
+                                  ),
+                                // Pin image (assets folder must contain the image)
+                                Container(
+                                  margin: EdgeInsets.only(bottom: 20), // Adjust to position pin end at center
+                                  child: Icon(
+                                    Icons.location_pin,
+                                    color: Colors.red,
+                                    size: 40,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      // 주소 및 좌표 정보 표시 패널 추가
-                      Positioned(
-                        bottom: 80,
-                        left: 16,
-                        right: 16,
-                        child: Column(
-                          children: [
-                            // 주소 표시
-                            Container(
-                              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          
+                          // Helper text at the top
+                          Positioned(
+                            top: 16,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              margin: EdgeInsets.symmetric(horizontal: 50),
+                              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey[300]!),
+                                color: Colors.white.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withOpacity(0.1),
@@ -579,99 +577,233 @@ class _MapScreenState extends State<MapScreen> {
                                   ),
                                 ],
                               ),
-                              child: Row(
+                              alignment: Alignment.center,
+                              textAlign: TextAlign.center,
+                              child: Text(
+                                "Move the map to select your location",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ),
+                          
+                          if (_isMapLoading)
+                            Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.location_on, color: const Color(0xFFD94B4B)),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: locationProvider.isLoading
-                                      ? Row(
-                                          children: [
-                                            SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: const Color(0xFFD94B4B),
-                                              ),
-                                            ),
-                                            SizedBox(width: 12),
-                                            Text('주소 확인 중...'),
-                                          ],
-                                        )
-                                      : Text(
-                                          locationProvider.address,  // 프로바이더에서 주소 가져오기
-                                          style: TextStyle(fontSize: 14),
-                                        ),
-                                  ),
+                                  CircularProgressIndicator(color: const Color(0xFFD94B4B)),
+                                  SizedBox(height: 16),
+                                  Text('Loading map...'),
                                 ],
                               ),
                             ),
-                            SizedBox(height: 8),
-                            // 좌표 표시
-                            Container(
-                              padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: Color(0xFFF0F0F0),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '위도: ${locationProvider.latitude.toStringAsFixed(6)}, 경도: ${locationProvider.longitude.toStringAsFixed(6)}',  // 프로바이더에서 좌표 가져오기
-                                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                          if (_mapLoadError.isNotEmpty)
+                            Center(
+                              child: Container(
+                                padding: EdgeInsets.all(16),
+                                margin: EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.error_outline, color: const Color(0xFFD94B4B), size: 48),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      _mapLoadError,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                    SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _mapLoadError = "";
+                                          _isMapLoading = true;
+                                        });
+                                        _checkMapsApiLoaded();
+                                      },
+                                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD94B4B)),
+                                      child: Text('Retry'),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  )
-                : Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.map, size: 100, color: Colors.grey),
-                          SizedBox(height: 30),
-                          Text(
-                            'Maps are only supported on iOS and Android devices',
-                            style: TextStyle(fontSize: 16),
+                          
+                          // Address and coordinate information display panel
+                          Positioned(
+                            bottom: 80,
+                            left: 16,
+                            right: 16,
+                            child: Column(
+                              children: [
+                                // Address display
+                                Container(
+                                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey[300]!),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.location_on, color: const Color(0xFFD94B4B)),
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: locationProvider.isLoading
+                                          ? Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: const Color(0xFFD94B4B),
+                                                  ),
+                                                ),
+                                                SizedBox(width: 12),
+                                                Text('Address verification in progress...'),
+                                              ],
+                                            )
+                                          : Text(
+                                              locationProvider.address,  // Get address from provider
+                                              style: TextStyle(fontSize: 14),
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                // Coordinate display
+                                Container(
+                                  padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFFF0F0F0),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'Latitude: ${locationProvider.latitude.toStringAsFixed(6)}, Longitude: ${locationProvider.longitude.toStringAsFixed(6)}',  // Get coordinates from provider
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(height: 10),
-                          Text(
-                            'Current location: $_currentAddress',
-                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                            textAlign: TextAlign.center,
+                          
+                          // Current location button
+                          Positioned(
+                            right: 16,
+                            bottom: 150,
+                            child: FloatingActionButton(
+                              heroTag: "currentLocationButton",
+                              onPressed: _getCurrentLocation,
+                              backgroundColor: Colors.white,
+                              child: Icon(
+                                Icons.my_location,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ),
+                          
+                          // Confirm location button
+                          Positioned(
+                            bottom: 16,
+                            left: 16,
+                            right: 16,
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _onConfirmLocation,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  "Confirm Location",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ],
+                      )
+                    : Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.map, size: 100, color: Colors.grey),
+                              SizedBox(height: 30),
+                              Text(
+                                'Maps are only supported on iOS and Android devices',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              SizedBox(height: 10),
+                              Text(
+                                'Current location: ${locationProvider.address}',
+                                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
+                ),
+                GestureDetector(
+                  onTap: () => _showChatBottomSheet(context),
+                  child: Container(
+                    color: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 15),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Chat',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
-          ),
-          GestureDetector(
-            onTap: () => _showChatBottomSheet(context),
-            child: Container(
-              color: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 15),
-              alignment: Alignment.center,
-              child: Text(
-                'Chat',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: _isSupportedPlatform() 
-          ? FloatingActionButton(
-              backgroundColor: const Color(0xFFD94B4B),
-              onPressed: _getCurrentLocation,
-              child: Icon(Icons.my_location),
-            )
-          : null,
     );
+  }
+
+  // Confirm selected location
+  void _onConfirmLocation() {
+    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    // Return to previous screen with selected location
+    Navigator.pop(context, {
+      'address': locationProvider.address,
+      'latitude': locationProvider.latitude,
+      'longitude': locationProvider.longitude,
+    });
   }
 }

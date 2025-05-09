@@ -13,11 +13,11 @@ class HospitalService {
   final FlutterSecureStorage _storage = FlutterSecureStorage();
   final String _baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080';
   
-  // SSE 연결을 위한 컨트롤러
+  // Controller for SSE connection
   StreamController<Hospital>? _hospitalsStreamController;
   http.Client? _sseClient;
 
-  // SSE 연결 종료
+  // Close SSE connection
   void closeSSEConnection() {
     print('[HospitalService] 🔌 Closing SSE connection');
     _sseClient?.close();
@@ -27,7 +27,7 @@ class HospitalService {
     print('[HospitalService] ✅ SSE connection successfully closed');
   }
 
-  // 입원 요청 생성
+  // Create admission request
   Future<String> createAdmission(double latitude, double longitude, int searchRadius, String patientCondition) async {
     try {
       print('[HospitalService] 🏥 Creating admission request...');
@@ -35,14 +35,14 @@ class HospitalService {
       print('[HospitalService] 🔍 Search radius: ${searchRadius}km');
       print('[HospitalService] 📝 Patient condition: $patientCondition');
       
-      // 토큰 확인 및 가져오기
+      // Check and get token
       final storage = FlutterSecureStorage();
       String? token = await storage.read(key: 'access_token');
       
       if (token == null || token.isEmpty) {
         print('[HospitalService] ❌ Authentication token not found or empty');
         
-        // api_service의 토큰 갱신 기능 활용 시도
+        // Try to refresh token via api_service
         try {
           print('[HospitalService] 🔄 Attempting to refresh token via ApiService');
           token = await _apiService.refreshToken();
@@ -88,17 +88,17 @@ class HospitalService {
       print('[HospitalService] 📥 Response headers: ${response.headers}');
       print('[HospitalService] 📄 Response body: ${response.body}');
       
-      // 토큰 만료 확인 (401)
+      // Check token expiration (401)
       if (response.statusCode == 401) {
         print('[HospitalService] ⚠️ Token expired (401) - attempting to refresh');
         
-        // 토큰 갱신 시도
+        // Try to refresh token
         try {
           final newToken = await _apiService.refreshToken();
           if (newToken.isNotEmpty) {
             print('[HospitalService] ✅ Token refreshed successfully, retrying request');
             
-            // 새 토큰으로 요청 재시도
+            // Retry request with new token
             final retryHeaders = {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $newToken'
@@ -159,19 +159,19 @@ class HospitalService {
     }
   }
   
-  // 입원 요청 재시도
+  // Retry admission request
   Future<String> retryAdmission(String admissionId) async {
     try {
       print('[HospitalService] 🔄 Retrying admission request with ID: $admissionId');
       
-      // 토큰 확인 및 가져오기
+      // Check and get token
       final storage = FlutterSecureStorage();
       String? token = await storage.read(key: 'access_token');
       
       if (token == null || token.isEmpty) {
         print('[HospitalService] ❌ Authentication token not found or empty for retry');
         
-        // api_service의 토큰 갱신 기능 활용 시도
+        // Try to refresh token via api_service
         try {
           print('[HospitalService] 🔄 Attempting to refresh token via ApiService for retry');
           token = await _apiService.refreshToken();
@@ -206,17 +206,17 @@ class HospitalService {
       print('[HospitalService] 📥 Response headers: ${response.headers}');
       print('[HospitalService] 📄 Response body: ${response.body}');
       
-      // 토큰 만료 확인 (401)
+      // Check token expiration (401)
       if (response.statusCode == 401) {
         print('[HospitalService] ⚠️ Token expired (401) for retry - attempting to refresh');
         
-        // 토큰 갱신 시도
+        // Try to refresh token
         try {
           final newToken = await _apiService.refreshToken();
           if (newToken.isNotEmpty) {
             print('[HospitalService] ✅ Token refreshed successfully for retry, retrying request');
             
-            // 새 토큰으로 요청 재시도
+            // Retry request with new token
             final retryHeaders = {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $newToken'
@@ -260,7 +260,7 @@ class HospitalService {
     }
   }
   
-  // SSE 구독 스트림 반환
+  // Return SSE subscription stream
   Stream<Hospital> subscribeToHospitalUpdates() {
     print('[HospitalService] 📡 Creating hospital updates subscription');
     if (_hospitalsStreamController == null || _hospitalsStreamController!.isClosed) {
@@ -274,12 +274,12 @@ class HospitalService {
     return _hospitalsStreamController!.stream;
   }
   
-  // SSE 연결 설정
+  // Set up SSE connection
   Future<void> _connectToSSE() async {
     try {
       if (_sseClient != null) {
         print('[HospitalService] ⚠️ SSE client already exists, skipping connection');
-        return; // 이미 연결되어 있음
+        return; // Already connected
       }
       
       print('[HospitalService] 🔄 Connecting to SSE...');
@@ -326,11 +326,11 @@ class HospitalService {
     }
   }
   
-  // SSE 데이터 처리
+  // Process SSE data
   void _processSSEData(String data) {
     try {
       print('[HospitalService] 🔄 Processing SSE data');
-      // SSE 데이터 형식: data: {...JSON 데이터...}
+      // SSE data format: data: {...JSON data...}
       if (data.startsWith('data:')) {
         final jsonData = data.substring(5).trim();
         print('[HospitalService] 📦 Extracted JSON data: $jsonData');

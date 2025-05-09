@@ -5,34 +5,34 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LocationProvider with ChangeNotifier {
-  double _latitude = 37.5662;  // 기본값: 서울 시청
-  double _longitude = 126.9785;  // 기본값: 서울 시청
-  String _address = "찾는 중...";
+  double _latitude = 37.5662;  // Default: Seoul City Hall
+  double _longitude = 126.9785;  // Default: Seoul City Hall
+  String _address = "Searching...";
   bool _isLoading = false;
 
-  // 게터
+  // Getters
   double get latitude => _latitude;
   double get longitude => _longitude;
   String get address => _address;
   bool get isLoading => _isLoading;
 
-  // 위치 업데이트
+  // Update location
   Future<void> updateLocation(double lat, double lng) async {
     _latitude = lat;
     _longitude = lng;
     notifyListeners();
     
-    // 주소 업데이트
+    // Update address
     await updateAddressFromCoordinates(lat, lng);
   }
 
-  // 주소만 업데이트
+  // Update address only
   void updateAddress(String newAddress) {
     _address = newAddress;
     notifyListeners();
   }
 
-  // 좌표에서 주소 가져오기 (역지오코딩)
+  // Get address from coordinates (reverse geocoding)
   Future<void> updateAddressFromCoordinates(double lat, double lng) async {
     _isLoading = true;
     notifyListeners();
@@ -59,18 +59,18 @@ class LocationProvider with ChangeNotifier {
         notifyListeners();
       } else {
         print('[LocationProvider] ⚠️ Geocoding API error: ${data['status']}');
-        throw Exception('주소를 찾을 수 없습니다: ${data['status']}');
+        throw Exception('Address not found: ${data['status']}');
       }
     } catch (e) {
       print('[LocationProvider] ❌ Error during reverse geocoding: $e');
       
       try {
-        // Google Geocoding API에 문제가 있으면 대체 방법으로 시도
+        // Try alternative method if Google Geocoding API has issues
         final List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
         if (placemarks.isNotEmpty) {
           final placemark = placemarks[0];
           
-          // 한국어 주소 형식 처리
+          // Handle address format for Korea
           String address = "";
           if (placemark.country == 'South Korea' || placemark.country == '대한민국') {
             address = "${placemark.administrativeArea ?? ''} ${placemark.locality ?? ''} ${placemark.subLocality ?? ''} ${placemark.thoroughfare ?? ''} ${placemark.subThoroughfare ?? ''}";
@@ -87,11 +87,11 @@ class LocationProvider with ChangeNotifier {
           
           print('[LocationProvider] ✅ Found address via Geocoding package: $address');
         } else {
-          throw Exception('주소를 찾을 수 없습니다');
+          throw Exception('Address not found');
         }
       } catch (secondError) {
         print('[LocationProvider] ❌ Second error during reverse geocoding: $secondError');
-        _address = "위도: $lat, 경도: $lng";
+        _address = "Latitude: $lat, Longitude: $lng";
         _isLoading = false;
         notifyListeners();
       }

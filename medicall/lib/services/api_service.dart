@@ -197,7 +197,7 @@ class ApiService {
     }
   }
   
-  // 토큰 갱신 메소드 - HospitalService에서 사용
+  // 6 token refresh method - used in HospitalService
   Future<String> refreshToken() async {
     try {
       print('ApiService: Attempting direct token refresh');

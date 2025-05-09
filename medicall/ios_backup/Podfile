@@ -65,7 +65,6 @@ target 'Runner' do
   end
 end
 
-# MapboxMaps만 소스에서 직접 빌드하게 설정
 # pre_install do |installer|
 #   installer.pod_targets.each do |pod|
 #     if pod.name.eql?('MapboxMaps')
@@ -78,12 +77,10 @@ end
 
 # post_install do |installer|
 #   installer.pods_project.targets.each do |target|
-#     # Swift 버전 명시적 설정
 #     target.build_configurations.each do |config|
 #       config.build_settings['SWIFT_VERSION'] = '5.5'
 #       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       
-#       # Mapbox 프레임워크 검색 경로 추가
 #       config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= [
 #         '$(inherited)',
 #         '${PODS_ROOT}/MapboxMaps',
@@ -99,13 +96,13 @@ end
 #     flutter_additional_ios_build_settings(target)
     
 #     target.build_configurations.each do |config|
-#       # 최소 iOS 버전 설정 
+#       # minimum iOS version
 #       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       
-#       # 심볼릭 링크 관련 설정 추가
+#       # symbolic link related settings
 #       config.build_settings['CLANG_MODULES_AUTOLINK'] = 'YES'
       
-#       # 프레임워크 검색 경로 추가
+#       # add framework search path
 #       config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)', '${PODS_ROOT}/GoogleMaps/Base/Frameworks', '${PODS_ROOT}/GoogleMaps/Maps/Frameworks']
 #     end
 #   end
