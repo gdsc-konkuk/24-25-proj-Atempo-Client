@@ -57,9 +57,7 @@ MediCall access is exclusively for **verified paramedics**. EMT credentials must
 - **KOREA**: 6-digit numeric (e.g., 123456)
 - **EMS**: 12-digit numeric (e.g., 123456789012)
 
-📌 **Demo EMT Verification Code**: `MED119`
-
-*(Future updates will allow general users to locate emergency hospitals.)*
+📌 **Demo EMT Verification Code**: Select `NREMT` and type `MED911`
 
 ---
 

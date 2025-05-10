@@ -28,12 +28,16 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   String errorMessage = '';
   late List<Hospital> _hospitals;
   StreamSubscription? _hospitalSubscription;
+  late String _admissionId;
+  
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
 
   @override
   void initState() {
     super.initState();
+    _admissionId = widget.admissionId;
     print('[EmergencyRoomListScreen] 🏥 Initializing with ${widget.hospitals.length} hospitals');
-    print('[EmergencyRoomListScreen] 🔑 Admission ID: ${widget.admissionId}');
+    print('[EmergencyRoomListScreen] 🔑 Admission ID: $_admissionId');
     _hospitals = List.from(widget.hospitals);
     _subscribeToHospitalUpdates();
   }
@@ -64,6 +68,10 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
             print('[EmergencyRoomListScreen] ➕ Adding new hospital to list (total: ${_hospitals.length + 1})');
             // Add new hospital
             _hospitals.add(hospital);
+            // AnimatedList에 새 아이템이 추가되었음을 알림
+            if (_listKey.currentState != null) {
+              _listKey.currentState!.insertItem(_hospitals.length - 1);
+            }
           }
         });
       },
@@ -78,6 +86,19 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
       },
     );
     print('[EmergencyRoomListScreen] ✅ Hospital updates subscription setup completed');
+    
+    // admissionId가 비어있는 경우 (첫 화면 진입 시)
+    // 별도의 코드를 추가하지 않음 - 자동으로 SSE를 통해 병원 정보가 업데이트됨
+  }
+
+  // 새로운 admission ID를 설정하는 함수 추가
+  void updateAdmissionId(String newAdmissionId) {
+    if (mounted) {
+      setState(() {
+        _admissionId = newAdmissionId;
+      });
+      print('[EmergencyRoomListScreen] 🔄 Admission ID updated to: $_admissionId');
+    }
   }
 
   void selectHospital(int index) {
@@ -204,6 +225,40 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                         ),
                       ),
                       SizedBox(height: 16),
+                      // Available hospitals count
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Available hospitals: ${_hospitals.length}',
+                              style: GoogleFonts.notoSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            if (_hospitals.isNotEmpty)
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green[50],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.green[200]!),
+                                ),
+                                child: Text(
+                                  'Hospitals Available',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green[800],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 8),
                       // Scrollable list that takes remaining space
                       Expanded(
                         child: Padding(
@@ -213,30 +268,97 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    CircularProgressIndicator(color: Color(0xFFE93C4A)),
+                                    SizedBox(
+                                      width: 40,
+                                      height: 40,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 3,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE93C4A)),
+                                      ),
+                                    ),
                                     SizedBox(height: 16),
                                     Text(
-                                      'Waiting for hospital responses...',
+                                      'We are continuously searching for hospitals. New hospitals will be added to the list automatically when they respond.',
+                                      textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 16,
                                         color: Colors.grey[600],
                                       ),
                                     ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Please wait a moment. We are contacting the emergency hospital.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
+                                    SizedBox(height: 24),
+                                    // 로딩 애니메이션 개선
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                                            ),
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text(
+                                            'Real-time searching...',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.orange[800],
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               )
-                            : ListView.builder(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                itemCount: _hospitals.length,
-                                itemBuilder: (context, index) {
+                            : AnimatedList(
+                                key: _listKey,
+                                initialItemCount: _hospitals.length,
+                                itemBuilder: (context, index, animation) {
                                   final isSelected = selectedHospitalIndex == index;
                                   final hospital = _hospitals[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 16.0),
-                                    child: HospitalCard(
-                                      hospital: hospital,
-                                      isSelected: isSelected,
-                                      onSelect: () => selectHospital(index),
+                                  
+                                  return SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(1, 0),
+                                      end: Offset.zero,
+                                    ).animate(CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOutQuad,
+                                    )),
+                                    child: FadeTransition(
+                                      opacity: Tween<double>(
+                                        begin: 0.0,
+                                        end: 1.0,
+                                      ).animate(CurvedAnimation(
+                                        parent: animation,
+                                        curve: Curves.easeInOut,
+                                      )),
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(bottom: 16.0),
+                                        child: HospitalCard(
+                                          hospital: hospital,
+                                          isSelected: isSelected,
+                                          onSelect: () => selectHospital(index),
+                                        ),
+                                      ),
                                     ),
                                   );
                                 },
@@ -337,6 +459,48 @@ class HospitalCard extends StatelessWidget {
                           color: Colors.grey[600],
                         ),
                       ),
+                      SizedBox(height: 8),
+                      // Distance and travel time information
+                      if (hospital.distance != null || hospital.travelTime != null)
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.directions_car,
+                                size: 14,
+                                color: Colors.blue[700],
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                hospital.distance != null 
+                                    ? '${hospital.distance?.toStringAsFixed(1)}km' 
+                                    : '',
+                                style: GoogleFonts.notoSans(
+                                  fontSize: 12,
+                                  color: Colors.blue[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (hospital.distance != null && hospital.travelTime != null)
+                                Text(' • ', style: TextStyle(color: Colors.blue[700])),
+                              if (hospital.travelTime != null)
+                                Text(
+                                  '${hospital.travelTime}분',
+                                  style: GoogleFonts.notoSans(
+                                    fontSize: 12,
+                                    color: Colors.blue[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       SizedBox(height: 12),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -344,39 +508,76 @@ class HospitalCard extends StatelessWidget {
                           color: Color(0xFFFFF0F0),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Icon(
-                              Icons.hotel,
-                              size: 16,
-                              color: Colors.black54,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.hotel,
+                                  size: 16,
+                                  color: Colors.black54,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Available beds: ${hospital.availableBeds}',
+                                  style: GoogleFonts.notoSans(
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
                             ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Available beds: ${hospital.availableBeds}',
-                              style: GoogleFonts.notoSans(
-                                fontSize: 14,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            SizedBox(width: 16),
-                            Icon(
-                              Icons.phone,
-                              size: 16,
-                              color: Colors.black54,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              hospital.phoneNumber,
-                              style: GoogleFonts.notoSans(
-                                fontSize: 14,
-                                color: Colors.black87,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.phone,
+                                  size: 16,
+                                  color: Colors.black54,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  hospital.phoneNumber,
+                                  style: GoogleFonts.notoSans(
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
+                      // Specialties information
+                      if (hospital.specialties != null && hospital.specialties!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: hospital.specialties!.split(',').map((specialty) {
+                              return Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                                child: Text(
+                                  specialty.trim(),
+                                  style: GoogleFonts.notoSans(
+                                    fontSize: 12,
+                                    color: Colors.grey[800],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
                     ],
                   ),
                 ),

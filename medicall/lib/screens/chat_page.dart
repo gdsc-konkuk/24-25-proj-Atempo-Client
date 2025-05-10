@@ -87,6 +87,9 @@ class _ChatPageState extends State<ChatPage> {
   // Set to track selected hashtags
   final Set<String> _selectedTags = {};
 
+  // Emergency Room List Screen 참조를 위한 키
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
   // Add or remove hashtag
   void _toggleHashtag(String tag) {
     setState(() {
@@ -270,25 +273,28 @@ class _ChatPageState extends State<ChatPage> {
       
       print('[ChatPage] 🔍 Search parameters: radius=${searchRadius}km, patient condition=${patientCondition}');
 
-      // Start creating admission request
-      setState(() {
-        _isProcessing = true;
-        _processingMessage = "AI has searched for suitable hospitals within ${searchRadius}km. Making calls to confirm if they can accept the patient. Please wait a moment.";
-      });
-      print('[ChatPage] 📢 Processing message updated: $_processingMessage');
+      // 먼저 EmergencyRoomListScreen으로 이동 (빈 병원 목록으로)
+      // SSE 구독은 EmergencyRoomListScreen에서 처리됨
+      print('[ChatPage] 🚀 Immediately navigating to hospital list screen before API response');
       
-      // Set processing message timer (5 seconds)
-      print('[ChatPage] ⏱️ Starting 5-second timer for message update');
-      _messageTimer = Timer(Duration(seconds: 5), () {
-        if (mounted) {
-          setState(() {
-            _processingMessage = "Contacting hospitals...";
-          });
-          print('[ChatPage] 📢 Processing message updated after timer: $_processingMessage');
-        }
+      // 로딩 상태 초기화
+      setState(() {
+        _isLoading = false;
       });
-
-      // Set up SSE subscription first
+      
+      // 바로 네비게이션
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EmergencyRoomListScreen(
+            hospitals: [], // 빈 리스트로 시작
+            admissionId: '', // 아직 ID가 없음
+            hospitalService: _hospitalService,
+          ),
+        ),
+      );
+      
+      // API 요청은 병렬로 진행
       print('[ChatPage] 📡 Setting up SSE subscription BEFORE admission request');
       _subscribeToHospitalUpdates();
       
@@ -309,6 +315,7 @@ class _ChatPageState extends State<ChatPage> {
       if (response != null && response.containsKey('admissionId')) {
         _admissionId = response['admissionId']?.toString() ?? '';
         print('[ChatPage] ✅ Admission created with ID: $_admissionId');
+        // EmergencyRoomListScreen에서는 SSE를 통해 자동으로 병원 목록이 업데이트됨
       } else {
         print('[ChatPage] ⚠️ No admission ID received from server');
         throw Exception('No admission ID received from server');
@@ -318,7 +325,6 @@ class _ChatPageState extends State<ChatPage> {
       print('[ChatPage] ❌ ERROR: Exception while requesting hospital information: $e');
       setState(() {
         _isLoading = false;
-        _isProcessing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error occurred while getting hospital information: $e'))
@@ -453,14 +459,6 @@ class _ChatPageState extends State<ChatPage> {
   
   // Navigate to hospital list screen
   void _navigateToHospitalList() {
-    if (_hospitals.isEmpty) {
-      print('[ChatPage] ⚠️ Cannot navigate - no hospitals in list');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No hospitals have responded yet.'))
-      );
-      return;
-    }
-    
     print('[ChatPage] 🚀 Navigating to hospital list with ${_hospitals.length} hospitals');
     setState(() {
       _isProcessing = false;

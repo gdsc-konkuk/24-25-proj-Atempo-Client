@@ -400,7 +400,19 @@ class HospitalService {
       print('[HospitalService] 🔄 SSE data processing');
       print('[HospitalService] 📦 Original data: $data');
       
-      // SSE data format: data: {...JSON data...}
+      // SSE 데이터 형식 확인 및 처리
+      if (data.trim().isEmpty) {
+        print('[HospitalService] ⚠️ Empty data received');
+        return;
+      }
+      
+      // 'event:HOSPITAL_INFO_RESPONSE' 같은 형식인지 확인
+      if (data.contains('event:HOSPITAL_INFO_RESPONSE')) {
+        print('[HospitalService] 📌 Event marker received, ignoring');
+        return;
+      }
+      
+      // SSE 데이터 형식: data: {...JSON data...}
       if (data.startsWith('data:')) {
         final jsonData = data.substring(5).trim();
         print('[HospitalService] 📦 Extracted JSON data: $jsonData');
@@ -421,6 +433,49 @@ class HospitalService {
           }
         } else {
           print('[HospitalService] ⚠️ Empty JSON data');
+        }
+      } 
+      // 직접 JSON 형식으로 오는 경우
+      else if (data.trim().startsWith('{') && data.trim().endsWith('}')) {
+        try {
+          final hospitalData = json.decode(data);
+          print('[HospitalService] 🏥 Parsed raw hospital data: $hospitalData');
+          
+          // 데이터에 병원 정보가 포함되어 있는지 확인
+          if (hospitalData.containsKey('name') && hospitalData.containsKey('address')) {
+            final hospital = Hospital.fromJson(hospitalData);
+            print('[HospitalService] ✅ Received hospital object from raw data: name=${hospital.name}, id=${hospital.id}');
+            
+            _hospitalsStreamController?.add(hospital);
+            print('[HospitalService] 📢 Hospital object from raw data added to stream');
+          } else {
+            print('[HospitalService] ⚠️ JSON data does not contain required hospital information');
+          }
+        } catch (e) {
+          print('[HospitalService] ❌ Error parsing raw hospital data: $e');
+          print('[HospitalService] ❌ Original raw data: $data');
+        }
+      }
+      // JSON 배열 형식 처리 (여러 병원 정보가 한번에 오는 경우)
+      else if (data.trim().startsWith('[') && data.trim().endsWith(']')) {
+        try {
+          final List<dynamic> hospitalsData = json.decode(data);
+          print('[HospitalService] 🏥 Parsed hospitals array data with ${hospitalsData.length} items');
+          
+          for (final hospitalData in hospitalsData) {
+            if (hospitalData is Map<String, dynamic> && 
+                hospitalData.containsKey('name') && 
+                hospitalData.containsKey('address')) {
+              final hospital = Hospital.fromJson(hospitalData);
+              print('[HospitalService] ✅ Received hospital from array: name=${hospital.name}, id=${hospital.id}');
+              
+              _hospitalsStreamController?.add(hospital);
+              print('[HospitalService] 📢 Hospital object from array added to stream');
+            }
+          }
+        } catch (e) {
+          print('[HospitalService] ❌ Error parsing hospital array data: $e');
+          print('[HospitalService] ❌ Original array data: $data');
         }
       } else {
         print('[HospitalService] ⚠️ Not a data event: $data');
