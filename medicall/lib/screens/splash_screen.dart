@@ -121,39 +121,49 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFD94B4B),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo with phone icon replacing "i"
-            RichText(
-              text: TextSpan(
-                style: GoogleFonts.notoSans(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+      body: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/logo_white.png',
+                  width: 180,
+                  fit: BoxFit.contain,
                 ),
-                children: [
-                  TextSpan(text: 'Medi'),
-                  WidgetSpan(
-                    child: Icon(Icons.phone, color: Colors.white, size: 40),
-                    alignment: PlaceholderAlignment.middle,
+                SizedBox(height: 20),
+                Text(
+                  'The Fastest Call for Care',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Pretendard',
                   ),
-                  TextSpan(text: 'call'),
-                ],
+                ),
+              ],
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 24),
+                child: Text(
+                  '© 2025 Atempo, GDG on Campus Konkuk University',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontFamily: 'Pretendard',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
-            SizedBox(height: 20),
-            Text(
-              'The Fastest Call for Care',
-              style: GoogleFonts.notoSans(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

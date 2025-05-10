@@ -50,7 +50,7 @@ class _MapScreenState extends State<MapScreen> {
   // Neutral initial position in global coordinate system (mid-Atlantic point)
   static final CameraPosition _initialCameraPosition = CameraPosition(
     target: LatLng(0, 0),
-    zoom: 19.0,
+    zoom: 16.0,
   );
 
   @override
@@ -470,11 +470,10 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppTheme.buildAppBar(
         title: 'Medicall',
-        subtitle: '긴급 서비스',
-        leading: AppTheme.buildBackButton(context),
+        leading: null,
         actions: [
-          AppTheme.buildActionButton(
-            icon: Icons.settings,
+          IconButton(
+            icon: Icon(Icons.settings, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
@@ -482,8 +481,8 @@ class _MapScreenState extends State<MapScreen> {
               );
             },
           ),
-          AppTheme.buildActionButton(
-            icon: Icons.person,
+          IconButton(
+            icon: Icon(Icons.person, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,

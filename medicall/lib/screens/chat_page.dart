@@ -474,7 +474,6 @@ class _ChatPageState extends State<ChatPage> {
         backgroundColor: AppTheme.backgroundColor,
         appBar: AppTheme.buildAppBar(
           title: 'Find Emergency Room',
-          subtitle: '긴급 서비스',
           leading: AppTheme.buildBackButton(context),
         ),
         resizeToAvoidBottomInset: true,

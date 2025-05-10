@@ -57,6 +57,7 @@ flutter:
     - assets/images/ambulance.png
     - assets/images/google_logo.png
     - assets/images/logo_white.png
+    - assets/images/logo_color.png
     - assets/images/campaign_thumbnail.png
     - assets/images/ambulance-car-for-map.png
     - assets/images/location_pin.png

@@ -143,38 +143,18 @@ class AppTheme {
             ),
         ],
       ),
-      leading: leading != null
-          ? Container(
-              margin: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: leading,
-            )
-          : null,
-      actions: actions?.map((action) {
-        return Container(
-          margin: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: action,
-        );
-      }).toList(),
+      leading: leading,
+      actions: actions,
     );
   }
 
   // Custom Back Button
   static Widget buildBackButton(BuildContext context) {
     return IconButton(
-      icon: Icon(Icons.arrow_back, color: Colors.white),
+      icon: Icon(Icons.chevron_left, color: Colors.white, size: 28),
       onPressed: () => Navigator.of(context).pop(),
-      style: IconButton.styleFrom(
-        backgroundColor: Colors.white.withOpacity(0.2),
-        padding: EdgeInsets.all(12),
-      ),
+      padding: EdgeInsets.all(8),
+      splashRadius: 24,
     );
   }
 
@@ -187,10 +167,8 @@ class AppTheme {
     return IconButton(
       icon: Icon(icon, color: Colors.white),
       onPressed: onPressed,
-      style: IconButton.styleFrom(
-        backgroundColor: backgroundColor ?? Colors.white.withOpacity(0.2),
-        padding: EdgeInsets.all(12),
-      ),
+      padding: EdgeInsets.all(8),
+      splashRadius: 24,
     );
   }
 } 
