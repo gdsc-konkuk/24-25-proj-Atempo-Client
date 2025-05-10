@@ -70,49 +70,47 @@ class LocationProvider with ChangeNotifier {
         if (placemarks.isNotEmpty) {
           final placemark = placemarks[0];
           
-          // Handle address format for Korea
-          String address = "";
-          if (placemark.country == 'South Korea' || placemark.country == '대한민국') {
-            List<String> addressParts = [];
-            
-            // Add parts only if they are not null and not empty
-            if (placemark.administrativeArea?.isNotEmpty ?? false) {
-              addressParts.add(placemark.administrativeArea!);
+          // 주소 포맷 개선
+          final List<String> addressComponents = [];
+          
+          // 함수 생성: 공백이나 널이 아닌 문자열만 추가
+          void addIfValid(String? component) {
+            if (component != null && component.trim().isNotEmpty) {
+              // 이미 추가된 컴포넌트와 중복되지 않는지 확인
+              if (!addressComponents.contains(component.trim())) {
+                addressComponents.add(component.trim());
+              }
             }
-            if (placemark.locality?.isNotEmpty ?? false && 
-                placemark.locality != placemark.administrativeArea) {
-              addressParts.add(placemark.locality!);
-            }
-            if (placemark.subLocality?.isNotEmpty ?? false) {
-              addressParts.add(placemark.subLocality!);
-            }
-            if (placemark.thoroughfare?.isNotEmpty ?? false && 
-                placemark.thoroughfare != placemark.subLocality) {
-              addressParts.add(placemark.thoroughfare!);
-            }
-            if (placemark.subThoroughfare?.isNotEmpty ?? false) {
-              addressParts.add(placemark.subThoroughfare!);
-            }
-            
-            address = addressParts.join(' ');
-          } else {
-            address = "${placemark.street}, ${placemark.subLocality}, "
-                "${placemark.locality}, ${placemark.administrativeArea}";
           }
           
-          address = address.replaceAll(RegExp(r'\s+'), ' ').trim();
+          // 세부 주소부터 추가 (더 구체적인 정보)
+          addIfValid(placemark.subThoroughfare);
+          addIfValid(placemark.thoroughfare);
+          addIfValid(placemark.subLocality);
+          addIfValid(placemark.locality);
+          addIfValid(placemark.administrativeArea);
+          addIfValid(placemark.country);
           
-          _address = address;
+          // 빈 문자열 확인 및 제거
+          final filteredComponents = addressComponents.where((c) => c.isNotEmpty).toList();
+          
+          // 주소 컴포넌트가 비어있는 경우 기본값 설정
+          if (filteredComponents.isEmpty) {
+            _address = "Location at ${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}";
+          } else {
+            // 역순으로 표시 (국가, 지역, 도시, 거리 순)
+            _address = filteredComponents.join(', ');
+          }
+          
+          print('[LocationProvider] ✅ Formatted address: $_address');
           _isLoading = false;
           notifyListeners();
-          
-          print('[LocationProvider] ✅ Found address via Geocoding package: $address');
         } else {
           throw Exception('Address not found');
         }
       } catch (secondError) {
         print('[LocationProvider] ❌ Second error during reverse geocoding: $secondError');
-        _address = "Latitude: $lat, Longitude: $lng";
+        _address = "Location at ${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}";
         _isLoading = false;
         notifyListeners();
       }
