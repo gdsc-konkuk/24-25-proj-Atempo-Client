@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Colors
@@ -14,31 +13,36 @@ class AppTheme {
 
   // Typography
   static final TextTheme textTheme = TextTheme(
-    displayLarge: GoogleFonts.pretendard(
+    displayLarge: TextStyle(
+      fontFamily: 'Pretendard',
       fontSize: 24,
       fontWeight: FontWeight.w700,
       letterSpacing: 0.5,
       color: textPrimaryColor,
     ),
-    displayMedium: GoogleFonts.pretendard(
+    displayMedium: TextStyle(
+      fontFamily: 'Pretendard',
       fontSize: 20,
       fontWeight: FontWeight.w700,
       letterSpacing: 0.5,
       color: textPrimaryColor,
     ),
-    displaySmall: GoogleFonts.pretendard(
+    displaySmall: TextStyle(
+      fontFamily: 'Pretendard',
       fontSize: 18,
       fontWeight: FontWeight.w600,
       letterSpacing: 0.25,
       color: textPrimaryColor,
     ),
-    bodyLarge: GoogleFonts.pretendard(
+    bodyLarge: TextStyle(
+      fontFamily: 'Pretendard',
       fontSize: 16,
       fontWeight: FontWeight.w400,
       letterSpacing: 0.15,
       color: textPrimaryColor,
     ),
-    bodyMedium: GoogleFonts.pretendard(
+    bodyMedium: TextStyle(
+      fontFamily: 'Pretendard',
       fontSize: 14,
       fontWeight: FontWeight.w400,
       letterSpacing: 0.25,
@@ -51,7 +55,8 @@ class AppTheme {
     backgroundColor: primaryColor,
     elevation: 4,
     centerTitle: true,
-    titleTextStyle: GoogleFonts.pretendard(
+    titleTextStyle: TextStyle(
+      fontFamily: 'Pretendard',
       fontSize: 20,
       fontWeight: FontWeight.w700,
       letterSpacing: 0.5,
@@ -118,7 +123,8 @@ class AppTheme {
         children: [
           Text(
             title,
-            style: GoogleFonts.pretendard(
+            style: TextStyle(
+              fontFamily: 'Pretendard',
               fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
@@ -128,7 +134,8 @@ class AppTheme {
           if (subtitle != null)
             Text(
               subtitle,
-              style: GoogleFonts.pretendard(
+              style: TextStyle(
+                fontFamily: 'Pretendard',
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
                 color: Colors.white.withOpacity(0.8),
