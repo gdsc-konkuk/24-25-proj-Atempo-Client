@@ -19,6 +19,7 @@ import 'user_profile_screen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'chat_page.dart';
 import '../services/hospital_service.dart';
+import '../theme/app_theme.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -466,22 +467,23 @@ class _MapScreenState extends State<MapScreen> {
     final locationProvider = Provider.of<LocationProvider>(context);
     
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Medicall'),
-        backgroundColor: const Color(0xFFD94B4B),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.settings),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => SettingsScreen()),
-            );
-          },
-        ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppTheme.buildAppBar(
+        title: 'Medicall',
+        subtitle: '긴급 서비스',
+        leading: AppTheme.buildBackButton(context),
         actions: [
-          IconButton(
-            icon: Icon(Icons.person),
+          AppTheme.buildActionButton(
+            icon: Icons.settings,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
+            },
+          ),
+          AppTheme.buildActionButton(
+            icon: Icons.person,
             onPressed: () {
               Navigator.push(
                 context,
@@ -496,9 +498,12 @@ class _MapScreenState extends State<MapScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: const Color(0xFFD94B4B)),
+                  CircularProgressIndicator(color: AppTheme.primaryColor),
                   SizedBox(height: 16),
-                  Text('Checking authorization...'),
+                  Text(
+                    'Checking authorization...',
+                    style: AppTheme.textTheme.bodyLarge,
+                  ),
                 ],
               ),
             )
@@ -534,7 +539,7 @@ class _MapScreenState extends State<MapScreen> {
                             compassEnabled: true,
                             buildingsEnabled: true,
                             padding: EdgeInsets.only(bottom: 50),
-                            onCameraIdle: _onCameraIdle, // Called when camera stops moving
+                            onCameraIdle: _onCameraIdle,
                           ),
                           
                           // Fixed pin image at the center
@@ -542,33 +547,37 @@ class _MapScreenState extends State<MapScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Show loading indicator only when active
                                 if (_isReverseGeocodingLoading)
                                   Container(
-                                    padding: EdgeInsets.all(4),
+                                    padding: EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.8),
-                                      borderRadius: BorderRadius.circular(10)
+                                      color: Colors.white.withOpacity(0.9),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
                                     child: SizedBox(
-                                      width: 10,
-                                      height: 10,
+                                      width: 24,
+                                      height: 24,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: const Color(0xFFD94B4B),
+                                        color: AppTheme.primaryColor,
                                       ),
                                     ),
                                   ),
-                                // Pin image with shadow
                                 Stack(
                                   alignment: Alignment.bottomCenter,
                                   children: [
-                                    // Use custom Pin icon 
                                     Container(
                                       child: Image.asset(
                                         _pinAsset,
-                                        width: 40,
-                                        height: 40,
+                                        width: 48,
+                                        height: 48,
                                       ),
                                     ),
                                   ],
@@ -584,14 +593,14 @@ class _MapScreenState extends State<MapScreen> {
                             right: 0,
                             child: Container(
                               margin: EdgeInsets.symmetric(horizontal: 50),
-                              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
-                                borderRadius: BorderRadius.circular(20),
+                                color: Colors.white.withOpacity(0.95),
+                                borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 4,
+                                    blurRadius: 8,
                                     offset: Offset(0, 2),
                                   ),
                                 ],
@@ -599,10 +608,8 @@ class _MapScreenState extends State<MapScreen> {
                               alignment: Alignment.center,
                               child: Text(
                                 "Move the map to select your location",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                style: AppTheme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -613,51 +620,13 @@ class _MapScreenState extends State<MapScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  CircularProgressIndicator(color: const Color(0xFFD94B4B)),
+                                  CircularProgressIndicator(color: AppTheme.primaryColor),
                                   SizedBox(height: 16),
-                                  Text('Loading map...'),
+                                  Text(
+                                    'Loading map...',
+                                    style: AppTheme.textTheme.bodyLarge,
+                                  ),
                                 ],
-                              ),
-                            ),
-                          if (_mapLoadError.isNotEmpty)
-                            Center(
-                              child: Container(
-                                padding: EdgeInsets.all(16),
-                                margin: EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black26,
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.error_outline, color: const Color(0xFFD94B4B), size: 48),
-                                    SizedBox(height: 16),
-                                    Text(
-                                      _mapLoadError,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 16),
-                                    ),
-                                    SizedBox(height: 16),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _mapLoadError = "";
-                                          _isMapLoading = true;
-                                        });
-                                        _checkMapsApiLoaded();
-                                      },
-                                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD94B4B)),
-                                      child: Text('Retry'),
-                                    ),
-                                  ],
-                                ),
                               ),
                             ),
                           
@@ -666,65 +635,49 @@ class _MapScreenState extends State<MapScreen> {
                             bottom: 80,
                             left: 16,
                             right: 16,
-                            child: Column(
-                              children: [
-                                // Address display
-                                Container(
-                                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey[300]!),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 4,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                            child: Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.location_on, color: const Color(0xFFD94B4B)),
-                                      SizedBox(width: 12),
-                                      Expanded(
-                                        child: locationProvider.isLoading
-                                          ? Row(
-                                              children: [
-                                                SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: const Color(0xFFD94B4B),
-                                                  ),
-                                                ),
-                                                SizedBox(width: 12),
-                                                Text('Address verification in progress...'),
-                                              ],
-                                            )
-                                          : Text(
-                                              locationProvider.address,  // Get address from provider
-                                              style: TextStyle(fontSize: 14),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.location_on, color: AppTheme.primaryColor),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: locationProvider.isLoading
+                                      ? Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: AppTheme.primaryColor,
+                                              ),
                                             ),
-                                      ),
-                                    ],
+                                            SizedBox(width: 12),
+                                            Text(
+                                              'Address verification in progress...',
+                                              style: AppTheme.textTheme.bodyMedium,
+                                            ),
+                                          ],
+                                        )
+                                      : Text(
+                                          locationProvider.address,
+                                          style: AppTheme.textTheme.bodyLarge,
+                                        ),
                                   ),
-                                ),
-                                // SizedBox(height: 8),
-                                // // Coordinate display
-                                // Container(
-                                //   padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                                //   decoration: BoxDecoration(
-                                //     color: Color(0xFFF0F0F0),
-                                //     borderRadius: BorderRadius.circular(8),
-                                //   ),
-                                //   child: Text(
-                                //     'Latitude: ${locationProvider.latitude.toStringAsFixed(6)}, Longitude: ${locationProvider.longitude.toStringAsFixed(6)}',  // Get coordinates from provider
-                                //     style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                                //   ),
-                                // ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                           
@@ -738,7 +691,7 @@ class _MapScreenState extends State<MapScreen> {
                               backgroundColor: Colors.white,
                               child: Icon(
                                 Icons.my_location,
-                                color: Colors.blue,
+                                color: AppTheme.primaryColor,
                               ),
                             ),
                           ),
@@ -757,12 +710,12 @@ class _MapScreenState extends State<MapScreen> {
                               SizedBox(height: 30),
                               Text(
                                 'Maps are only supported on iOS and Android devices',
-                                style: TextStyle(fontSize: 16),
+                                style: AppTheme.textTheme.bodyLarge,
                               ),
                               SizedBox(height: 10),
                               Text(
                                 'Current location: ${locationProvider.address}',
-                                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                                style: AppTheme.textTheme.bodyMedium,
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -785,12 +738,15 @@ class _MapScreenState extends State<MapScreen> {
                     );
                   },
                   child: Container(
-                    color: const Color(0xFFD94B4B),
-                    padding: EdgeInsets.symmetric(vertical: 15),
+                    color: AppTheme.primaryColor,
+                    padding: EdgeInsets.symmetric(vertical: 20),
                     alignment: Alignment.center,
                     child: Text(
                       'Enter patient condition',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: AppTheme.textTheme.displaySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),

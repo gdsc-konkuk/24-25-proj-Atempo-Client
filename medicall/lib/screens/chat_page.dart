@@ -17,6 +17,7 @@ import 'dart:math' as math;
 import 'map_screen.dart';
 import '../services/api_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../theme/app_theme.dart';
 
 class ChatPage extends StatefulWidget {
   final String currentAddress;
@@ -470,10 +471,11 @@ class _ChatPageState extends State<ChatPage> {
     return GestureDetector(
       onTap: _dismissKeyboard,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('Find Emergency Room'),
-          backgroundColor: const Color(0xFFD94B4B),
-          centerTitle: true,
+        backgroundColor: AppTheme.backgroundColor,
+        appBar: AppTheme.buildAppBar(
+          title: 'Find Emergency Room',
+          subtitle: '긴급 서비스',
+          leading: AppTheme.buildBackButton(context),
         ),
         resizeToAvoidBottomInset: true,
         body: SafeArea(
@@ -490,66 +492,64 @@ class _ChatPageState extends State<ChatPage> {
                 children: [
                   Text(
                     'Select Location',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: AppTheme.textTheme.displaySmall,
                   ),
                   SizedBox(height: 8),
                   
-                  // Card showing current location information instead of map
+                  // Location card
                   InkWell(
                     onTap: () {
-                      // Navigate to map screen
                       Navigator.push(
                         context, 
                         MaterialPageRoute(builder: (context) => MapScreen())
                       );
                     },
                     child: Container(
-                      padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.05),
-                            blurRadius: 4,
+                            blurRadius: 8,
                             offset: Offset(0, 2),
                           ),
                         ],
-                    ),
+                      ),
                       child: Column(
                         children: [
                           Row(
-                      children: [
-                              Icon(Icons.location_on, color: Colors.red),
+                            children: [
+                              Icon(Icons.location_on, color: AppTheme.primaryColor),
                               SizedBox(width: 12),
-                        Expanded(
-                                  child: Text(
-                                  locationProvider.address,  // Get address from location provider
-                                    style: TextStyle(fontSize: 14),
-                                  ),
+                              Expanded(
+                                child: Text(
+                                  locationProvider.address,
+                                  style: AppTheme.textTheme.bodyLarge,
+                                ),
                               ),
                               Icon(Icons.map, color: Colors.blue),
                             ],
                           ),
                           SizedBox(height: 12),
                           Container(
-                            padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                             decoration: BoxDecoration(
-                              color: Color(0xFFF0F0F0),
-                              borderRadius: BorderRadius.circular(8),
+                              color: AppTheme.backgroundColor,
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               'If the displayed location is incorrect, please click "Select location on map" on the map to change it',
-                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                              style: AppTheme.textTheme.bodyMedium,
                             ),
                           ),
                           SizedBox(height: 8),
                           Text(
                             'Select location on map',
-                            style: TextStyle(
+                            style: AppTheme.textTheme.bodyLarge?.copyWith(
                               color: Colors.blue,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -561,39 +561,42 @@ class _ChatPageState extends State<ChatPage> {
                   InkWell(
                     onTap: _showSearchRadiusModal,
                     child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.radar,
-                            color: Colors.red,
+                            color: AppTheme.primaryColor,
                             size: 24,
                           ),
                           SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'Search Radius: ${searchRadius.toInt()}km',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: AppTheme.textTheme.bodyLarge,
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFEEBEB),
+                              color: AppTheme.primaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               'Edit',
-                              style: TextStyle(
-                                color: Colors.red,
+                              style: AppTheme.textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.primaryColor,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -606,7 +609,7 @@ class _ChatPageState extends State<ChatPage> {
                   SizedBox(height: 20),
                   Text(
                     'Patient Condition',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: AppTheme.textTheme.displaySmall,
                   ),
                   SizedBox(height: 8),
                   Container(
@@ -619,22 +622,23 @@ class _ChatPageState extends State<ChatPage> {
                       textInputAction: TextInputAction.newline,
                       keyboardType: TextInputType.multiline,
                       textAlignVertical: TextAlignVertical.top,
+                      style: AppTheme.textTheme.bodyLarge,
                       decoration: InputDecoration(
                         hintText: 'Describe the patient\'s condition...',
+                        hintStyle: AppTheme.textTheme.bodyMedium,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        contentPadding: EdgeInsets.all(12),
+                        contentPadding: EdgeInsets.all(16),
                         alignLabelWithHint: true,
                       ),
                     ),
                   ),
                   
-                  // Add hashtag section
                   SizedBox(height: 16),
                   Text(
                     'Quick Symptoms',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: AppTheme.textTheme.displaySmall,
                   ),
                   SizedBox(height: 8),
                   Wrap(
@@ -645,19 +649,19 @@ class _ChatPageState extends State<ChatPage> {
                       return InkWell(
                         onTap: () => _toggleHashtag(tag),
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
-                            color: isSelected ? Color(0xFFD94B4B).withOpacity(0.1) : Color(0xFFF0F0F0),
+                            color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : AppTheme.backgroundColor,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isSelected ? Color(0xFFD94B4B) : Colors.grey[300]!,
+                              color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
                             ),
                           ),
                           child: Text(
                             tag,
-                            style: TextStyle(
-                              color: isSelected ? Color(0xFFD94B4B) : Colors.black87,
-                              fontWeight: FontWeight.bold,
+                            style: AppTheme.textTheme.bodyMedium?.copyWith(
+                              color: isSelected ? AppTheme.primaryColor : Colors.black87,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -665,7 +669,6 @@ class _ChatPageState extends State<ChatPage> {
                     }).toList(),
                   ),
                   
-                  // Processing status display
                   if (_isProcessing)
                     Column(
                       children: [
@@ -674,7 +677,7 @@ class _ChatPageState extends State<ChatPage> {
                           padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.blue[200]!),
                           ),
                           child: Row(
@@ -687,8 +690,7 @@ class _ChatPageState extends State<ChatPage> {
                               Expanded(
                                 child: Text(
                                   _processingMessage,
-                                  style: TextStyle(
-                                    fontSize: 14,
+                                  style: AppTheme.textTheme.bodyMedium?.copyWith(
                                     color: Colors.blue[800],
                                   ),
                                 ),
@@ -703,8 +705,11 @@ class _ChatPageState extends State<ChatPage> {
                             icon: Icon(Icons.local_hospital),
                             label: Text('View Responding Hospitals (${_hospitals.length})'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              backgroundColor: AppTheme.successColor,
+                              padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                       ],
@@ -713,19 +718,24 @@ class _ChatPageState extends State<ChatPage> {
                   SizedBox(height: 20),
                   Row(
                     children: [
-                      // Show retry button if there was a previous request
                       if (_admissionId != null && !_isProcessing)
                         Expanded(
                           flex: 1,
-                    child: ElevatedButton(
+                          child: ElevatedButton(
                             onPressed: _retryAdmission,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.amber,
-                              padding: EdgeInsets.symmetric(vertical: 15),
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: Text(
                               'Retry',
-                              style: TextStyle(fontSize: 16, color: Colors.white),
+                              style: AppTheme.textTheme.bodyLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -736,18 +746,24 @@ class _ChatPageState extends State<ChatPage> {
                       Expanded(
                         flex: _admissionId != null && !_isProcessing ? 2 : 3,
                         child: _isLoading && !_isProcessing
-                          ? Center(child: CircularProgressIndicator(color: Colors.red))
+                          ? Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
                           : ElevatedButton(
                               onPressed: _isProcessing ? null : _fetchHospitals,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: EdgeInsets.symmetric(vertical: 15),
-                      ),
-                      child: Text(
-                        'Find Emergency Room',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
-                    ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryColor,
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Find Emergency Room',
+                                style: AppTheme.textTheme.bodyLarge?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                       ),
                     ],
                   ),
