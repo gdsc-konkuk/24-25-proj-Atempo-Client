@@ -72,7 +72,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
               _hospitals.add(hospital);
               // AnimatedList에 새 아이템이 추가되었음을 알림 - 즉시 애니메이션 시작
               if (_listKey.currentState != null) {
-                _listKey.currentState!.insertItem(_hospitals.length - 1, duration: const Duration(milliseconds: 300));
+                _listKey.currentState!.insertItem(_hospitals.length - 1);
               }
             }
           });
@@ -347,7 +347,6 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                     ).animate(CurvedAnimation(
                                       parent: animation,
                                       curve: Curves.easeOutQuart,
-                                      duration: const Duration(milliseconds: 300),
                                     )),
                                     child: FadeTransition(
                                       opacity: Tween<double>(
@@ -356,7 +355,6 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                       ).animate(CurvedAnimation(
                                         parent: animation,
                                         curve: Curves.easeInOut,
-                                        duration: const Duration(milliseconds: 200),
                                       )),
                                       child: Padding(
                                         padding: const EdgeInsets.only(bottom: 16.0),

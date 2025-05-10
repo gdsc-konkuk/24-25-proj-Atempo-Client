@@ -118,31 +118,37 @@ class AppTheme {
       backgroundColor: primaryColor,
       elevation: 4,
       centerTitle: centerTitle,
-      title: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-              color: Colors.white,
-            ),
-          ),
-          if (subtitle != null)
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: Colors.white.withOpacity(0.8),
+      title: title == 'Medicall' 
+        ? Image.asset(
+            'assets/images/logo_white.png',
+            height: 30,
+            fit: BoxFit.contain,
+          )
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                  color: Colors.white,
+                ),
               ),
-            ),
-        ],
-      ),
+              if (subtitle != null)
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+            ],
+          ),
       leading: leading,
       actions: actions,
     );
