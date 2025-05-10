@@ -360,21 +360,23 @@ class HospitalService {
       print('[HospitalService] 📥 response headers: ${response.headers}');
       print('[HospitalService] 🔄 Start stream listening...');
       
-      response.stream.transform(utf8.decoder).listen(
-        (data) {
-          print('[HospitalService] 📥 SSE data received: $data');
-          _processSSEData(data);
-        },
-        onDone: () {
-          print('[HospitalService] ⚠️ SSE connection closed by server');
-          closeSSEConnection();
-        },
-        onError: (error) {
-          print('[HospitalService] ❌ SSE stream error: $error');
-          print('[HospitalService] ❌ Error message: ${error.toString()}');
-          closeSSEConnection();
-        }
-      );
+      response.stream
+        .transform(utf8.decoder)
+        .listen(
+          (data) {
+            print('[HospitalService] 📥 SSE data received: $data');
+            _processSSEData(data);
+          },
+          onDone: () {
+            print('[HospitalService] ⚠️ SSE connection closed by server');
+            closeSSEConnection();
+          },
+          onError: (error) {
+            print('[HospitalService] ❌ SSE stream error: $error');
+            print('[HospitalService] ❌ Error message: ${error.toString()}');
+            closeSSEConnection();
+          }
+        );
     } else {
       print('[HospitalService] ❌ SSE connection failed: ${response.statusCode}');
       print('[HospitalService] ❌ Response headers: ${response.headers}');
@@ -412,77 +414,93 @@ class HospitalService {
         return;
       }
       
-      // SSE 데이터 형식: data: {...JSON data...}
-      if (data.startsWith('data:')) {
-        final jsonData = data.substring(5).trim();
-        print('[HospitalService] 📦 Extracted JSON data: $jsonData');
-        
-        if (jsonData.isNotEmpty) {
-          try {
-            final hospitalData = json.decode(jsonData);
-            print('[HospitalService] 🏥 Parsed hospital data: $hospitalData');
-            
-            final hospital = Hospital.fromJson(hospitalData);
-            print('[HospitalService] ✅ Received hospital object: name=${hospital.name}, id=${hospital.id}');
-            
-            _hospitalsStreamController?.add(hospital);
-            print('[HospitalService] 📢 Hospital object added to stream');
-          } catch (e) {
-            print('[HospitalService] ❌ Error parsing hospital data: $e');
-            print('[HospitalService] ❌ Original data: $jsonData');
-          }
-        } else {
-          print('[HospitalService] ⚠️ Empty JSON data');
-        }
-      } 
-      // 직접 JSON 형식으로 오는 경우
-      else if (data.trim().startsWith('{') && data.trim().endsWith('}')) {
-        try {
-          final hospitalData = json.decode(data);
-          print('[HospitalService] 🏥 Parsed raw hospital data: $hospitalData');
-          
-          // 데이터에 병원 정보가 포함되어 있는지 확인
-          if (hospitalData.containsKey('name') && hospitalData.containsKey('address')) {
-            final hospital = Hospital.fromJson(hospitalData);
-            print('[HospitalService] ✅ Received hospital object from raw data: name=${hospital.name}, id=${hospital.id}');
-            
-            _hospitalsStreamController?.add(hospital);
-            print('[HospitalService] 📢 Hospital object from raw data added to stream');
-          } else {
-            print('[HospitalService] ⚠️ JSON data does not contain required hospital information');
-          }
-        } catch (e) {
-          print('[HospitalService] ❌ Error parsing raw hospital data: $e');
-          print('[HospitalService] ❌ Original raw data: $data');
-        }
-      }
-      // JSON 배열 형식 처리 (여러 병원 정보가 한번에 오는 경우)
-      else if (data.trim().startsWith('[') && data.trim().endsWith(']')) {
-        try {
-          final List<dynamic> hospitalsData = json.decode(data);
-          print('[HospitalService] 🏥 Parsed hospitals array data with ${hospitalsData.length} items');
-          
-          for (final hospitalData in hospitalsData) {
-            if (hospitalData is Map<String, dynamic> && 
-                hospitalData.containsKey('name') && 
-                hospitalData.containsKey('address')) {
-              final hospital = Hospital.fromJson(hospitalData);
-              print('[HospitalService] ✅ Received hospital from array: name=${hospital.name}, id=${hospital.id}');
-              
-              _hospitalsStreamController?.add(hospital);
-              print('[HospitalService] 📢 Hospital object from array added to stream');
-            }
-          }
-        } catch (e) {
-          print('[HospitalService] ❌ Error parsing hospital array data: $e');
-          print('[HospitalService] ❌ Original array data: $data');
-        }
-      } else {
-        print('[HospitalService] ⚠️ Not a data event: $data');
+      // 여러 줄의 데이터가 한 번에 올 수 있으므로 라인별로 분리하여 처리
+      final lines = data.split('\n').where((line) => line.trim().isNotEmpty);
+      
+      for (final line in lines) {
+        _processSingleLine(line);
       }
     } catch (e) {
       print('[HospitalService] ❌ Error processing SSE data: $e');
       print('[HospitalService] ❌ Original data: $data');
+    }
+  }
+  
+  // 한 줄의 데이터 처리
+  void _processSingleLine(String line) {
+    try {
+      print('[HospitalService] 🔄 Processing single line: ${line.substring(0, math.min(50, line.length))}${line.length > 50 ? "..." : ""}');
+      
+      // SSE 데이터 형식: data: {...JSON data...}
+      if (line.startsWith('data:')) {
+        final jsonData = line.substring(5).trim();
+        _processJsonData(jsonData);
+      } 
+      // 직접 JSON 형식으로 오는 경우
+      else if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
+        _processJsonData(line);
+      }
+      // JSON 배열 형식 처리 (여러 병원 정보가 한번에 오는 경우)
+      else if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+        _processJsonArray(line);
+      } else {
+        print('[HospitalService] ⚠️ Not a recognized data format: $line');
+      }
+    } catch (e) {
+      print('[HospitalService] ❌ Error processing line: $e');
+    }
+  }
+  
+  // JSON 데이터 처리
+  void _processJsonData(String jsonString) {
+    if (jsonString.isEmpty) {
+      print('[HospitalService] ⚠️ Empty JSON data');
+      return;
+    }
+    
+    try {
+      final hospitalData = json.decode(jsonString);
+      print('[HospitalService] 🏥 Parsed hospital data: $hospitalData');
+      
+      if (hospitalData is Map<String, dynamic> && 
+          hospitalData.containsKey('name') && 
+          hospitalData.containsKey('address')) {
+        final hospital = Hospital.fromJson(hospitalData);
+        print('[HospitalService] ✅ Created hospital object: name=${hospital.name}, id=${hospital.id}');
+        
+        // 스트림에 즉시 추가하여 UI 업데이트 트리거
+        _hospitalsStreamController?.add(hospital);
+        print('[HospitalService] 📢 Hospital object added to stream');
+      } else {
+        print('[HospitalService] ⚠️ JSON doesn\'t contain required hospital data: $hospitalData');
+      }
+    } catch (e) {
+      print('[HospitalService] ❌ Error parsing JSON data: $e');
+      print('[HospitalService] ❌ Original JSON string: $jsonString');
+    }
+  }
+  
+  // JSON 배열 처리
+  void _processJsonArray(String jsonArrayString) {
+    try {
+      final List<dynamic> hospitalsData = json.decode(jsonArrayString);
+      print('[HospitalService] 🏥 Parsed hospitals array with ${hospitalsData.length} items');
+      
+      for (final hospitalData in hospitalsData) {
+        if (hospitalData is Map<String, dynamic> && 
+            hospitalData.containsKey('name') && 
+            hospitalData.containsKey('address')) {
+          final hospital = Hospital.fromJson(hospitalData);
+          print('[HospitalService] ✅ Created hospital from array: name=${hospital.name}, id=${hospital.id}');
+          
+          // 각 병원 정보를 즉시 스트림에 추가
+          _hospitalsStreamController?.add(hospital);
+          print('[HospitalService] 📢 Hospital from array added to stream');
+        }
+      }
+    } catch (e) {
+      print('[HospitalService] ❌ Error parsing JSON array: $e');
+      print('[HospitalService] ❌ Original array string: $jsonArrayString');
     }
   }
 

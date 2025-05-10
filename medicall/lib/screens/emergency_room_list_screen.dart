@@ -56,30 +56,35 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
       (hospital) {
         print('[EmergencyRoomListScreen] 📥 Received hospital update: ${hospital.name} (ID: ${hospital.id})');
         
-        setState(() {
-          // Check if there's a hospital with the same ID
-          final index = _hospitals.indexWhere((h) => h.id == hospital.id);
-          
-          if (index >= 0) {
-            print('[EmergencyRoomListScreen] 🔄 Updating existing hospital at index $index');
-            // Update existing hospital information
-            _hospitals[index] = hospital;
-          } else {
-            print('[EmergencyRoomListScreen] ➕ Adding new hospital to list (total: ${_hospitals.length + 1})');
-            // Add new hospital
-            _hospitals.add(hospital);
-            // AnimatedList에 새 아이템이 추가되었음을 알림
-            if (_listKey.currentState != null) {
-              _listKey.currentState!.insertItem(_hospitals.length - 1);
+        // 즉시 UI 업데이트를 위해 setState 호출
+        if (mounted) {
+          setState(() {
+            // Check if there's a hospital with the same ID
+            final index = _hospitals.indexWhere((h) => h.id == hospital.id);
+            
+            if (index >= 0) {
+              print('[EmergencyRoomListScreen] 🔄 Updating existing hospital at index $index');
+              // Update existing hospital information
+              _hospitals[index] = hospital;
+            } else {
+              print('[EmergencyRoomListScreen] ➕ Adding new hospital to list (total: ${_hospitals.length + 1})');
+              // Add new hospital
+              _hospitals.add(hospital);
+              // AnimatedList에 새 아이템이 추가되었음을 알림 - 즉시 애니메이션 시작
+              if (_listKey.currentState != null) {
+                _listKey.currentState!.insertItem(_hospitals.length - 1, duration: const Duration(milliseconds: 300));
+              }
             }
-          }
-        });
+          });
+        }
       },
       onError: (error) {
         print('[EmergencyRoomListScreen] ❌ Hospital subscription error: $error');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating hospital information: $error'))
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error updating hospital information: $error'))
+          );
+        }
       },
       onDone: () {
         print('[EmergencyRoomListScreen] ✅ Hospital subscription completed');
@@ -341,7 +346,8 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                       end: Offset.zero,
                                     ).animate(CurvedAnimation(
                                       parent: animation,
-                                      curve: Curves.easeOutQuad,
+                                      curve: Curves.easeOutQuart,
+                                      duration: const Duration(milliseconds: 300),
                                     )),
                                     child: FadeTransition(
                                       opacity: Tween<double>(
@@ -350,6 +356,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                       ).animate(CurvedAnimation(
                                         parent: animation,
                                         curve: Curves.easeInOut,
+                                        duration: const Duration(milliseconds: 200),
                                       )),
                                       child: Padding(
                                         padding: const EdgeInsets.only(bottom: 16.0),

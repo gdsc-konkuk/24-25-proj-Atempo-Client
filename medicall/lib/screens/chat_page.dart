@@ -273,16 +273,20 @@ class _ChatPageState extends State<ChatPage> {
       
       print('[ChatPage] 🔍 Search parameters: radius=${searchRadius}km, patient condition=${patientCondition}');
 
-      // 먼저 EmergencyRoomListScreen으로 이동 (빈 병원 목록으로)
-      // SSE 구독은 EmergencyRoomListScreen에서 처리됨
-      print('[ChatPage] 🚀 Immediately navigating to hospital list screen before API response');
-      
       // 로딩 상태 초기화
       setState(() {
         _isLoading = false;
       });
       
-      // 바로 네비게이션
+      // 기존 구독 취소
+      if (_hospitalSubscription != null) {
+        print('[ChatPage] 🔄 Cancelling existing subscription before navigation');
+        _hospitalSubscription?.cancel();
+        _hospitalSubscription = null;
+      }
+      
+      // EmergencyRoomListScreen으로 즉시 이동
+      print('[ChatPage] 🚀 Immediately navigating to hospital list screen before API response');
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -294,11 +298,7 @@ class _ChatPageState extends State<ChatPage> {
         ),
       );
       
-      // API 요청은 병렬로 진행
-      print('[ChatPage] 📡 Setting up SSE subscription BEFORE admission request');
-      _subscribeToHospitalUpdates();
-      
-      // Create admission request after SSE subscription using ApiService
+      // API 요청 진행 - UI 네비게이션과 병렬로 처리
       print('[ChatPage] 🏥 Now creating admission request using ApiService');
       
       final requestData = {
@@ -315,7 +315,7 @@ class _ChatPageState extends State<ChatPage> {
       if (response != null && response.containsKey('admissionId')) {
         _admissionId = response['admissionId']?.toString() ?? '';
         print('[ChatPage] ✅ Admission created with ID: $_admissionId');
-        // EmergencyRoomListScreen에서는 SSE를 통해 자동으로 병원 목록이 업데이트됨
+        // EmergencyRoomListScreen에서 SSE를 통해 자동으로 병원 목록이 업데이트됨
       } else {
         print('[ChatPage] ⚠️ No admission ID received from server');
         throw Exception('No admission ID received from server');
