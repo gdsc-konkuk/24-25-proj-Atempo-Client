@@ -6,6 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:medicall/screens/mapbox_navigation_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/location_provider.dart';
+import 'dart:math';
 
 class NavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -32,31 +35,75 @@ class _NavigationScreenState extends State<NavigationScreen> {
   String _duration = '';
   String _eta = '';
   
-  // Simulated current location (would come from GPS in a real app)
-  final LatLng _currentLocation = LatLng(37.5642, 126.9742); // Seoul City Hall as sample starting point
+  // User location (will be updated from LocationProvider)
+  late LatLng _currentLocation;
   
-  // Simulated destination (would come from selected hospital data in a real app)
+  // Hospital destination location
   late LatLng _destinationLocation;
   
   @override
   void initState() {
     super.initState();
     
-    // Get a simulated destination location (in real app, this would be from hospital data)
-    // For demonstration, we'll set it to a location near the starting point
-    _destinationLocation = LatLng(_currentLocation.latitude + 0.01, _currentLocation.longitude + 0.01);
+    // Initialize with default location (will be overridden by LocationProvider)
+    _currentLocation = LatLng(37.5662, 126.9785); // Seoul City Hall as default
+    
+    // Get location from location provider (user's selected location)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      setState(() {
+        _currentLocation = LatLng(locationProvider.latitude, locationProvider.longitude);
+      });
+      
+      // After location is set, initialize navigation
+      _initNavigation();
+    });
+    
+    // Get hospital location data from widget
+    double hospitalLat;
+    double hospitalLng;
+    
+    // Type casting for latitude and longitude
+    try {
+      if (widget.hospital['latitude'] is String) {
+        hospitalLat = double.parse(widget.hospital['latitude']);
+      } else {
+        hospitalLat = widget.hospital['latitude']?.toDouble() ?? 37.579617;
+      }
+      
+      if (widget.hospital['longitude'] is String) {
+        hospitalLng = double.parse(widget.hospital['longitude']);
+      } else {
+        hospitalLng = widget.hospital['longitude']?.toDouble() ?? 126.998898;
+      }
+    } catch (e) {
+      print("Error parsing hospital coordinates: $e");
+      hospitalLat = 37.579617;  // Default latitude for Seoul National University Hospital
+      hospitalLng = 126.998898; // Default longitude
+    }
+    
+    // Set destination location
+    _destinationLocation = LatLng(hospitalLat, hospitalLng);
     
     // Set initial values based on the passed hospital data
-    _distance = widget.hospital['distance'] ?? '0 km';
-    _duration = widget.hospital['time'] ?? '0 min';
+    _distance = widget.hospital['distance']?.toString() ?? '0 km';
+    _duration = widget.hospital['travelTime']?.toString() ?? '0 min';
+    if (!_duration.contains('min')) {
+      _duration += ' min';
+    }
     
     // Calculate ETA (current time + duration)
     final now = DateTime.now();
-    final arrivalTime = now.add(Duration(minutes: int.parse(_duration.split(' ')[0])));
+    int durationMinutes = 0;
+    try {
+      durationMinutes = int.parse(_duration.split(' ')[0]);
+    } catch (e) {
+      durationMinutes = 10; // Default 10 minutes
+    }
+    final arrivalTime = now.add(Duration(minutes: durationMinutes));
     _eta = '${arrivalTime.hour}:${arrivalTime.minute.toString().padLeft(2, '0')} ${arrivalTime.hour >= 12 ? 'PM' : 'AM'}';
     
-    // Initialize the navigation
-    _initNavigation();
+    // Don't initialize navigation yet - wait for location provider
   }
   
   Future<void> _initNavigation() async {
@@ -68,6 +115,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
     try {
       // In a real app, this would make an API call to get the route
       await Future.delayed(Duration(seconds: 2)); // Simulate API delay
+      
+      // Get current location from Provider if not set yet
+      if (!mounted) return;
+      
+      // Refresh the current location from the provider
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      _currentLocation = LatLng(locationProvider.latitude, locationProvider.longitude);
       
       // Set up markers
       _markers = {
@@ -91,8 +145,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
           polylineId: PolylineId('route'),
           points: [
             _currentLocation,
-            LatLng(_currentLocation.latitude + 0.005, _currentLocation.longitude + 0.002),
-            LatLng(_currentLocation.latitude + 0.008, _currentLocation.longitude + 0.006),
+            LatLng(
+              _currentLocation.latitude + (_destinationLocation.latitude - _currentLocation.latitude) * 0.3,
+              _currentLocation.longitude + (_destinationLocation.longitude - _currentLocation.longitude) * 0.3
+            ),
+            LatLng(
+              _currentLocation.latitude + (_destinationLocation.latitude - _currentLocation.latitude) * 0.7,
+              _currentLocation.longitude + (_destinationLocation.longitude - _currentLocation.longitude) * 0.7
+            ),
             _destinationLocation,
           ],
           color: Colors.blue,
@@ -114,6 +174,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
   void _startMapboxNavigation() {
     try {
       print("Starting Mapbox Navigation...");
+      
+      // Get location provider
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
       
       // Creating temporary hospital data for testing
       Map<String, dynamic> hospitalData = Map.from(widget.hospital);
@@ -147,7 +210,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
         hospitalData['longitude'] = 126.998898;
       }
       
+      // Add current user location to hospital data
+      hospitalData['user_latitude'] = locationProvider.latitude;
+      hospitalData['user_longitude'] = locationProvider.longitude;
+      hospitalData['user_address'] = locationProvider.address;
+      
       print("Hospital location: ${hospitalData['latitude']}, ${hospitalData['longitude']}");
+      print("User location: ${hospitalData['user_latitude']}, ${hospitalData['user_longitude']}");
       
       // Display confirmation dialog before starting navigation
       showDialog(

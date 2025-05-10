@@ -47,6 +47,22 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkUserAuthorization();
     });
+
+    // Get starting and destination coordinates
+    double? startLat = widget.hospital['user_latitude'];
+    double? startLng = widget.hospital['user_longitude'];
+    double? destLat = widget.hospital['latitude'];
+    double? destLng = widget.hospital['longitude'];
+
+    // Use default coordinates if not available
+    startLat ??= 37.5662; // Default: Seoul City Hall
+    startLng ??= 126.9785;
+    destLat ??= 37.5765; // Default: Seoul National University Hospital
+    destLng ??= 126.9773;
+
+    // Set starting point and destination
+    _origin = "${startLng},${startLat}";
+    _destination = "${destLng},${destLat}";
   }
   
   // Check user authorization
@@ -95,55 +111,6 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
       return;
     }
     
-    // Set destination
-    double destinationLat = 0.0;
-    double destinationLng = 0.0;
-    
-    try {
-      // Fetch destination coordinates from hospital data – with stricter validation
-      var latValue = widget.hospital['latitude'];
-      var lngValue = widget.hospital['longitude'];
-      
-      // Handle various types
-      if (latValue is double) {
-        destinationLat = latValue;
-      } else if (latValue is String) {
-        destinationLat = double.parse(latValue);
-      } else if (latValue is int) {
-        destinationLat = latValue.toDouble();
-      } else {
-        throw Exception("Invalid latitude format: $latValue");
-      }
-      
-      if (lngValue is double) {
-        destinationLng = lngValue;
-      } else if (lngValue is String) {
-        destinationLng = double.parse(lngValue);
-      } else if (lngValue is int) {
-        destinationLng = lngValue.toDouble();
-      } else {
-        throw Exception("Invalid longitude format: $lngValue");
-      }
-      
-      print("Destination coordinates: $destinationLat, $destinationLng");
-      
-      _destination = WayPoint(
-        name: widget.hospital['name'] ?? "Destination",
-        latitude: destinationLat,
-        longitude: destinationLng,
-      );
-      
-      _initNavigationOptions();
-    } catch (e) {
-      print("Coordinate conversion error: $e");
-      setState(() {
-        _isLoading = false;
-        _errorMessage = "Unable to process coordinate information: $e";
-      });
-    }
-  }
-  
-  void _initNavigationOptions() {
     // Set navigation options
     _options = MapBoxOptions(
       mapStyleUrlDay: "mapbox://styles/mapbox/navigation-day-v1",
