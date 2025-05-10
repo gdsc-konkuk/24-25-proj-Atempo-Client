@@ -95,14 +95,6 @@ class _ChatPageState extends State<ChatPage> {
       } else {
         _selectedTags.add(tag);
       }
-      
-      // Update text field
-      _patientConditionController.text = _selectedTags.join(' ');
-      
-      // Move cursor to end of text
-      _patientConditionController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _patientConditionController.text.length),
-      );
     });
   }
 
@@ -262,7 +254,20 @@ class _ChatPageState extends State<ChatPage> {
       print('[ChatPage] 📍 Using coordinates: latitude=${latitude}, longitude=${longitude}');
       
       final searchRadius = context.read<SettingsProvider>().searchRadius.toInt();
-      final patientCondition = _patientConditionController.text;
+      
+      // Combine text field content and selected tags (without # symbol)
+      final patientConditionText = _patientConditionController.text.trim();
+      final selectedTagsText = _selectedTags
+          .map((tag) => tag.substring(1)) // Remove # symbol
+          .join(', ');
+      
+      // Combine both inputs
+      final String patientCondition = patientConditionText.isNotEmpty && selectedTagsText.isNotEmpty
+          ? '$patientConditionText. $selectedTagsText'
+          : patientConditionText.isNotEmpty
+              ? patientConditionText
+              : selectedTagsText;
+      
       print('[ChatPage] 🔍 Search parameters: radius=${searchRadius}km, patient condition=${patientCondition}');
 
       // Start creating admission request
@@ -397,6 +402,19 @@ class _ChatPageState extends State<ChatPage> {
       // Get searchRadius from Provider
       final searchRadius = context.read<SettingsProvider>().searchRadius.toInt();
       
+      // Combine text field content and selected tags (without # symbol)
+      final patientConditionText = _patientConditionController.text.trim();
+      final selectedTagsText = _selectedTags
+          .map((tag) => tag.substring(1)) // Remove # symbol
+          .join(', ');
+      
+      // Combine both inputs
+      final String patientCondition = patientConditionText.isNotEmpty && selectedTagsText.isNotEmpty
+          ? '$patientConditionText. $selectedTagsText'
+          : patientConditionText.isNotEmpty
+              ? patientConditionText
+              : selectedTagsText;
+      
       // Set up SSE subscription first
       print('[ChatPage] 📡 Setting up SSE subscription for retry BEFORE admission retry request');
       _subscribeToHospitalUpdates();
@@ -411,7 +429,7 @@ class _ChatPageState extends State<ChatPage> {
           'longitude': longitude
         },
         'search_radius': searchRadius,
-        'patient_condition': _patientConditionController.text
+        'patient_condition': patientCondition
       };
       
       await _apiService.post('api/v1/admissions', requestData);
