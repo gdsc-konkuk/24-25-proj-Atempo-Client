@@ -11,7 +11,7 @@ import 'api_service.dart';
 class HospitalService {
   final ApiService _apiService = ApiService();
   final FlutterSecureStorage _storage = FlutterSecureStorage();
-  final String _baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080';
+  final String _baseUrl = dotenv.env['API_BASE_URL']!;
   
   // Controller for SSE connection
   StreamController<Hospital>? _hospitalsStreamController;

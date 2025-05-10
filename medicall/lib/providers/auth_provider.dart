@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -59,7 +60,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<String> getLoginUrl() async {
     // Fix URL construction to avoid double slashes
-    final baseUrl = 'http://avenir.my:8080';
+    final baseUrl = dotenv.env['API_BASE_URL']!;
     final path = '/oauth2/authorization/google';
     
     // Ensure there's exactly one slash between baseUrl and path

@@ -10,9 +10,9 @@ class ApiService {
   final AuthService _authService = AuthService();
   
   ApiService() : 
-    _baseUrl = (dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080').endsWith('/') 
-      ? (dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080').substring(0, (dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080').length - 1) 
-      : (dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080');
+    _baseUrl = dotenv.env['API_BASE_URL']!.endsWith('/') 
+      ? dotenv.env['API_BASE_URL']!.substring(0, dotenv.env['API_BASE_URL']!.length - 1) 
+      : dotenv.env['API_BASE_URL']!;
 
   // URL normalization method
   String _buildUrl(String endpoint) {

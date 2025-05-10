@@ -7,7 +7,7 @@ import '../models/user_model.dart';
 
 class AuthService {
   final FlutterSecureStorage _storage = FlutterSecureStorage();
-  final String _baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080';
+  final String _baseUrl = dotenv.env['API_BASE_URL'];
   
   // API endpoint constants
   final String _AUTH_TOKEN_PATH = '/api/v1/auth/token';

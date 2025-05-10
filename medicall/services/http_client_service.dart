@@ -6,7 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class HttpClientService {
   final storage = FlutterSecureStorage();
-  final String baseUrl = '${dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080'}/api/v1';
+  final String baseUrl = '${dotenv.env['API_BASE_URL']!}/api/v1';
   Map<String, String> _headers = {'Content-Type': 'application/json'};
   String? _refreshToken;
 
