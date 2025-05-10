@@ -334,69 +334,84 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 40),
-                Center(
-                  child: RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.notoSans(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                      children: [
-                        TextSpan(text: 'Medi'),
-                        WidgetSpan(
-                          child: Transform.translate(
-                            offset: Offset(0, -2),
-                            child: Icon(Icons.call, color: const Color(0xFFD94B4B), size: 32),
-                          ),
-                          alignment: PlaceholderAlignment.middle,
-                        ),
-                        TextSpan(text: 'all'),
-                      ],
-                    ),
+                Image.asset(
+                  'assets/images/logo_white.png',
+                  width: 150,
+                  fit: BoxFit.contain,
+                  color: Colors.black,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  "Find the right ER, right now.",
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Pretendard',
                   ),
                 ),
-                SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    "Find the right ER, right now.",
-                    style: GoogleFonts.notoSans(
-                      color: Colors.grey[700],
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 60),
+                
+                SizedBox(height: 40),
+                
                 Center(
                   child: Container(
-                    height: 240,
+                    height: 220,
                     child: Image.asset(
                       'assets/images/ambulance.png',
                       fit: BoxFit.contain,
                     ),
                   ),
                 ),
+                
                 SizedBox(height: 60),
+                
                 Text(
                   "Login",
-                  style: GoogleFonts.notoSans(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
+                    fontFamily: 'Pretendard',
                     color: Colors.black,
                   ),
                 ),
+                SizedBox(height: 4),
+                Text(
+                  "Welcome to MediCall",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                    fontFamily: 'Pretendard',
+                    color: Colors.black87,
+                  ),
+                ),
+                
                 SizedBox(height: 24),
+                
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    "We only use your account for identity verification. Your data is safe.",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontFamily: 'Pretendard',
+                      color: Colors.black54,
+                    ),
+                  ),
+                ),
+                
+                SizedBox(height: 20),
+                
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black87,
-                    elevation: 0,
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    elevation: 1,
+                    padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       side: BorderSide(color: Colors.grey[300]!),
                     ),
-                    minimumSize: Size(double.infinity, 50),
+                    minimumSize: Size(double.infinity, 56),
                   ),
                   onPressed: _isLoading ? null : _launchOAuth,
                   child: _isLoading
@@ -412,11 +427,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               'assets/images/google_logo.png',
                               height: 24,
                             ),
-                            SizedBox(width: 10),
+                            SizedBox(width: 12),
                             Text(
                               "Continue with Google",
-                              style: GoogleFonts.notoSans(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w500,
+                                fontFamily: 'Pretendard',
+                                fontSize: 16,
                               ),
                             ),
                           ],

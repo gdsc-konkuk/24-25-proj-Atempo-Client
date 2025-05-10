@@ -1,30 +1,31 @@
 # MediCall
 
-> An AI-based Emergency Room Matching System that connects emergency patients to the hospital that can admit them the fastest.
+> **An AI-powered Emergency Room Matching System** connecting emergency patients to the nearest available hospital in seconds.
 
 ---
 
 ## 🚑 Project Overview
 
-During patient transport, issues arise when hospitals cannot admit patients or lack available medical staff, causing a loss of the critical "golden time".  
-**MediCall** allows paramedics to simply input patient condition and location; then, **AI simultaneously contacts nearby hospital emergency rooms** to  
-**automatically recommend the first available hospital that responds**.
+During emergency transport, critical time is often lost when paramedics must manually contact hospitals to find an available bed. **MediCall** streamlines this process by allowing paramedics to input patient details and location, after which **AI simultaneously contacts multiple hospitals**, recommending the first hospital that confirms availability. This approach ensures swift decision-making, protecting the vital "golden hour" for emergency treatment.
 
 ---
 
 ## 🛠 Key Features
 
-- **Chat-based interface** for easy patient information entry
-- **Gemini AI** for hospital candidate selection and message generation
-- **Parallel calls using Twilio** → hospitals respond via dial (1: Accept / 2: Reject)
-- **Optimal matching based on response speed and distance**
-- **Real-time route guidance** via Google Maps API
+- **Chat-based Interface**: Quickly enter patient condition and location.
+- **Gemini AI**: Analyzes patient information, recommends suitable hospitals.
+- **Twilio API**: Parallel automated hospital calls (1: Accept / 2: Reject via dial-tone).
+- **TTS (Text-to-Speech)**: Delivers automated voice messages to hospitals.
+- **Mapbox Navigation**: Provides accurate, real-time route guidance.
+- **Material Design**: Intuitive UI aligned with Google's Material Design.
+- **EMT Verification**: Exclusive secure access for verified paramedics.
 
 ---
 
-## 🧩 System Architecture
+## 📱 How MediCall Works
 
-```plaintext
+```
+
 [Paramedics - Flutter App] 
   → Send patient condition and location
        ↓
@@ -37,48 +38,75 @@ During patient transport, issues arise when hospitals cannot admit patients or l
 [Analyze response results + calculate distance]
        ↓
 [Final hospital recommendation + Google Maps route guidance]
+
 ```
 
 ---
 
+## 👨‍⚕️ EMT Verification
 
-## EMT License Information
+MediCall access is exclusively for **verified paramedics**. EMT credentials must be verified during initial signup.
 
-The application supports different types of EMT license verification:
-
-### License Types
+### Supported EMT License Types:
 - **NREMT**: National Registry of Emergency Medical Technicians (US)
 - **KOREA**: Korean Emergency Medical Technician
-- **EMS**: Emergency Medical Services
+- **EMS**: General Emergency Medical Services
 
-### License Number Formats
+### License Number Formats:
 - **NREMT**: Alphanumeric (e.g., GDG143, MED911)
-- **KOREA**: 6 digits (e.g., 123456)
-- **EMS**: 12 digits (e.g., 123456789012)
+- **KOREA**: 6-digit numeric (e.g., 123456)
+- **EMS**: 12-digit numeric (e.g., 123456789012)
 
-This information is used during the verification process in the EMT License Verification screen.
+📌 **Demo EMT Verification Code**: `MED119`
+
+*(Future updates will allow general users to locate emergency hospitals.)*
+
+---
+
+## 📚 Frequently Asked Questions (FAQ)
+
+
+### ❓ **Who can use MediCall?**
+Currently, verified paramedics only. Future versions will include hospital search features for general public use.
+
+### ❓ **How do hospitals respond?**
+Hospitals receive automated voice messages detailing patient conditions. They reply using dial-tone inputs, which are recorded in real-time.
+
+### ❓ **How is user data handled?**
+MediCall does not store personal data (names, IDs). Information is encrypted and transmitted securely without storage.
+
+### ❓ **Can MediCall be used outside emergencies?**
+MediCall is exclusively for real emergencies or authorized training simulations. Unauthorized use is restricted.
 
 ---
 
 ## 🧑‍💻 Tech Stack
 
-| Area      | Technologies                                             |
-|-----------|----------------------------------------------------------|
-| **Mobile**    | Flutter, Dart                                           |
-| **Communication**  | Twilio (TTS Calls / Dial Response Handling)        |
-| **Maps**  | Google Maps API                                          |
-| **Deployment**  | (To be decided)                                      |
+| Area                   | Technologies                                  |
+|------------------------|-----------------------------------------------|
+| **Mobile**             | Flutter, Dart, Material Design                |
+| **AI & Server**        | Gemini AI (hospital matching logic)           |
+| **Communication**      | Twilio API (TTS & dial-tone responses)        |
+| **Maps & Navigation**  | Mapbox Navigation API, Google Maps API        |
+| **Authentication**     | 	Google Sign-In                               |
+| **State Management**   | Provider                                      |
+| **Secure Storage**     | flutter_secure_storage, shared_preferences    |
+| **HTTP Communication** | Dio, HTTP, Cookie Management                  |
+| **Deep Linking**       | Uni Links                                     |
+| **Deployment**         | (Android)Firebase App Distribution, (iOS)TestFlight |
 
 ---
 
-## 📌 Project Specification
+## 📌 Project Specifications
 
-| Item             | Details                                                          |
-|------------------|------------------------------------------------------------------|
-| Project Name     | MediCall                                                         |
-| Objective        | Real-time hospital matching to secure the golden time for emergencies |
-| Target Users     | Paramedics and healthcare professionals                          |
-| Target Regions   | Korea, USA, and developing countries with limited infrastructure  |
-| Differentiators  | Parallel simultaneous contact with hospitals, dial responses, AI recommendation |
+| Item                  | Details                                                               |
+|-----------------------|-----------------------------------------------------------------------|
+| **Project Name**      | MediCall                                                              |
+| **Objective**         | Real-time hospital matching to protect the golden hour                |
+| **Target Users**      | Certified paramedics, healthcare professionals                        |
+| **Regions Covered**   | Worldwide Coverage                                                    |
+| **Unique Advantages** | AI-driven decision making, parallel calls, instant hospital matching  |
 
 ---
+
+📧 **Contact:** [medicall.developer@gmail.com](mailto:medicall.developer@gmail.com)
