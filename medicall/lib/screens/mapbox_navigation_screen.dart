@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_mapbox_navigation/flutter_mapbox_navigation.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/location_provider.dart';
 import 'emt_license_verification_screen.dart';
 import '../services/hospital_service.dart';
 
@@ -38,7 +39,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   
   // Origin and destination coordinates
   WayPoint? _origin;
-  late WayPoint _destination;
+  WayPoint? _destination;
 
   @override
   void initState() {
@@ -47,22 +48,6 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkUserAuthorization();
     });
-
-    // Get starting and destination coordinates
-    double? startLat = widget.hospital['user_latitude'];
-    double? startLng = widget.hospital['user_longitude'];
-    double? destLat = widget.hospital['latitude'];
-    double? destLng = widget.hospital['longitude'];
-
-    // Use default coordinates if not available
-    startLat ??= 37.5662; // Default: Seoul City Hall
-    startLng ??= 126.9785;
-    destLat ??= 37.5765; // Default: Seoul National University Hospital
-    destLng ??= 126.9773;
-
-    // Set starting point and destination
-    _origin = "${startLng},${startLat}";
-    _destination = "${destLng},${destLat}";
   }
   
   // Check user authorization
@@ -110,6 +95,51 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
       });
       return;
     }
+    
+    // Get location from location provider (user's selected location)
+    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    double startLat = locationProvider.latitude;
+    double startLng = locationProvider.longitude;
+    
+    print("User location from provider: $startLat, $startLng");
+    
+    // Get hospital location
+    double hospitalLat;
+    double hospitalLng;
+    
+    try {
+      // Type casting for hospital coordinates
+      if (widget.hospital['latitude'] is String) {
+        hospitalLat = double.parse(widget.hospital['latitude']);
+      } else {
+        hospitalLat = widget.hospital['latitude']?.toDouble() ?? 37.579617;
+      }
+      
+      if (widget.hospital['longitude'] is String) {
+        hospitalLng = double.parse(widget.hospital['longitude']);
+      } else {
+        hospitalLng = widget.hospital['longitude']?.toDouble() ?? 126.998898;
+      }
+    } catch (e) {
+      print("Error parsing hospital coordinates: $e");
+      hospitalLat = 37.579617;  // Default latitude for Seoul National University Hospital
+      hospitalLng = 126.998898; // Default longitude
+    }
+    
+    print("Hospital location: $hospitalLat, $hospitalLng");
+    
+    // Create origin and destination waypoints
+    _origin = WayPoint(
+      name: "Current Location",
+      latitude: startLat,
+      longitude: startLng,
+    );
+    
+    _destination = WayPoint(
+      name: widget.hospital['name'] ?? "Hospital",
+      latitude: hospitalLat,
+      longitude: hospitalLng,
+    );
     
     // Set navigation options
     _options = MapBoxOptions(
@@ -202,18 +232,33 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   }
   
   Future<void> _buildRoute() async {
-    if (_controller == null || _origin == null) {
-      print("❌ Route build failed: Controller or origin is missing");
+    if (_controller == null) {
+      print("❌ Route build failed: Controller is not initialized");
+      return;
+    }
+    
+    if (_origin == null) {
+      print("❌ Route build failed: Origin WayPoint is null");
+      setState(() {
+        _errorMessage = "Unable to determine your current location";
+      });
+      return;
+    }
+    
+    if (_destination == null) {
+      print("❌ Route build failed: Destination WayPoint is null");
+      setState(() {
+        _errorMessage = "Unable to determine hospital location";
+      });
       return;
     }
     
     print("Starting route building");
-    print("Origin: ${_origin?.latitude}, ${_origin?.longitude}");
-    print("Destination: ${_destination.latitude}, ${_destination.longitude}");
-    
-    List<WayPoint> wayPoints = [_origin!, _destination];
+    print("Origin: ${_origin?.name} (${_origin?.latitude}, ${_origin?.longitude})");
+    print("Destination: ${_destination?.name} (${_destination?.latitude}, ${_destination?.longitude})");
     
     try {
+      List<WayPoint> wayPoints = [_origin!, _destination!];
       await _controller!.buildRoute(wayPoints: wayPoints);
       print("✅ Route build complete");
       
@@ -256,11 +301,9 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
         _isInitialized = true;
       });
       
-      _origin = WayPoint(
-        name: "Current Location",
-        latitude: 37.5642,  // Sample starting point (replace with real location)
-        longitude: 126.9742,
-      );
+      // Use the _origin and _destination that were already created in _initializeNavigation
+      print("Using origin: ${_origin?.latitude}, ${_origin?.longitude}");
+      print("Using destination: ${_destination?.latitude}, ${_destination?.longitude}");
       
       await _buildRoute();
       
