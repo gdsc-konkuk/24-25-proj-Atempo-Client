@@ -69,6 +69,42 @@ class _ChatPageState extends State<ChatPage> {
   // Subscription cancellation object
   StreamSubscription? _hospitalSubscription;
 
+  // Add hashtag list and selected tags set
+  final List<String> _hashtags = [
+    '#Unconscious',
+    '#ChestPain',
+    '#ShortnessOfBreath',
+    '#Seizure',
+    '#HeavyBleeding',
+    '#StrokeSuspected',
+    '#HeartAttack',
+    '#Fracture',
+    '#SevereAbdominalPain',
+    '#HighFever',
+  ];
+  
+  // Set to track selected hashtags
+  final Set<String> _selectedTags = {};
+
+  // Add or remove hashtag
+  void _toggleHashtag(String tag) {
+    setState(() {
+      if (_selectedTags.contains(tag)) {
+        _selectedTags.remove(tag);
+      } else {
+        _selectedTags.add(tag);
+      }
+      
+      // Update text field
+      _patientConditionController.text = _selectedTags.join(' ');
+      
+      // Move cursor to end of text
+      _patientConditionController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _patientConditionController.text.length),
+      );
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -435,7 +471,7 @@ class _ChatPageState extends State<ChatPage> {
       onTap: _dismissKeyboard,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('환자 상태 입력'),
+          title: Text('Find Emergency Room'),
           backgroundColor: const Color(0xFFD94B4B),
           centerTitle: true,
         ),
@@ -504,9 +540,9 @@ class _ChatPageState extends State<ChatPage> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Lat: ${locationProvider.latitude.toStringAsFixed(6)}, Long: ${locationProvider.longitude.toStringAsFixed(6)}',  // Get coordinates from location provider
+                              'If the displayed location is incorrect, please click "Select location on map" on the map to change it',
                               style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                        ),
+                            ),
                           ),
                           SizedBox(height: 8),
                           Text(
@@ -574,7 +610,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                   SizedBox(height: 8),
                   Container(
-                    height: 200,
+                    height: 100,
                     child: TextField(
                       controller: _patientConditionController,
                       focusNode: _patientConditionFocusNode,
@@ -582,13 +618,51 @@ class _ChatPageState extends State<ChatPage> {
                       expands: true,
                       textInputAction: TextInputAction.newline,
                       keyboardType: TextInputType.multiline,
+                      textAlignVertical: TextAlignVertical.top,
                       decoration: InputDecoration(
                         hintText: 'Describe the patient\'s condition...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        contentPadding: EdgeInsets.all(12),
+                        alignLabelWithHint: true,
                       ),
                     ),
+                  ),
+                  
+                  // Add hashtag section
+                  SizedBox(height: 16),
+                  Text(
+                    'Quick Symptoms',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _hashtags.map((tag) {
+                      final isSelected = _selectedTags.contains(tag);
+                      return InkWell(
+                        onTap: () => _toggleHashtag(tag),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Color(0xFFD94B4B).withOpacity(0.1) : Color(0xFFF0F0F0),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected ? Color(0xFFD94B4B) : Colors.grey[300]!,
+                            ),
+                          ),
+                          child: Text(
+                            tag,
+                            style: TextStyle(
+                              color: isSelected ? Color(0xFFD94B4B) : Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                   
                   // Processing status display

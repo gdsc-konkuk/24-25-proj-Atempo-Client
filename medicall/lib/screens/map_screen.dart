@@ -35,7 +35,6 @@ class _MapScreenState extends State<MapScreen> {
   String _mapLoadError = "";
   bool _isCheckingAuth = true;
   
-  // SSE 관련 변수
   late HospitalService _hospitalService;
   bool _sseSubscribed = false;
   
@@ -45,12 +44,12 @@ class _MapScreenState extends State<MapScreen> {
   // Image asset path
   final String _pinAsset = 'assets/images/location_pin.png';  // Pin image asset path (modify with actual path if needed)
 
-  String get _googleMapsApiKey => 'AIzaSyDmTtOUvQEXE6ZUOeb5YlzZG55qaEiGhSU';
+  String get _googleMapsApiKey => 'AIzaSyAw92wiRgypo3fVZ4-R5CbpB4x_Pcj1gwk';
 
   // Neutral initial position in global coordinate system (mid-Atlantic point)
   static final CameraPosition _initialCameraPosition = CameraPosition(
     target: LatLng(0, 0),
-    zoom: 10.0,
+    zoom: 19.0,
   );
 
   @override
@@ -128,7 +127,7 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _safeInitialize() async {
     try {
-      // 병원 서비스 초기화
+      // Initialize hospital service
       _hospitalService = HospitalService();
       
       if (kIsWeb) {
@@ -138,9 +137,9 @@ class _MapScreenState extends State<MapScreen> {
       try {
         await _getCurrentLocation();
         
-        // 앱 시작시 SSE 구독 시작
+        // Start SSE subscription when app starts
         if (!_sseSubscribed) {
-          print('[MapScreen] 🔄 초기 SSE 구독 시작');
+          print('[MapScreen] 🔄 Start SSE subscription');
           _subscribeToSSE();
         }
       } catch (e) {
@@ -166,24 +165,23 @@ class _MapScreenState extends State<MapScreen> {
   // SSE 구독 메소드
   void _subscribeToSSE() {
     try {
-      print('[MapScreen] 📡 SSE 구독 설정 중...');
+      print('[MapScreen] 📡 Starting SSE subscription');
       _hospitalService.subscribeToHospitalUpdates().listen(
         (hospital) {
-          print('[MapScreen] 📥 병원 업데이트 수신: ${hospital.name} (ID: ${hospital.id})');
-          // 여기서는 단순히 구독만 하고, 데이터 처리는 하지 않음
+          print('[MapScreen] 📥 Hospital update received: ${hospital.name} (ID: ${hospital.id})');
         },
         onError: (error) {
-          print('[MapScreen] ❌ SSE 구독 오류: $error');
+          print('[MapScreen] ❌ SSE subscription error: $error');
         },
         onDone: () {
-          print('[MapScreen] ✅ SSE 구독 완료');
+          print('[MapScreen] ✅ SSE subscription completed');
           _sseSubscribed = false;
         },
       );
       _sseSubscribed = true;
-      print('[MapScreen] ✅ SSE 구독 설정 완료');
+      print('[MapScreen] ✅ SSE subscription setup completed');
     } catch (e) {
-      print('[MapScreen] ❌ SSE 구독 설정 오류: $e');
+      print('[MapScreen] ❌ SSE subscription setup error: $e');
       _sseSubscribed = false;
     }
   }
@@ -262,7 +260,7 @@ class _MapScreenState extends State<MapScreen> {
         _mapController!.animateCamera(
           CameraUpdate.newLatLngZoom(
             LatLng(position.latitude, position.longitude),
-            16.0,
+            19.0,
           ),
         );
       }
@@ -357,7 +355,7 @@ class _MapScreenState extends State<MapScreen> {
           controller.animateCamera(
             CameraUpdate.newLatLngZoom(
               LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-              16.0,
+              19.0,
             ),
           );
         }
@@ -392,7 +390,7 @@ class _MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
-  // Get center coordinate location
+  // Get address from coordinates using Google Maps Geocoding API
   Future<void> _getAddressFromLatLng(double latitude, double longitude) async {
     try {
       setState(() {
@@ -404,7 +402,7 @@ class _MapScreenState extends State<MapScreen> {
       locationProvider.updateLocation(latitude, longitude);
       
       // Try to get address via geocoding
-      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
+      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude, localeIdentifier: 'en_US');
       
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
@@ -440,35 +438,23 @@ class _MapScreenState extends State<MapScreen> {
   // Format address from Placemark
   String _formatAddress(Placemark place) {
     List<String> addressParts = [];
+    Set<String> addedParts = {}; // Prevent duplicate parts
     
-    // Add non-empty parts to the address
-    if (place.street != null && place.street!.isNotEmpty) {
-      addressParts.add(place.street!);
+    void addIfNotDuplicate(String? part) {
+      if (part != null && part.isNotEmpty && !addedParts.contains(part)) {
+        addressParts.add(part);
+        addedParts.add(part);
+      }
     }
     
-    if (place.subLocality != null && place.subLocality!.isNotEmpty) {
-      addressParts.add(place.subLocality!);
-    }
-    
-    if (place.locality != null && place.locality!.isNotEmpty) {
-      addressParts.add(place.locality!);
-    }
-    
-    if (place.subAdministrativeArea != null && place.subAdministrativeArea!.isNotEmpty) {
-      addressParts.add(place.subAdministrativeArea!);
-    }
-    
-    if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) {
-      addressParts.add(place.administrativeArea!);
-    }
-    
-    if (place.postalCode != null && place.postalCode!.isNotEmpty) {
-      addressParts.add(place.postalCode!);
-    }
-    
-    if (place.country != null && place.country!.isNotEmpty) {
-      addressParts.add(place.country!);
-    }
+    // Add address parts in order
+    addIfNotDuplicate(place.street);
+    addIfNotDuplicate(place.subLocality);
+    addIfNotDuplicate(place.locality);
+    addIfNotDuplicate(place.subAdministrativeArea);
+    addIfNotDuplicate(place.administrativeArea);
+    addIfNotDuplicate(place.postalCode);
+    addIfNotDuplicate(place.country);
     
     // Join all parts with commas
     return addressParts.join(', ');
@@ -535,15 +521,16 @@ class _MapScreenState extends State<MapScreen> {
                                 controller.animateCamera(
                                   CameraUpdate.newLatLngZoom(
                                     LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                                    16.0,
+                                    19.0,
                                   ),
                                 );
                               }
                             },
                             myLocationEnabled: false,
                             myLocationButtonEnabled: false,
-                            markers: _markers, // Empty marker set (using fixed center pin instead)
-                            zoomControlsEnabled: false,
+                            markers: _markers,
+                            zoomControlsEnabled: true,
+                            zoomGesturesEnabled: true,
                             compassEnabled: true,
                             buildingsEnabled: true,
                             padding: EdgeInsets.only(bottom: 50),
@@ -724,19 +711,19 @@ class _MapScreenState extends State<MapScreen> {
                                     ],
                                   ),
                                 ),
-                                SizedBox(height: 8),
-                                // Coordinate display
-                                Container(
-                                  padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFFF0F0F0),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Latitude: ${locationProvider.latitude.toStringAsFixed(6)}, Longitude: ${locationProvider.longitude.toStringAsFixed(6)}',  // Get coordinates from provider
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                                  ),
-                                ),
+                                // SizedBox(height: 8),
+                                // // Coordinate display
+                                // Container(
+                                //   padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                                //   decoration: BoxDecoration(
+                                //     color: Color(0xFFF0F0F0),
+                                //     borderRadius: BorderRadius.circular(8),
+                                //   ),
+                                //   child: Text(
+                                //     'Latitude: ${locationProvider.latitude.toStringAsFixed(6)}, Longitude: ${locationProvider.longitude.toStringAsFixed(6)}',  // Get coordinates from provider
+                                //     style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                                //   ),
+                                // ),
                               ],
                             ),
                           ),
@@ -802,7 +789,7 @@ class _MapScreenState extends State<MapScreen> {
                     padding: EdgeInsets.symmetric(vertical: 15),
                     alignment: Alignment.center,
                     child: Text(
-                      '환자 상태 입력',
+                      'Enter patient condition',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),

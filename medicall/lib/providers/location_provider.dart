@@ -73,7 +73,28 @@ class LocationProvider with ChangeNotifier {
           // Handle address format for Korea
           String address = "";
           if (placemark.country == 'South Korea' || placemark.country == '대한민국') {
-            address = "${placemark.administrativeArea ?? ''} ${placemark.locality ?? ''} ${placemark.subLocality ?? ''} ${placemark.thoroughfare ?? ''} ${placemark.subThoroughfare ?? ''}";
+            List<String> addressParts = [];
+            
+            // Add parts only if they are not null and not empty
+            if (placemark.administrativeArea?.isNotEmpty ?? false) {
+              addressParts.add(placemark.administrativeArea!);
+            }
+            if (placemark.locality?.isNotEmpty ?? false && 
+                placemark.locality != placemark.administrativeArea) {
+              addressParts.add(placemark.locality!);
+            }
+            if (placemark.subLocality?.isNotEmpty ?? false) {
+              addressParts.add(placemark.subLocality!);
+            }
+            if (placemark.thoroughfare?.isNotEmpty ?? false && 
+                placemark.thoroughfare != placemark.subLocality) {
+              addressParts.add(placemark.thoroughfare!);
+            }
+            if (placemark.subThoroughfare?.isNotEmpty ?? false) {
+              addressParts.add(placemark.subThoroughfare!);
+            }
+            
+            address = addressParts.join(' ');
           } else {
             address = "${placemark.street}, ${placemark.subLocality}, "
                 "${placemark.locality}, ${placemark.administrativeArea}";

@@ -47,7 +47,6 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
   Future<void> _setupAuthToken() async {
     try {
       print('EMT Screen: Starting auth token setup');
-      // 디버그를 위한 스토리지 정보 출력
       final keys = await storage.readAll();
       print('EMT Screen: All storage keys - ${keys.keys.join(', ')}');
       

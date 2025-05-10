@@ -71,7 +71,6 @@
 		<string>http</string>
 		<string>https</string>
 	</array>
-	<!-- URL 스킴 등록 (딥링크) -->
 	<!-- URL scheme registration (deep link) -->
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -86,7 +85,6 @@
 			</array>
 		</dict>
 	</array>
-	<!-- 백그라운드 모드 설정 -->
 	<!-- Background mode settings -->
 	<key>UIBackgroundModes</key>
 	<array>
