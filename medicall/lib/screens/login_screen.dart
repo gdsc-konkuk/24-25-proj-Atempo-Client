@@ -154,8 +154,23 @@ class _LoginScreenState extends State<LoginScreen> {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.loadCurrentUser();
         
-        // Fetch additional user data
-        await _fetchUserInfoAndNavigate();
+        // Check user's certification status
+        final user = authProvider.currentUser;
+        if (user != null && user.certificationType != null && user.certificationType!.isNotEmpty) {
+          // Already certified user - Navigate to MapScreen
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => MapScreen()),
+            );
+          }
+        } else {
+          // Uncertified user - Navigate to EmtLicenseVerificationScreen
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
+            );
+          }
+        }
       } catch (authProviderError) {
         print("AuthProvider error: $authProviderError");
       }
@@ -176,57 +191,48 @@ class _LoginScreenState extends State<LoginScreen> {
       final response = await http.post(
         Uri.parse('${dotenv.env['API_BASE_URL']!}/api/v1/auth/token'),
         headers: {'Content-Type': 'application/json'},
-        body: '{"code":"$code"}',
+        body: jsonEncode({'code': code}),
       );
 
-      print("Token response status: ${response.statusCode}");
-      print("Token response body: ${response.body}");
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final accessToken = data['accessToken'];
+        final refreshToken = data['refreshToken'];
 
-      if (response.statusCode != 200) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _statusMessage =
-                "Token request failed: ${response.statusCode} ${response.body}";
-          });
-        }
-        return;
-      }
-
-      final Map<String, dynamic> tokenData = jsonDecode(response.body);
-      final accessToken = tokenData['accessToken'];
-      final refreshToken = tokenData['refreshToken'];
-
-      if (accessToken != null && refreshToken != null) {
+        // Save tokens
         await storage.write(key: 'access_token', value: accessToken);
         await storage.write(key: 'refresh_token', value: refreshToken);
 
-        final httpClient = Provider.of<HttpClientService>(context, listen: false);
-        httpClient.setAuthorizationHeader('Bearer $accessToken');
-        httpClient.updateRefreshToken(refreshToken);
-        print("Auth header set: ${httpClient.getHeaders()}");
-
+        // Load user information
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.loadCurrentUser();
-
-        // Fetch additional user data
-        await _fetchUserInfoAndNavigate();
-
-        _sub?.cancel();
-      } else {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _statusMessage = "Failed to extract token (check response format)";
-          });
+        
+        // Check user's certification status
+        final user = authProvider.currentUser;
+        if (user != null && user.certificationType != null && user.certificationType!.isNotEmpty) {
+          // Already certified user - Navigate to MapScreen
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => MapScreen()),
+            );
+          }
+        } else {
+          // Uncertified user - Navigate to EmtLicenseVerificationScreen
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => EmtLicenseVerificationScreen()),
+            );
+          }
         }
+      } else {
+        throw Exception('Failed to get token');
       }
     } catch (e) {
+      print('Error during OAuth code handling: $e');
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _statusMessage = "Login processing error: $e";
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed: $e')),
+        );
       }
     }
   }
