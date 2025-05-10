@@ -3,7 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class TokenService {
-  static final String _baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080/';
+  static final String _baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080';
 
   // POST /api/v1/auth/refresh-token
   // Submit refresh token in Authorization header as Bearer token to obtain new refresh token

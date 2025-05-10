@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleOAuthCode(String code) async {
     try {
       final response = await http.post(
-        Uri.parse('http://avenir.my:8080/api/v1/auth/token'),
+        Uri.parse('${dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080'}/api/v1/auth/token'),
         headers: {'Content-Type': 'application/json'},
         body: '{"code":"$code"}',
       );

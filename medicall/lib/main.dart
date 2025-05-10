@@ -38,6 +38,9 @@ void main() async {
   } else {
     print("Warning: Mapbox token is empty or not found in .env file");
   }
+  
+  // 로그 API BASE URL
+  print('API_BASE_URL: ${dotenv.env['API_BASE_URL'] ?? '로드 실패'}');
 
   runApp(
     MultiProvider(

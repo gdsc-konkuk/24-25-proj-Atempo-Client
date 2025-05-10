@@ -10,9 +10,13 @@ class AuthService {
   final String _baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080';
   
   // API endpoint constants
-  static const String _AUTH_TOKEN_PATH = '/api/v1/auth/token';
-  static const String _AUTH_ACCESS_TOKEN_PATH = '/api/v1/auth/access-token';
-  static const String _USER_INFO_PATH = '/api/v1/members';
+  final String _AUTH_TOKEN_PATH = '/api/v1/auth/token';
+  final String _AUTH_ACCESS_TOKEN_PATH = '/api/v1/auth/access-token';
+  final String _USER_INFO_PATH = '/api/v1/members';
+  final String _USER_ME_PATH = '/api/v1/members/me';
+  final String _OAUTH_AUTH_PATH = '/oauth2/authorization/google';
+  final String _AUTH_LOGOUT_PATH = '/api/v1/auth/logout';
+  final String _AUTH_TOKEN_AFTER_LOGIN_PATH = '/api/v1/auth/token-after-login';
   
   // URL normalization helper method
   String _normalizeUrl(String baseUrl, String path) {
@@ -24,7 +28,7 @@ class AuthService {
   // OAuth login URL for WebView
   Future<String> getLoginUrl() async {
     // Return direct OAuth URL to prevent redirect loop
-    final loginUrl = '$_baseUrl/oauth2/authorization/google';
+    final loginUrl = _normalizeUrl(_baseUrl, _OAUTH_AUTH_PATH);
     debugPrint('Login URL: $loginUrl');
     return loginUrl;
   }
@@ -33,8 +37,9 @@ class AuthService {
   Future<User> completeWebViewLogin(String authCode) async {
     try {
       // Request token using auth code
+      final tokenUrl = _normalizeUrl(_baseUrl, _AUTH_TOKEN_PATH);
       final tokenResponse = await http.post(
-        Uri.parse('$_baseUrl/api/v1/auth/token'),
+        Uri.parse(tokenUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'code': authCode}),
       );
@@ -53,8 +58,9 @@ class AuthService {
       await _storage.write(key: 'refresh_token', value: refreshToken);
       
       // Request user info with access token
+      final userUrl = _normalizeUrl(_baseUrl, _USER_ME_PATH);
       final userResponse = await http.get(
-        Uri.parse('$_baseUrl/api/v1/members/me'),
+        Uri.parse(userUrl),
         headers: {
           'Authorization': 'Bearer $accessToken',
         },
@@ -91,8 +97,9 @@ class AuthService {
   Future<User> requestTokenAfterLogin(String redirectUrl) async {
     try {
       // Send success page URL to server for token request
+      final tokenUrl = _normalizeUrl(_baseUrl, _AUTH_TOKEN_AFTER_LOGIN_PATH);
       final tokenResponse = await http.post(
-        Uri.parse('$_baseUrl/api/v1/auth/token-after-login'),
+        Uri.parse(tokenUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'redirectUrl': redirectUrl}),
       );
@@ -110,8 +117,9 @@ class AuthService {
       await _storage.write(key: 'refresh_token', value: refreshToken);
       
       // Request user info
+      final userUrl = _normalizeUrl(_baseUrl, _USER_ME_PATH);
       final userResponse = await http.get(
-        Uri.parse('$_baseUrl/api/v1/members/me'),
+        Uri.parse(userUrl),
         headers: {
           'Authorization': 'Bearer $accessToken',
         },
@@ -145,8 +153,9 @@ class AuthService {
   Future<User> handleOAuthRedirect(String code) async {
     try {
       // Request token using auth code
+      final tokenUrl = _normalizeUrl(_baseUrl, _AUTH_TOKEN_PATH);
       final tokenResponse = await http.post(
-        Uri.parse('$_baseUrl/api/v1/auth/token'),
+        Uri.parse(tokenUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'code': code}),
       );
@@ -164,8 +173,9 @@ class AuthService {
       await _storage.write(key: 'refresh_token', value: refreshToken);
       
       // Request user info
+      final userUrl = _normalizeUrl(_baseUrl, _USER_ME_PATH);
       final userResponse = await http.get(
-        Uri.parse('$_baseUrl/api/v1/members/me'),
+        Uri.parse(userUrl),
         headers: {
           'Authorization': 'Bearer $accessToken',
         },
@@ -350,8 +360,9 @@ class AuthService {
       if (accessToken != null) {
         // Send logout request to server
         try {
+          final logoutUrl = _normalizeUrl(_baseUrl, _AUTH_LOGOUT_PATH);
           await http.post(
-            Uri.parse('$_baseUrl/api/v1/auth/logout'),
+            Uri.parse(logoutUrl),
             headers: {
               'Authorization': 'Bearer $accessToken',
             },

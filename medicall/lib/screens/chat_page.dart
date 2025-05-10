@@ -16,6 +16,7 @@ import '../models/hospital_model.dart';
 import 'dart:math' as math;
 import 'map_screen.dart';
 import '../services/api_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ChatPage extends StatefulWidget {
   final String currentAddress;
@@ -41,7 +42,7 @@ class _ChatPageState extends State<ChatPage> {
   String _sessionToken = '1234567890';
   bool _isLoading = false;
   bool _isProcessing = false;
-  final String _apiUrl = 'http://avenir.my:8080/api/v1/admissions';
+  final String _apiUrl = '${dotenv.env['API_BASE_URL'] ?? 'http://avenir.my:8080'}/api/v1/admissions';
   
   // Current location coordinates (received from map_screen)
   late double _latitude;
