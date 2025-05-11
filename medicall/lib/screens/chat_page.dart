@@ -92,13 +92,19 @@ class _ChatPageState extends State<ChatPage> {
 
   // Add or remove hashtag
   void _toggleHashtag(String tag) {
-    setState(() {
-      if (_selectedTags.contains(tag)) {
-        _selectedTags.remove(tag);
-      } else {
+    final bool wasSelected = _selectedTags.contains(tag);
+    final bool willSelect = !wasSelected;
+    
+    // If the hashtag is not selected, add it
+    if (willSelect) {
+      setState(() {
         _selectedTags.add(tag);
-      }
-    });
+      });
+    } else {
+      setState(() {
+        _selectedTags.remove(tag);
+      });
+    }
   }
 
   @override
@@ -482,7 +488,6 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     final searchRadius = context.watch<SettingsProvider>().searchRadius;
     final locationProvider = context.watch<LocationProvider>();
-    final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return GestureDetector(
       onTap: _dismissKeyboard,
@@ -492,297 +497,304 @@ class _ChatPageState extends State<ChatPage> {
           title: 'Find Emergency Room',
           leading: AppTheme.buildBackButton(context),
         ),
-        resizeToAvoidBottomInset: true,
+        resizeToAvoidBottomInset: false,
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 16.0,
-                right: 16.0,
-                top: 16.0,
-                bottom: 16.0 + keyboardPadding,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Select Location',
-                    style: AppTheme.textTheme.displaySmall,
-                  ),
-                  SizedBox(height: 8),
-                  
-                  // Location card
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context, 
-                        MaterialPageRoute(builder: (context) => MapScreen())
-                      );
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.location_on, color: AppTheme.primaryColor),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  locationProvider.address,
-                                  style: AppTheme.textTheme.bodyLarge,
-                                ),
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 300),
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 16.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select Location',
+                      style: AppTheme.textTheme.displaySmall,
+                    ),
+                    SizedBox(height: 8),
+                    
+                    // Location card
+                    RepaintBoundary(
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context, 
+                            MaterialPageRoute(builder: (context) => MapScreen())
+                          );
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
                               ),
-                              Icon(Icons.map, color: Colors.blue),
                             ],
                           ),
-                          SizedBox(height: 12),
-                          Container(
-                            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: AppTheme.backgroundColor,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'If the displayed location is incorrect, please click "Select location on map" on the map to change it',
-                              style: AppTheme.textTheme.bodyMedium,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Select location on map',
-                            style: AppTheme.textTheme.bodyLarge?.copyWith(
-                              color: Colors.blue,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 16),
-                  InkWell(
-                    onTap: _showSearchRadiusModal,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.radar,
-                            color: AppTheme.primaryColor,
-                            size: 24,
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Search Radius: ${searchRadius.toInt()}km',
-                              style: AppTheme.textTheme.bodyLarge,
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'Edit',
-                              style: AppTheme.textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.w600,
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on, color: AppTheme.primaryColor),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      locationProvider.address,
+                                      style: AppTheme.textTheme.bodyLarge,
+                                    ),
+                                  ),
+                                  Icon(Icons.map, color: Colors.blue),
+                                ],
                               ),
-                            ),
+                              SizedBox(height: 12),
+                              Container(
+                                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.backgroundColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'If the displayed location is incorrect, please click "Select location on map" on the map to change it',
+                                  style: AppTheme.textTheme.bodyMedium,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Select location on map',
+                                style: AppTheme.textTheme.bodyLarge?.copyWith(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  SizedBox(height: 20),
-                  Text(
-                    'Patient Condition',
-                    style: AppTheme.textTheme.displaySmall,
-                  ),
-                  SizedBox(height: 8),
-                  Container(
-                    height: 100,
-                    child: TextField(
-                      controller: _patientConditionController,
-                      focusNode: _patientConditionFocusNode,
-                      maxLines: null,
-                      expands: true,
-                      textInputAction: TextInputAction.newline,
-                      keyboardType: TextInputType.multiline,
-                      textAlignVertical: TextAlignVertical.top,
-                      style: AppTheme.textTheme.bodyLarge,
-                      decoration: InputDecoration(
-                        hintText: 'Describe the patient\'s condition...',
-                        hintStyle: AppTheme.textTheme.bodyMedium,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        contentPadding: EdgeInsets.all(16),
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-                  ),
-                  
-                  SizedBox(height: 16),
-                  Text(
-                    'Quick Symptoms',
-                    style: AppTheme.textTheme.displaySmall,
-                  ),
-                  SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _hashtags.map((tag) {
-                      final isSelected = _selectedTags.contains(tag);
-                      return InkWell(
-                        onTap: () => _toggleHashtag(tag),
+                    SizedBox(height: 16),
+                    RepaintBoundary(
+                      child: InkWell(
+                        onTap: _showSearchRadiusModal,
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           decoration: BoxDecoration(
-                            color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : AppTheme.backgroundColor,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
-                            ),
-                          ),
-                          child: Text(
-                            tag,
-                            style: AppTheme.textTheme.bodyMedium?.copyWith(
-                              color: isSelected ? AppTheme.primaryColor : Colors.black87,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  
-                  if (_isProcessing)
-                    Column(
-                      children: [
-                        SizedBox(height: 20),
-                        Container(
-                          padding: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue[200]!),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Row(
                             children: [
-                              CircularProgressIndicator(
-                                strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                              Icon(
+                                Icons.radar,
+                                color: AppTheme.primaryColor,
+                                size: 24,
                               ),
-                              SizedBox(width: 16),
+                              SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  _processingMessage,
+                                  'Search Radius: ${searchRadius.toInt()}km',
+                                  style: AppTheme.textTheme.bodyLarge,
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'Edit',
                                   style: AppTheme.textTheme.bodyMedium?.copyWith(
-                                    color: Colors.blue[800],
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        SizedBox(height: 16),
-                        if (_hospitals.isNotEmpty)
-                          ElevatedButton.icon(
-                            onPressed: _navigateToHospitalList,
-                            icon: Icon(Icons.local_hospital),
-                            label: Text('View Responding Hospitals (${_hospitals.length})'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.successColor,
-                              padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
-                  
-                  SizedBox(height: 20),
-                  Row(
-                    children: [
-                      if (_admissionId != null && !_isProcessing)
-                        Expanded(
-                          flex: 1,
-                          child: ElevatedButton(
-                            onPressed: _retryAdmission,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber,
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+
+                    SizedBox(height: 20),
+                    Text(
+                      'Patient Condition',
+                      style: AppTheme.textTheme.displaySmall,
+                    ),
+                    SizedBox(height: 8),
+                    Container(
+                      height: 100,
+                      child: TextField(
+                        controller: _patientConditionController,
+                        focusNode: _patientConditionFocusNode,
+                        maxLines: 5,
+                        textInputAction: TextInputAction.newline,
+                        keyboardType: TextInputType.multiline,
+                        textAlignVertical: TextAlignVertical.top,
+                        style: AppTheme.textTheme.bodyLarge,
+                        decoration: InputDecoration(
+                          hintText: 'Describe the patient\'s condition...',
+                          hintStyle: AppTheme.textTheme.bodyMedium,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: EdgeInsets.all(16),
+                          alignLabelWithHint: true,
+                        ),
+                      ),
+                    ),
+                    
+                    SizedBox(height: 16),
+                    Text(
+                      'Quick Symptoms',
+                      style: AppTheme.textTheme.displaySmall,
+                    ),
+                    SizedBox(height: 8),
+                    RepaintBoundary(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _hashtags.map((tag) {
+                          final isSelected = _selectedTags.contains(tag);
+                          return InkWell(
+                            onTap: () => _toggleHashtag(tag),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : AppTheme.backgroundColor,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Text(
+                                tag,
+                                style: AppTheme.textTheme.bodyMedium?.copyWith(
+                                  color: isSelected ? AppTheme.primaryColor : Colors.black87,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                            child: Text(
-                              'Retry',
-                              style: AppTheme.textTheme.bodyLarge?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    
+                    if (_isProcessing)
+                      Column(
+                        children: [
+                          SizedBox(height: 20),
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue[200]!),
+                            ),
+                            child: Row(
+                              children: [
+                                CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                                ),
+                                SizedBox(width: 16),
+                                Expanded(
+                                  child: Text(
+                                    _processingMessage,
+                                    style: AppTheme.textTheme.bodyMedium?.copyWith(
+                                      color: Colors.blue[800],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      
-                      if (_admissionId != null && !_isProcessing)
-                        SizedBox(width: 10),
-                      
-                      Expanded(
-                        flex: _admissionId != null && !_isProcessing ? 2 : 3,
-                        child: _isLoading && !_isProcessing
-                          ? Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
-                          : ElevatedButton(
-                              onPressed: _isProcessing ? null : _fetchHospitals,
+                          SizedBox(height: 16),
+                          if (_hospitals.isNotEmpty)
+                            ElevatedButton.icon(
+                              onPressed: _navigateToHospitalList,
+                              icon: Icon(Icons.local_hospital),
+                              label: Text('View Responding Hospitals (${_hospitals.length})'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryColor,
+                                backgroundColor: AppTheme.successColor,
+                                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    
+                    SizedBox(height: 20),
+                    Row(
+                      children: [
+                        if (_admissionId != null && !_isProcessing)
+                          Expanded(
+                            flex: 1,
+                            child: ElevatedButton(
+                              onPressed: _retryAdmission,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
                                 padding: EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               child: Text(
-                                'Find Emergency Room',
+                                'Retry',
                                 style: AppTheme.textTheme.bodyLarge?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
-                      ),
-                    ],
-                  ),
-                ],
+                          ),
+                        
+                        if (_admissionId != null && !_isProcessing)
+                          SizedBox(width: 10),
+                        
+                        Expanded(
+                          flex: _admissionId != null && !_isProcessing ? 2 : 3,
+                          child: _isLoading && !_isProcessing
+                            ? Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
+                            : ElevatedButton(
+                                onPressed: _isProcessing ? null : _fetchHospitals,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryColor,
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Find Emergency Room',
+                                  style: AppTheme.textTheme.bodyLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

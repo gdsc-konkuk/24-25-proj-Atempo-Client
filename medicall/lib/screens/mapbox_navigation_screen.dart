@@ -7,6 +7,7 @@ import '../providers/location_provider.dart';
 import 'emt_license_verification_screen.dart';
 import '../services/hospital_service.dart';
 import 'error_screen.dart';
+import '../theme/app_theme.dart';
 
 class MapboxNavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -168,7 +169,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
       bannerInstructionsEnabled: true,
       mode: MapBoxNavigationMode.drivingWithTraffic,
       units: VoiceUnits.metric,
-      simulateRoute: true,
+      simulateRoute: false,
       language: "en",
     );
     
@@ -201,23 +202,23 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Mapbox Navigation'),
-        backgroundColor: Color(0xFFE93C4A),
+      appBar: AppTheme.buildAppBar(
+        title: 'Hospital Navigation',
+        leading: AppTheme.buildBackButton(context),
       ),
       body: _isCheckingAuth
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFFE93C4A)),
+                  CircularProgressIndicator(color: AppTheme.primaryColor),
                   SizedBox(height: 16),
-                  Text('Checking authorization...'),
+                  Text('Checking authorization...', style: AppTheme.textTheme.bodyMedium),
                 ],
               ),
             )
           : _isLoading
-              ? Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
               : _errorMessage.isNotEmpty
                   ? _buildErrorWidget()
                   : _buildNavigationWidget(),
@@ -231,12 +232,12 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, color: Colors.red, size: 64),
+            Icon(Icons.error_outline, color: AppTheme.errorColor, size: 64),
             SizedBox(height: 16),
             Text(
               _errorMessage,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
+              style: AppTheme.textTheme.bodyLarge,
             ),
             SizedBox(height: 24),
             ElevatedButton(
@@ -245,7 +246,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
               },
               child: Text('Go Back'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFE93C4A),
+                backgroundColor: AppTheme.primaryColor,
               ),
             ),
           ],
@@ -398,6 +399,10 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   
   @override
   void dispose() {
+    // When the screen is exited, end the navigation connection
+    if (_controller != null && _isNavigating) {
+      _controller!.finishNavigation();
+    }
     _controller = null;
     super.dispose();
   }

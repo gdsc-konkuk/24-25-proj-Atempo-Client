@@ -8,7 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:medicall/screens/mapbox_navigation_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/location_provider.dart';
-import 'dart:math';
+import 'dart:math' as math;
 import 'error_screen.dart';
 import '../theme/app_theme.dart';
 
@@ -189,32 +189,32 @@ class _NavigationScreenState extends State<NavigationScreen> {
     // Calculate the direct distance and angle
     double dx = end.longitude - start.longitude;
     double dy = end.latitude - start.latitude;
-    double distance = sqrt(dx * dx + dy * dy);
-    double angle = atan2(dy, dx);
+    double distance = math.sqrt(dx * dx + dy * dy);
+    double angle = math.atan2(dy, dx);
     
     // Distance and angle perturbations to simulate road turns
-    Random random = Random(42); // Fixed seed for consistent results
+    math.Random random = math.Random(42); // Fixed seed for consistent results
     
     // Calculate number of points based on distance
-    int numPoints = max(5, (distance * 2000).round());
+    int numPoints = math.max(5, (distance * 2000.0).round());
     
     // Generate points with random offsets to simulate a road-like path
     double prevAngle = angle;
     LatLng prevPoint = start;
     
     for (int i = 1; i < numPoints; i++) {
-      double t = i / (numPoints - 1);
+      double t = i / (numPoints - 1.0);
       
       // Perturb the angle slightly to create a curved path
       double angleOffset = (random.nextDouble() - 0.5) * 0.5; // Small random angle offset
       prevAngle = prevAngle * 0.8 + (angle + angleOffset) * 0.2; // Smooth the angle changes
       
       // Create a slight zigzag effect for roads
-      double zigzagOffset = (random.nextDouble() - 0.5) * 0.001 * (1 - t);
+      double zigzagOffset = (random.nextDouble() - 0.5) * 0.001 * (1.0 - t);
       
       // Interpolate points with the perturbed angle and zigzag
-      double lat = start.latitude + t * dy + sin(prevAngle + 1.57) * zigzagOffset;
-      double lng = start.longitude + t * dx + cos(prevAngle + 1.57) * zigzagOffset;
+      double lat = start.latitude + t * dy + math.sin(prevAngle + 1.57) * zigzagOffset;
+      double lng = start.longitude + t * dx + math.cos(prevAngle + 1.57) * zigzagOffset;
       
       LatLng newPoint = LatLng(lat, lng);
       
@@ -239,15 +239,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
     double lat2 = end.latitude;
     double lon2 = end.longitude;
     
-    double dLat = (lat2 - lat1) * pi / 180.0;
-    double dLon = (lon2 - lon1) * pi / 180.0;
+    double dLat = (lat2 - lat1) * math.pi / 180.0;
+    double dLon = (lon2 - lon1) * math.pi / 180.0;
     
-    double a = pow(sin(dLat / 2), 2) + 
-               cos(lat1 * pi / 180.0) * 
-               cos(lat2 * pi / 180.0) * 
-               pow(sin(dLon / 2), 2);
+    double a = math.pow(math.sin(dLat / 2.0), 2.0) + 
+               math.cos(lat1 * math.pi / 180.0) * 
+               math.cos(lat2 * math.pi / 180.0) * 
+               math.pow(math.sin(dLon / 2.0), 2.0);
     
-    return 2 * atan2(sqrt(a), sqrt(1 - a));
+    return 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a));
   }
   
   void _startMapboxNavigation() {
@@ -369,20 +369,20 @@ class _NavigationScreenState extends State<NavigationScreen> {
     // Include all markers
     for (final marker in _markers) {
       hasPoints = true;
-      minLat = min(minLat, marker.position.latitude);
-      maxLat = max(maxLat, marker.position.latitude);
-      minLng = min(minLng, marker.position.longitude);
-      maxLng = max(maxLng, marker.position.longitude);
+      minLat = math.min(minLat, marker.position.latitude);
+      maxLat = math.max(maxLat, marker.position.latitude);
+      minLng = math.min(minLng, marker.position.longitude);
+      maxLng = math.max(maxLng, marker.position.longitude);
     }
     
     // Include all polyline points
     for (final polyline in _polylines) {
       for (final point in polyline.points) {
         hasPoints = true;
-        minLat = min(minLat, point.latitude);
-        maxLat = max(maxLat, point.latitude);
-        minLng = min(minLng, point.longitude);
-        maxLng = max(maxLng, point.longitude);
+        minLat = math.min(minLat, point.latitude);
+        maxLat = math.max(maxLat, point.latitude);
+        minLng = math.min(minLng, point.longitude);
+        maxLng = math.max(maxLng, point.longitude);
       }
     }
     

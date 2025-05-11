@@ -83,65 +83,81 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
   }
   
   void _validateInput() {
-    setState(() {
-      _errorText = null;
-      _isLicenseValid = false;
-      
-      if (_licenseController.text.isEmpty) {
-        return;
+    // First, save the current state values
+    final String? currentErrorText = _errorText;
+    final bool currentLicenseValid = _isLicenseValid;
+    String? newErrorText = null;
+    bool newLicenseValid = false;
+    
+    if (_licenseController.text.isEmpty) {
+      // If the text is empty and the current state is different, call setState
+      if (currentErrorText != null || currentLicenseValid != false) {
+        setState(() {
+          _errorText = null;
+          _isLicenseValid = false;
+        });
       }
-      
-      // Apply different regex validation based on license type
-      final String text = _licenseController.text.trim();
-      RegExp regExp;
-      String errorMessage = '';
-      
+      return;
+    }
+    
+    // Apply different regex validation based on license type
+    final String text = _licenseController.text.trim();
+    RegExp regExp;
+    String errorMessage = '';
+    
+    switch (dropdownValue) {
+      case 'NREMT':
+        // Allow only alphanumeric characters
+        regExp = RegExp(r'^[a-zA-Z0-9]+$');
+        errorMessage = 'Only letters and numbers are allowed';
+        break;
+      case 'EMT(KOREA)':
+        // Allow only 6 digits
+        regExp = RegExp(r'^\d{6}$');
+        errorMessage = 'Must be exactly 6 digits';
+        break;
+      case 'EMS':
+        // Allow only 12 digits
+        regExp = RegExp(r'^\d{12}$');
+        errorMessage = 'Must be exactly 12 digits';
+        break;
+      default:
+        return; // No validation for unknown types
+    }
+    
+    if (!regExp.hasMatch(text)) {
+      newErrorText = errorMessage;
+    } else {
+      // Additional: Only allow specific license numbers
+      bool isValidLicense = false;
       switch (dropdownValue) {
         case 'NREMT':
-          // Allow only alphanumeric characters
-          regExp = RegExp(r'^[a-zA-Z0-9]+$');
-          errorMessage = 'Only letters and numbers are allowed';
+          isValidLicense = text == 'GDG143' || text == 'MED911';
           break;
         case 'EMT(KOREA)':
-          // Allow only 6 digits
-          regExp = RegExp(r'^\d{6}$');
-          errorMessage = 'Must be exactly 6 digits';
+          isValidLicense = text == '123456';
           break;
         case 'EMS':
-          // Allow only 12 digits
-          regExp = RegExp(r'^\d{12}$');
-          errorMessage = 'Must be exactly 12 digits';
+          isValidLicense = text == '123456789012';
           break;
         default:
-          return; // No validation for unknown types
+          isValidLicense = false;
       }
       
-      if (!regExp.hasMatch(text)) {
-        _errorText = errorMessage;
+      if (isValidLicense) {
+        newLicenseValid = true;
       } else {
-        // 추가: 특정 자격번호만 허용
-        bool isValidLicense = false;
-        switch (dropdownValue) {
-          case 'NREMT':
-            isValidLicense = text == 'GDG143' || text == 'MED911';
-            break;
-          case 'EMT(KOREA)':
-            isValidLicense = text == '123456';
-            break;
-          case 'EMS':
-            isValidLicense = text == '123456789012';
-            break;
-          default:
-            isValidLicense = false;
-        }
-        
-        if (isValidLicense) {
-          _isLicenseValid = true;
-        } else {
-          _errorText = 'Invalid license number';
-        }
+        newErrorText = 'Invalid license number';
       }
-    });
+    }
+    
+    // If the state has changed, call setState
+    if (newErrorText != currentErrorText || newLicenseValid != currentLicenseValid) {
+      setState(() {
+        _errorText = newErrorText;
+        _isLicenseValid = newLicenseValid;
+      });
+    }
   }
   
   String getHintText() {
@@ -350,216 +366,222 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
   Widget build(BuildContext context) {
     print('EMT Screen: Building UI');
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 300),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 40),
-                // Title
-                Text(
-                  'Enter Your',
-                  style: GoogleFonts.notoSans(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 40),
+                  // Title
+                  Text(
+                    'Enter Your',
+                    style: GoogleFonts.notoSans(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Text(
-                  'EMT License Number',
-                  style: GoogleFonts.notoSans(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
+                  Text(
+                    'EMT License Number',
+                    style: GoogleFonts.notoSans(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                // Subtitle
-                Text(
-                  'This service is only available for certified EMTs.',
-                  style: GoogleFonts.notoSans(
-                    fontSize: 16,
-                    color: Colors.black87,
+                  const SizedBox(height: 16),
+                  // Subtitle
+                  Text(
+                    'This service is only available for certified EMTs.',
+                    style: GoogleFonts.notoSans(
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 40),
-                // License type dropdown and text field
-                Row(
-                  children: [
-                    // Dropdown
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: DropdownButton<String>(
-                          value: dropdownValue,
-                          underline: Container(),
-                          icon: const Icon(Icons.arrow_drop_down),
-                          onChanged: _onDropdownChanged,
-                          items: <String>['NREMT', 'EMT(KOREA)', 'EMS']
-                              .map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(
-                                value,
-                                style: GoogleFonts.notoSans(
-                                  fontSize: 16,
+                  const SizedBox(height: 40),
+                  // License type dropdown and text field
+                  RepaintBoundary(
+                    child: Row(
+                      children: [
+                        // Dropdown
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: DropdownButton<String>(
+                              value: dropdownValue,
+                              underline: Container(),
+                              icon: const Icon(Icons.arrow_drop_down),
+                              onChanged: _onDropdownChanged,
+                              items: <String>['NREMT', 'EMT(KOREA)', 'EMS']
+                                  .map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                    value,
+                                    style: GoogleFonts.notoSans(
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // License number text field
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: _errorText != null ? Colors.red : Colors.grey.shade300,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: TextField(
+                              controller: _licenseController,
+                              decoration: InputDecoration(
+                                hintText: getHintText(),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                                errorText: _errorText,
+                                errorStyle: const TextStyle(
+                                  fontSize: 0,
+                                  height: 0,
                                 ),
                               ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // License number text field
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: _errorText != null ? Colors.red : Colors.grey.shade300,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: TextField(
-                          controller: _licenseController,
-                          decoration: InputDecoration(
-                            hintText: getHintText(),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                            errorText: _errorText,
-                            errorStyle: const TextStyle(
-                              fontSize: 0,
-                              height: 0,
+                              // Apply appropriate input formatter based on license type
+                              inputFormatters: [
+                                if (dropdownValue == 'NREMT')
+                                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                                if (dropdownValue == 'EMT(KOREA)')
+                                  FilteringTextInputFormatter.digitsOnly,
+                                if (dropdownValue == 'EMS')
+                                  FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              // Add maxLength constraint for KOREA and EMS
+                              maxLength: dropdownValue == 'EMT(KOREA)' 
+                                  ? 6 
+                                  : dropdownValue == 'EMS' 
+                                    ? 12 
+                                    : null,
+                              // Hide counter text for a cleaner UI
+                              buildCounter: (
+                                BuildContext context, {
+                                required int currentLength,
+                                required bool isFocused,
+                                required int? maxLength,
+                              }) => null,
+                              onChanged: (text) => _validateInput(),
                             ),
                           ),
-                          // Apply appropriate input formatter based on license type
-                          inputFormatters: [
-                            if (dropdownValue == 'NREMT')
-                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                            if (dropdownValue == 'EMT(KOREA)')
-                              FilteringTextInputFormatter.digitsOnly,
-                            if (dropdownValue == 'EMS')
-                              FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          // Add maxLength constraint for KOREA and EMS
-                          maxLength: dropdownValue == 'EMT(KOREA)' 
-                              ? 6 
-                              : dropdownValue == 'EMS' 
-                                ? 12 
-                                : null,
-                          // Hide counter text for a cleaner UI
-                          buildCounter: (
-                            BuildContext context, {
-                            required int currentLength,
-                            required bool isFocused,
-                            required int? maxLength,
-                          }) => null,
-                          onChanged: (text) => _validateInput(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_errorText != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0, left: 8.0),
+                      child: Text(
+                        _errorText!,
+                        style: GoogleFonts.notoSans(
+                          fontSize: 12,
+                          color: Colors.red,
                         ),
                       ),
                     ),
-                  ],
-                ),
-                if (_errorText != null)
+                  const SizedBox(height: 16),
+                  // License format hint
                   Padding(
-                    padding: const EdgeInsets.only(top: 8.0, left: 8.0),
+                    padding: const EdgeInsets.only(left: 8.0),
                     child: Text(
-                      _errorText!,
+                      'Format: ${licenseFormats[dropdownValue]}',
                       style: GoogleFonts.notoSans(
                         fontSize: 12,
-                        color: Colors.red,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ),
-                const SizedBox(height: 16),
-                // License format hint
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Text(
-                    'Format: ${licenseFormats[dropdownValue]}',
-                    style: GoogleFonts.notoSans(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ),
-                if (_verificationMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
-                    child: Text(
-                      _verificationMessage!,
-                      style: GoogleFonts.notoSans(
-                        fontSize: 14,
-                        color: _isVerificationError ? Colors.red : Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 120),
-                // "Don't know your license number?" link
-                Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      // No functionality as requested
-                    },
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: "Don't know your license number? ",
-                            style: GoogleFonts.notoSans(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                          ),
-                          TextSpan(
-                            text: 'Learn more',
-                            style: GoogleFonts.notoSans(
-                              fontSize: 14,
-                              color: Colors.blue,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Verify button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: (_isVerifying || !_isLicenseValid || _licenseController.text.isEmpty) 
-                      ? null 
-                      : _verifyLicense,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD94B4B),
-                      disabledBackgroundColor: Colors.grey,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: _isVerifying
-                      ? CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                        'Verify License',
+                  if (_verificationMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+                      child: Text(
+                        _verificationMessage!,
                         style: GoogleFonts.notoSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          fontSize: 14,
+                          color: _isVerificationError ? Colors.red : Colors.green,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ),
+                  const SizedBox(height: 120),
+                  // "Don't know your license number?" link
+                  Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        // No functionality as requested
+                      },
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: "Don't know your license number? ",
+                              style: GoogleFonts.notoSans(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'Learn more',
+                              style: GoogleFonts.notoSans(
+                                fontSize: 14,
+                                color: Colors.blue,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-              ],
+                  const SizedBox(height: 16),
+                  // Verify button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: (_isVerifying || !_isLicenseValid || _licenseController.text.isEmpty) 
+                        ? null 
+                        : _verifyLicense,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD94B4B),
+                        disabledBackgroundColor: Colors.grey,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isVerifying
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                          'Verify License',
+                          style: GoogleFonts.notoSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),
