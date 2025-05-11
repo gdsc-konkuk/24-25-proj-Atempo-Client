@@ -6,6 +6,11 @@ import '../models/hospital_model.dart';
 import 'navigation_screen.dart';
 import '../theme/app_theme.dart';
 
+// ort option
+enum SortOption {
+  distance,
+}
+
 class EmergencyRoomListScreen extends StatefulWidget {
   // Hospital list data received from server
   final List<Hospital> hospitals;
@@ -31,6 +36,9 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   StreamSubscription? _hospitalSubscription;
   late String _admissionId;
   
+  // sort option
+  SortOption _currentSortOption = SortOption.distance; // default is distance
+  
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
 
   @override
@@ -40,6 +48,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
     print('[EmergencyRoomListScreen] 🏥 Initializing with ${widget.hospitals.length} hospitals');
     print('[EmergencyRoomListScreen] 🔑 Admission ID: $_admissionId');
     _hospitals = List.from(widget.hospitals);
+    _sortHospitals(); // initial sort
     _subscribeToHospitalUpdates();
   }
 
@@ -50,7 +59,20 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
     super.dispose();
   }
 
-  // Subscribe to real-time hospital list updates
+  // sort hospitals
+  void _sortHospitals() {
+    setState(() {
+      // sort by distance (null items are at the end)
+      _hospitals.sort((a, b) {
+        if (a.distance == null && b.distance == null) return 0;
+        if (a.distance == null) return 1;
+        if (b.distance == null) return -1;
+        return a.distance!.compareTo(b.distance!);
+      });
+    });
+  }
+
+  // subscribe to real-time hospital list updates
   void _subscribeToHospitalUpdates() {
     print('[EmergencyRoomListScreen] 📡 Setting up hospital updates subscription');
     _hospitalSubscription = widget.hospitalService.subscribeToHospitalUpdates().listen(
@@ -76,6 +98,9 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                 _listKey.currentState!.insertItem(_hospitals.length - 1);
               }
             }
+            
+            // when new hospital is added or updated, sort the list
+            _sortHospitals();
           });
         }
       },
@@ -198,11 +223,12 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                         ),
                       ),
                       SizedBox(height: 16),
-                      // Available hospitals count
+                      
+                      // Hospital count
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Available hospitals: ${_hospitals.length}',
@@ -210,22 +236,29 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (_hospitals.isNotEmpty)
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.green[50],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.green[200]!),
+                            SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _sortHospitals,
+                                style: TextButton.styleFrom(
+                                  minimumSize: Size(0, 0),
+                                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  backgroundColor: Colors.grey[200],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
                                 ),
                                 child: Text(
-                                  'Hospitals Available',
+                                  'Distance',
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green[800],
+                                    color: Colors.black87,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ),
+                            ),
                           ],
                         ),
                       ),
@@ -299,37 +332,19 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                   ],
                                 ),
                               )
-                            : AnimatedList(
-                                key: _listKey,
-                                initialItemCount: _hospitals.length,
-                                itemBuilder: (context, index, animation) {
+                            : ListView.builder(
+                                padding: EdgeInsets.only(bottom: 16),
+                                itemCount: _hospitals.length,
+                                itemBuilder: (context, index) {
                                   final isSelected = selectedHospitalIndex == index;
                                   final hospital = _hospitals[index];
                                   
-                                  return SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(1, 0),
-                                      end: Offset.zero,
-                                    ).animate(CurvedAnimation(
-                                      parent: animation,
-                                      curve: Curves.easeOutQuart,
-                                    )),
-                                    child: FadeTransition(
-                                      opacity: Tween<double>(
-                                        begin: 0.0,
-                                        end: 1.0,
-                                      ).animate(CurvedAnimation(
-                                        parent: animation,
-                                        curve: Curves.easeInOut,
-                                      )),
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(bottom: 16.0),
-                                        child: HospitalCard(
-                                          hospital: hospital,
-                                          isSelected: isSelected,
-                                          onSelect: () => selectHospital(index),
-                                        ),
-                                      ),
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 16.0),
+                                    child: HospitalCard(
+                                      hospital: hospital,
+                                      isSelected: isSelected,
+                                      onSelect: () => selectHospital(index),
                                     ),
                                   );
                                 },
@@ -353,8 +368,9 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                 );
               },
               backgroundColor: AppTheme.primaryColor,
-              icon: Icon(Icons.directions),
-              label: Text('Navigate'),
+              foregroundColor: Colors.white,
+              icon: Icon(Icons.directions, color: Colors.white),
+              label: Text('Navigate', style: TextStyle(color: Colors.white)),
             )
           : null,
     );
@@ -374,13 +390,13 @@ class HospitalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = isSelected ? AppTheme.primaryColor : Colors.grey.shade200;
+    
     return Container(
+      clipBehavior: Clip.antiAlias, // child widgets do not exceed the container boundaries
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(12),
-        border: isSelected
-            ? Border.all(color: AppTheme.primaryColor, width: 2)
-            : Border.all(color: Colors.grey.shade200, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -389,261 +405,243 @@ class HospitalCard extends StatelessWidget {
             offset: Offset(0, 2),
           ),
         ],
+        // If the hospital is not selected, add a border
+        border: isSelected ? null : Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFFFF0F0),
-                    borderRadius: BorderRadius.circular(8),
+          // card content
+          Container(
+            // If the hospital is selected, add a border
+            decoration: isSelected 
+                ? BoxDecoration(
+                    border: Border(
+                      left: BorderSide(color: AppTheme.primaryColor, width: 2),
+                      top: BorderSide(color: AppTheme.primaryColor, width: 2),
+                      right: BorderSide(color: AppTheme.primaryColor, width: 2),
+                    ),
+                  ) 
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Hospital name
+                  Text(
+                    hospital.name,
+                    style: GoogleFonts.notoSans(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.add,
-                    color: AppTheme.primaryColor,
-                    size: 20,
+                  SizedBox(height: 4),
+                  
+                  // Address
+                  Text(
+                    hospital.address,
+                    style: GoogleFonts.notoSans(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
                   ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  
+                  SizedBox(height: 12),
+                  
+                  // Distance and Travel Time
+                  Row(
                     children: [
+                      // Car icon with distance
+                      Icon(
+                        Icons.directions_car,
+                        size: 16,
+                        color: Colors.grey[700],
+                      ),
+                      SizedBox(width: 6),
+                      
+                      // Distance
                       Text(
-                        hospital.name,
+                        hospital.distance != null 
+                            ? '${hospital.distance?.toStringAsFixed(1)}km' 
+                            : '-',
                         style: GoogleFonts.notoSans(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                           color: Colors.black87,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      
+                      SizedBox(width: 16),
+                      
+                      // Clock icon with travel time
+                      Icon(
+                        Icons.access_time,
+                        size: 16,
+                        color: Colors.grey[700],
+                      ),
+                      SizedBox(width: 6),
+                      
+                      // Travel time
                       Text(
-                        hospital.address,
+                        hospital.travelTime != null 
+                            ? '${hospital.travelTime} min' 
+                            : '-',
                         style: GoogleFonts.notoSans(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
                         ),
                       ),
-                      SizedBox(height: 8),
-                      // Distance and travel time information
-                      if (hospital.distance != null || hospital.travelTime != null)
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(16),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Action buttons
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Detail button
+                Expanded(
+                  child: Container(
+                    // If the hospital is selected, add a left border
+                    decoration: isSelected 
+                        ? BoxDecoration(
+                            border: Border(
+                              left: BorderSide(color: AppTheme.primaryColor, width: 2),
+                            ),
+                          ) 
+                        : null,
+                    child: InkWell(
+                      onTap: () {
+                        // Navigate to detail screen or show detail modal
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text('Hospital Details'),
+                            content: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Hospital Name: ${hospital.name}'),
+                                  SizedBox(height: 8),
+                                  Text('Address: ${hospital.address}'),
+                                  SizedBox(height: 8),
+                                  Text('Phone Number: ${hospital.phoneNumber}'),
+                                  SizedBox(height: 8),
+                                  Text('Available Beds: ${hospital.availableBeds}'),
+                                  SizedBox(height: 8),
+                                  Text('Distance: ${hospital.distance != null ? '${hospital.distance?.toStringAsFixed(1)}km' : 'N/A'}'),
+                                  SizedBox(height: 8),
+                                  Text('Travel Time: ${hospital.travelTime != null ? '${hospital.travelTime} min' : 'N/A'}'),
+                                  if (hospital.specialties != null) ...[
+                                    SizedBox(height: 8),
+                                    Text('Specialties: ${hospital.specialties}'),
+                                  ],
+                                  SizedBox(height: 8),
+                                  Text('Status: ${hospital.isAvailable ? "Can accept patients" : "Cannot accept patients"}'),
+                                ],
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text('Close'),
+                              )
+                            ],
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.directions_car,
-                                size: 14,
-                                color: Colors.blue[700],
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                hospital.distance != null 
-                                    ? '${hospital.distance?.toStringAsFixed(1)}km' 
-                                    : '',
-                                style: GoogleFonts.notoSans(
-                                  fontSize: 12,
-                                  color: Colors.blue[700],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              if (hospital.distance != null && hospital.travelTime != null)
-                                Text(' • ', style: TextStyle(color: Colors.blue[700])),
-                              if (hospital.travelTime != null)
-                                Text(
-                                  '${hospital.travelTime}min',
+                        );
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            right: BorderSide(color: Colors.grey.shade200),
+                          ),
+                        ),
+                        child: Text(
+                          'Detail',
+                          style: GoogleFonts.notoSans(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Select button
+                Expanded(
+                  child: isSelected
+                      // If the hospital is selected, add a border
+                      ? Container(
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            borderRadius: BorderRadius.only(
+                              bottomRight: Radius.circular(12),
+                            ),
+                            // Add a right and bottom border
+                            border: Border(
+                              right: BorderSide(color: AppTheme.primaryColor, width: 2),
+                              bottom: BorderSide(color: AppTheme.primaryColor, width: 2),
+                            ),
+                          ),
+                          child: InkWell(
+                            onTap: hospital.isAvailable ? onSelect : null,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                              width: double.infinity,
+                              child: Center(
+                                child: Text(
+                                  'Selected',
                                   style: GoogleFonts.notoSans(
-                                    fontSize: 12,
-                                    color: Colors.blue[700],
+                                    color: Colors.white,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                            ],
+                              ),
+                            ),
+                          ),
+                        )
+                      // If the hospital is not selected, add a border
+                      : InkWell(
+                          onTap: hospital.isAvailable ? onSelect : null,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: hospital.isAvailable ? null : Colors.grey[200],
+                              borderRadius: BorderRadius.only(
+                                bottomRight: Radius.circular(11),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                hospital.isAvailable ? 'Select' : 'Not Available',
+                                style: GoogleFonts.notoSans(
+                                  color: hospital.isAvailable 
+                                      ? AppTheme.primaryColor 
+                                      : Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      SizedBox(height: 12),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFFFF0F0),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.hotel,
-                                  size: 16,
-                                  color: Colors.black54,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Available beds: ${hospital.availableBeds}',
-                                  style: GoogleFonts.notoSans(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.phone,
-                                  size: 16,
-                                  color: Colors.black54,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  hospital.phoneNumber,
-                                  style: GoogleFonts.notoSans(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Specialties information
-                      if (hospital.specialties != null && hospital.specialties!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: hospital.specialties!.split(',').map((specialty) {
-                              return Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey[300]!),
-                                ),
-                                child: Text(
-                                  specialty.trim(),
-                                  style: GoogleFonts.notoSans(
-                                    fontSize: 12,
-                                    color: Colors.grey[800],
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                    ],
-                  ),
                 ),
               ],
             ),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () {
-                    // Navigate to detail screen or show detail modal
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text('Hospital Details'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Hospital Name: ${hospital.name}'),
-                            SizedBox(height: 8),
-                            Text('Address: ${hospital.address}'),
-                            SizedBox(height: 8),
-                            Text('Phone Number: ${hospital.phoneNumber}'),
-                            SizedBox(height: 8),
-                            Text('Available Beds: ${hospital.availableBeds}'),
-                            if (hospital.specialties != null) ...[
-                              SizedBox(height: 8),
-                              Text('Specialties: ${hospital.specialties}'),
-                            ],
-                            SizedBox(height: 8),
-                            Text('Status: ${hospital.isAvailable ? "Can accept patients" : "Cannot accept patients"}'),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('Close'),
-                          )
-                        ],
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: Colors.grey.shade200),
-                        right: BorderSide(color: Colors.grey.shade200),
-                      ),
-                    ),
-                    child: Text(
-                      'Detail',
-                      style: GoogleFonts.notoSans(
-                        color: AppTheme.primaryColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: InkWell(
-                  onTap: hospital.isAvailable ? onSelect : null,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: isSelected 
-                          ? AppTheme.primaryColor 
-                          : (hospital.isAvailable ? null : Colors.grey[200]),
-                      borderRadius: BorderRadius.only(
-                        bottomRight: Radius.circular(12),
-                      ),
-                      border: Border(
-                        top: BorderSide(color: Colors.grey.shade200),
-                      ),
-                    ),
-                    child: Text(
-                      isSelected 
-                          ? 'Selected' 
-                          : (hospital.isAvailable ? 'Select' : 'Not Available'),
-                      style: GoogleFonts.notoSans(
-                        color: isSelected 
-                            ? Colors.white 
-                            : (hospital.isAvailable ? AppTheme.primaryColor : Colors.grey[600]),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
