@@ -590,7 +590,7 @@ class _MapScreenState extends State<MapScreen> {
                             left: 0,
                             right: 0,
                             child: Container(
-                              margin: EdgeInsets.symmetric(horizontal: 50),
+                              margin: EdgeInsets.symmetric(horizontal: 16),
                               padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.95),
@@ -609,6 +609,8 @@ class _MapScreenState extends State<MapScreen> {
                                 style: AppTheme.textTheme.bodyLarge?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.visible,
                               ),
                             ),
                           ),
@@ -628,9 +630,24 @@ class _MapScreenState extends State<MapScreen> {
                               ),
                             ),
                           
-                          // Address and coordinate information display panel
+                          // Current location button (위치 변경: bottom을 80에서 16으로 변경)
                           Positioned(
-                            bottom: 80,
+                            right: 16,
+                            bottom: 16,
+                            child: FloatingActionButton(
+                              heroTag: "currentLocationButton",
+                              onPressed: _getCurrentLocation,
+                              backgroundColor: Colors.white,
+                              child: Icon(
+                                Icons.my_location,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ),
+                          
+                          // Address and coordinate information display panel (위치 변경: bottom을 150으로 수정)
+                          Positioned(
+                            bottom: 150,
                             left: 16,
                             right: 16,
                             child: Container(
@@ -675,21 +692,6 @@ class _MapScreenState extends State<MapScreen> {
                                         ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          ),
-                          
-                          // Current location button
-                          Positioned(
-                            right: 16,
-                            bottom: 150,
-                            child: FloatingActionButton(
-                              heroTag: "currentLocationButton",
-                              onPressed: _getCurrentLocation,
-                              backgroundColor: Colors.white,
-                              child: Icon(
-                                Icons.my_location,
-                                color: AppTheme.primaryColor,
                               ),
                             ),
                           ),

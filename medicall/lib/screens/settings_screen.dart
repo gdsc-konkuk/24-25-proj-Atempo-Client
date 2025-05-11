@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/settings_provider.dart';
+import '../theme/app_theme.dart';
 import 'faq_screen.dart';
 import 'contact_us_screen.dart';
 import 'about_us_screen.dart';
@@ -45,26 +46,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Text(
                       'Search Radius Settings',
-                      style: GoogleFonts.notoSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTheme.textTheme.displaySmall,
                     ),
                     SizedBox(height: 20),
                     Text(
                       '${tempRadius.toInt()}km',
-                      style: GoogleFonts.notoSans(fontSize: 16),
+                      style: AppTheme.textTheme.bodyLarge,
                     ),
                     SizedBox(height: 10),
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: const Color(0xFFD94B4B),
+                        activeTrackColor: AppTheme.primaryColor,
                         inactiveTrackColor: Colors.grey[300],
-                        thumbColor: const Color(0xFFD94B4B),
+                        thumbColor: AppTheme.primaryColor,
                         thumbShape: RoundSliderThumbShape(
                           enabledThumbRadius: 8.0,
                         ),
-                        overlayColor: const Color(0xFFD94B4B).withAlpha(50),
+                        overlayColor: AppTheme.primaryColor.withAlpha(50),
                       ),
                       child: Slider(
                         min: 1,
@@ -90,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Text(
                             'Confirm',
                             style: GoogleFonts.notoSans(
-                              color: const Color(0xFFD94B4B),
+                              color: AppTheme.primaryColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -113,34 +111,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final searchRadius = context.watch<SettingsProvider>().searchRadius;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: RichText(
-          text: TextSpan(
-            style: GoogleFonts.notoSans(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            children: [
-              TextSpan(text: 'Medi'),
-              WidgetSpan(
-                child: Transform.translate(
-                  offset: Offset(0, -2),
-                  child: Icon(Icons.call, color: Colors.white, size: 20),
-                ),
-                alignment: PlaceholderAlignment.middle,
-              ),
-              TextSpan(text: 'all'),
-            ],
-          ),
-        ),
-        backgroundColor: const Color(0xFFD94B4B),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppTheme.buildAppBar(
+        title: 'Settings',
+        leading: AppTheme.buildBackButton(context),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -152,16 +126,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Icon(
                     Icons.settings,
-                    color: Colors.red[400],
+                    color: AppTheme.primaryColor,
                     size: 28,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Settings',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTheme.textTheme.displayMedium,
                   ),
                 ],
               ),
@@ -176,18 +147,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListTile(
                 title: Text(
                   'Search Radius',
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                  style: AppTheme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                subtitle: Text('Current search radius setting'),
+                subtitle: Text(
+                  'Current search radius setting',
+                  style: AppTheme.textTheme.bodyMedium,
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       '${searchRadius.toInt()}km',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
+                      style: AppTheme.textTheme.bodyLarge,
                     ),
                     Icon(Icons.chevron_right),
                   ],
@@ -202,16 +175,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Icon(
                     Icons.headset_mic_outlined,
-                    color: Colors.red[400],
+                    color: AppTheme.primaryColor,
                     size: 28,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Customer Service',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTheme.textTheme.displaySmall,
                   ),
                 ],
               ),
@@ -228,9 +198,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ListTile(
                     title: Text(
                       'Contact Us',
-                      style: TextStyle(fontWeight: FontWeight.w500),
+                      style: AppTheme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    subtitle: Text('1:1 Inquiry'),
+                    subtitle: Text(
+                      '1:1 Inquiry',
+                      style: AppTheme.textTheme.bodyMedium,
+                    ),
                     trailing: Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.push(
@@ -243,9 +218,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ListTile(
                     title: Text(
                       'FAQ',
-                      style: TextStyle(fontWeight: FontWeight.w500),
+                      style: AppTheme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    subtitle: Text('Frequently Asked Questions'),
+                    subtitle: Text(
+                      'Frequently Asked Questions',
+                      style: AppTheme.textTheme.bodyMedium,
+                    ),
                     trailing: Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.push(
@@ -264,16 +244,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    color: Colors.red[400],
+                    color: AppTheme.primaryColor,
                     size: 28,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'About',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTheme.textTheme.displaySmall,
                   ),
                 ],
               ),
@@ -290,9 +267,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ListTile(
                     title: Text(
                       'About Us',
-                      style: TextStyle(fontWeight: FontWeight.w500),
+                      style: AppTheme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    subtitle: Text('About our team and project'),
+                    subtitle: Text(
+                      'About our team and project',
+                      style: AppTheme.textTheme.bodyMedium,
+                    ),
                     trailing: Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.push(

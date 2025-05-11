@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 class FAQScreen extends StatelessWidget {
   const FAQScreen({Key? key}) : super(key: key);
@@ -7,34 +8,10 @@ class FAQScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: RichText(
-          text: TextSpan(
-            style: GoogleFonts.notoSans(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            children: [
-              TextSpan(text: 'Medi'),
-              WidgetSpan(
-                child: Transform.translate(
-                  offset: Offset(0, -2),
-                  child: Icon(Icons.call, color: Colors.white, size: 20),
-                ),
-                alignment: PlaceholderAlignment.middle,
-              ),
-              TextSpan(text: 'all'),
-            ],
-          ),
-        ),
-        backgroundColor: const Color(0xFFD94B4B),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppTheme.buildAppBar(
+        title: 'FAQ',
+        leading: AppTheme.buildBackButton(context),
       ),
       body: ListView(
         padding: EdgeInsets.all(16),
@@ -44,16 +21,13 @@ class FAQScreen extends StatelessWidget {
             children: [
               Icon(
                 Icons.help_outline,
-                color: Colors.red[400],
+                color: AppTheme.primaryColor,
                 size: 28,
               ),
               SizedBox(width: 8),
               Text(
                 'Frequently Asked Questions',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTheme.textTheme.displayMedium,
               ),
             ],
           ),
@@ -152,7 +126,7 @@ class FAQScreen extends StatelessWidget {
         Card(
           margin: EdgeInsets.only(bottom: 2),
           elevation: 0,
-          color: const Color(0xFFD94B4B).withOpacity(0.08),
+          color: AppTheme.primaryColor.withOpacity(0.08),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(12),
@@ -165,14 +139,13 @@ class FAQScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Icon(Icons.help, color: const Color(0xFFD94B4B), size: 20),
+                Icon(Icons.help, color: AppTheme.primaryColor, size: 20),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     question,
-                    style: TextStyle(
+                    style: AppTheme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
                     ),
                   ),
                 ),
@@ -196,8 +169,7 @@ class FAQScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               answer,
-              style: TextStyle(
-                fontSize: 14,
+              style: AppTheme.textTheme.bodyMedium?.copyWith(
                 height: 1.5,
               ),
             ),

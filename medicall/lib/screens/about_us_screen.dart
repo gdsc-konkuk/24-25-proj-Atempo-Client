@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../theme/app_theme.dart';
 
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({Key? key}) : super(key: key);
@@ -15,34 +16,10 @@ class AboutUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: RichText(
-          text: TextSpan(
-            style: GoogleFonts.notoSans(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            children: [
-              TextSpan(text: 'Medi'),
-              WidgetSpan(
-                child: Transform.translate(
-                  offset: Offset(0, -2),
-                  child: Icon(Icons.call, color: Colors.white, size: 20),
-                ),
-                alignment: PlaceholderAlignment.middle,
-              ),
-              TextSpan(text: 'all'),
-            ],
-          ),
-        ),
-        backgroundColor: const Color(0xFFD94B4B),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppTheme.buildAppBar(
+        title: 'About Us',
+        leading: AppTheme.buildBackButton(context),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -55,16 +32,13 @@ class AboutUsScreen extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    color: Colors.red[400],
+                    color: AppTheme.primaryColor,
                     size: 28,
                   ),
                   SizedBox(width: 8),
                   Text(
                     'About Us',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTheme.textTheme.displayMedium,
                   ),
                 ],
               ),
@@ -84,32 +58,25 @@ class AboutUsScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.school, color: Colors.red[400]),
+                          Icon(Icons.school, color: AppTheme.primaryColor),
                           SizedBox(width: 8),
                           Text(
                             'Our Team',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: AppTheme.textTheme.displaySmall,
                           ),
                         ],
                       ),
                       SizedBox(height: 16),
                       Text(
                         'Atempo from Konkuk University, South Korea',
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: AppTheme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       SizedBox(height: 8),
                       Text(
                         'We are a team of students dedicated to improving emergency medical services through technology.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.5,
-                        ),
+                        style: AppTheme.textTheme.bodyMedium,
                       ),
                     ],
                   ),
@@ -137,14 +104,11 @@ class AboutUsScreen extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.video_library, color: Colors.red[400]),
+                            Icon(Icons.video_library, color: AppTheme.primaryColor),
                             SizedBox(width: 8),
                             Text(
                               'Campaign Video',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: AppTheme.textTheme.displaySmall,
                             ),
                           ],
                         ),
@@ -178,7 +142,7 @@ class AboutUsScreen extends StatelessWidget {
                             ),
                             CircleAvatar(
                               radius: 24,
-                              backgroundColor: Colors.red[400]!.withOpacity(0.8),
+                              backgroundColor: AppTheme.primaryColor.withOpacity(0.8),
                               child: Icon(
                                 Icons.play_arrow,
                                 color: Colors.white,
@@ -190,10 +154,7 @@ class AboutUsScreen extends StatelessWidget {
                         SizedBox(height: 12),
                         Text(
                           'Watch our campaign video to learn more about Medicall',
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.5,
-                          ),
+                          style: AppTheme.textTheme.bodyMedium,
                         ),
                       ],
                     ),
@@ -217,14 +178,11 @@ class AboutUsScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.code, color: Colors.red[400]),
+                          Icon(Icons.code, color: AppTheme.primaryColor),
                           SizedBox(width: 8),
                           Text(
                             'GitHub Repositories',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: AppTheme.textTheme.displaySmall,
                           ),
                         ],
                       ),

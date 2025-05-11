@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../theme/app_theme.dart';
 
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({Key? key}) : super(key: key);
@@ -16,34 +17,10 @@ class ContactUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: RichText(
-          text: TextSpan(
-            style: GoogleFonts.notoSans(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            children: [
-              TextSpan(text: 'Medi'),
-              WidgetSpan(
-                child: Transform.translate(
-                  offset: Offset(0, -2),
-                  child: Icon(Icons.call, color: Colors.white, size: 20),
-                ),
-                alignment: PlaceholderAlignment.middle,
-              ),
-              TextSpan(text: 'all'),
-            ],
-          ),
-        ),
-        backgroundColor: const Color(0xFFD94B4B),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppTheme.buildAppBar(
+        title: 'Contact Us',
+        leading: AppTheme.buildBackButton(context),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -56,16 +33,13 @@ class ContactUsScreen extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.contact_support_outlined,
-                    color: Colors.red[400],
+                    color: AppTheme.primaryColor,
                     size: 28,
                   ),
                   SizedBox(width: 8),
                   Text(
                     'Contact Us',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTheme.textTheme.displayMedium,
                   ),
                 ],
               ),
@@ -77,7 +51,7 @@ class ContactUsScreen extends StatelessWidget {
                 color: Colors.white, 
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: const Color(0xFFD94B4B), width: 1.5), 
+                  side: BorderSide(color: AppTheme.primaryColor, width: 1.5), 
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -86,22 +60,18 @@ class ContactUsScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.email_outlined, color: const Color(0xFFD94B4B), size: 28),
+                          Icon(Icons.email_outlined, color: AppTheme.primaryColor, size: 28),
                           SizedBox(width: 8),
                           Text(
                             'Email Us',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF303030),
-                            ),
+                            style: AppTheme.textTheme.displaySmall,
                           ),
                         ],
                       ),
                       SizedBox(height: 16),
                       Text(
                         'Have a question or feedback? Reach out to us directly:',
-                        style: TextStyle(fontSize: 14),
+                        style: AppTheme.textTheme.bodyMedium,
                       ),
                       SizedBox(height: 12),
                       InkWell(
@@ -148,9 +118,9 @@ class ContactUsScreen extends StatelessWidget {
                       SizedBox(height: 8),
                       Text(
                         'We typically respond within 24-48 hours',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: AppTheme.textTheme.bodyMedium?.copyWith(
                           color: Colors.grey[600],
+                          fontSize: 12,
                         ),
                       ),
                     ],
