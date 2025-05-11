@@ -5,6 +5,7 @@ import '../services/hospital_service.dart';
 import '../models/hospital_model.dart';
 import 'navigation_screen.dart';
 import '../theme/app_theme.dart';
+import 'package:lottie/lottie.dart';
 
 // ort option
 enum SortOption {
@@ -273,33 +274,23 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     SizedBox(
-                                      width: 40,
-                                      height: 40,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                                      width: 200,
+                                      height: 200,
+                                      child: Lottie.asset(
+                                        'assets/images/spinner_call.lottie',
+                                        fit: BoxFit.contain,
                                       ),
                                     ),
                                     SizedBox(height: 16),
                                     Text(
-                                      'We are continuously searching for hospitals. New hospitals will be added to the list automatically when they respond.',
+                                      'AI is calling the hospital to confirm the hospital\'s ability to accept patients',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 16,
                                         color: Colors.grey[600],
                                       ),
                                     ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Please wait a moment. We are contacting the emergency hospital.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[500],
-                                      ),
-                                    ),
                                     SizedBox(height: 24),
-                                    // Loading animation improvement
                                     Container(
                                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                       decoration: BoxDecoration(
@@ -315,15 +306,6 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,
                                               valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
-                                            ),
-                                          ),
-                                          SizedBox(width: 12),
-                                          Text(
-                                            'Real-time searching...',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.orange[800],
-                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ],
