@@ -322,130 +322,139 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get AuthProvider instance
-    final authProvider = Provider.of<AuthProvider>(context);
+    // Get screen dimensions to position elements correctly
+    final screenHeight = MediaQuery.of(context).size.height;
+    
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 40),
-                Image.asset(
-                  'assets/images/logo_white.png',
-                  width: 150,
-                  fit: BoxFit.contain,
-                  color: Colors.black,
-                ),
-                SizedBox(height: 12),
-                Text(
-                  "Find the right ER, right now.",
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'Pretendard',
-                  ),
-                ),
-                
-                SizedBox(height: 40),
-                
-                Center(
-                  child: Container(
-                    height: 220,
-                    child: Image.asset(
-                      'assets/images/ambulance.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-                
-                SizedBox(height: 60),
-                
-                Text(
-                  "Login",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Pretendard',
+        child: Column(
+          children: [
+            // Top logo and tagline - fixed at top
+            Padding(
+              padding: EdgeInsets.fromLTRB(20, 40, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Image.asset(
+                    'assets/images/logo_color.png',
+                    width: 150,
+                    fit: BoxFit.contain,
                     color: Colors.black,
                   ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  "Welcome to MediCall",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                    fontFamily: 'Pretendard',
-                    color: Colors.black87,
-                  ),
-                ),
-                
-                SizedBox(height: 24),
-                
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    "We only use your account for identity verification. Your data is safe.",
+                  SizedBox(height: 12),
+                  Text(
+                    "Find the right ER, right now.",
                     style: TextStyle(
-                      fontSize: 14,
+                      color: Colors.black87,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
                       fontFamily: 'Pretendard',
-                      color: Colors.black54,
                     ),
                   ),
-                ),
-                
-                SizedBox(height: 20),
-                
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black87,
-                    elevation: 1,
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    minimumSize: Size(double.infinity, 56),
-                  ),
-                  onPressed: _isLoading ? null : _launchOAuth,
-                  child: _isLoading
-                      ? SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(color: const Color(0xFFD94B4B)),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/images/google_logo.png',
-                              height: 24,
-                            ),
-                            SizedBox(width: 12),
-                            Text(
-                              "Continue with Google",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontFamily: 'Pretendard',
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-                if (_statusMessage.isNotEmpty) ...[
-                  SizedBox(height: 20),
-                  Center(child: Text(_statusMessage, style: TextStyle(color: Colors.red))),
                 ],
-              ],
+              ),
             ),
-          ),
+            
+            // Ambulance image in the center
+            Expanded(
+              child: Center(
+                child: Image.asset(
+                  'assets/images/ambulance.png',
+                  width: 250, // Make the image larger
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            
+            // Login section at bottom
+            Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 40), // Bottom padding to keep it off the very bottom
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Login",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Pretendard',
+                      color: Colors.black,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "Welcome to MediCall",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                      fontFamily: 'Pretendard',
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      "We only use your account for identity verification. Your data is safe.",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontFamily: 'Pretendard',
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                  
+                  SizedBox(height: 20),
+                  
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      elevation: 1,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      minimumSize: Size(double.infinity, 56),
+                    ),
+                    onPressed: _isLoading ? null : _launchOAuth,
+                    child: _isLoading
+                        ? SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(color: const Color(0xFFD94B4B)),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/images/google_logo.png',
+                                height: 24,
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                "Continue with Google",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontFamily: 'Pretendard',
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                  if (_statusMessage.isNotEmpty) ...[
+                    SizedBox(height: 20),
+                    Center(child: Text(_statusMessage, style: TextStyle(color: Colors.red))),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
