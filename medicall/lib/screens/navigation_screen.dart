@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../providers/location_provider.dart';
 import 'dart:math';
 import 'error_screen.dart';
+import '../theme/app_theme.dart';
 
 class NavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -155,23 +156,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
         ),
       };
       
-      // Set up polylines (simulating a route)
+      // Set up polylines with a more realistic route (curved path with waypoints)
+      List<LatLng> routePoints = _generateRealisticRoute(_currentLocation, _destinationLocation);
+      
       _polylines = {
         Polyline(
           polylineId: PolylineId('route'),
-          points: [
-            _currentLocation,
-            LatLng(
-              _currentLocation.latitude + (_destinationLocation.latitude - _currentLocation.latitude) * 0.3,
-              _currentLocation.longitude + (_destinationLocation.longitude - _currentLocation.longitude) * 0.3
-            ),
-            LatLng(
-              _currentLocation.latitude + (_destinationLocation.latitude - _currentLocation.latitude) * 0.7,
-              _currentLocation.longitude + (_destinationLocation.longitude - _currentLocation.longitude) * 0.7
-            ),
-            _destinationLocation,
-          ],
-          color: Colors.blue,
+          points: routePoints,
+          color: AppTheme.primaryColor,
           width: 5,
         ),
       };
@@ -185,6 +177,77 @@ class _NavigationScreenState extends State<NavigationScreen> {
         _errorMessage = 'Failed to load route: $e';
       });
     }
+  }
+  
+  // Generate a more realistic route with waypoints following roads
+  List<LatLng> _generateRealisticRoute(LatLng start, LatLng end) {
+    List<LatLng> points = [];
+    
+    // Start point
+    points.add(start);
+    
+    // Calculate the direct distance and angle
+    double dx = end.longitude - start.longitude;
+    double dy = end.latitude - start.latitude;
+    double distance = sqrt(dx * dx + dy * dy);
+    double angle = atan2(dy, dx);
+    
+    // Distance and angle perturbations to simulate road turns
+    Random random = Random(42); // Fixed seed for consistent results
+    
+    // Calculate number of points based on distance
+    int numPoints = max(5, (distance * 2000).round());
+    
+    // Generate points with random offsets to simulate a road-like path
+    double prevAngle = angle;
+    LatLng prevPoint = start;
+    
+    for (int i = 1; i < numPoints; i++) {
+      double t = i / (numPoints - 1);
+      
+      // Perturb the angle slightly to create a curved path
+      double angleOffset = (random.nextDouble() - 0.5) * 0.5; // Small random angle offset
+      prevAngle = prevAngle * 0.8 + (angle + angleOffset) * 0.2; // Smooth the angle changes
+      
+      // Create a slight zigzag effect for roads
+      double zigzagOffset = (random.nextDouble() - 0.5) * 0.001 * (1 - t);
+      
+      // Interpolate points with the perturbed angle and zigzag
+      double lat = start.latitude + t * dy + sin(prevAngle + 1.57) * zigzagOffset;
+      double lng = start.longitude + t * dx + cos(prevAngle + 1.57) * zigzagOffset;
+      
+      LatLng newPoint = LatLng(lat, lng);
+      
+      // Only add the point if it's sufficiently far from the previous one
+      double ptDistance = _haversineDistance(prevPoint, newPoint);
+      if (ptDistance > 0.0002) { // About 20-30 meters
+        points.add(newPoint);
+        prevPoint = newPoint;
+      }
+    }
+    
+    // End point
+    points.add(end);
+    
+    return points;
+  }
+  
+  // Calculate haversine distance between two points (in degrees)
+  double _haversineDistance(LatLng start, LatLng end) {
+    double lat1 = start.latitude;
+    double lon1 = start.longitude;
+    double lat2 = end.latitude;
+    double lon2 = end.longitude;
+    
+    double dLat = (lat2 - lat1) * pi / 180.0;
+    double dLon = (lon2 - lon1) * pi / 180.0;
+    
+    double a = pow(sin(dLat / 2), 2) + 
+               cos(lat1 * pi / 180.0) * 
+               cos(lat2 * pi / 180.0) * 
+               pow(sin(dLon / 2), 2);
+    
+    return 2 * atan2(sqrt(a), sqrt(1 - a));
   }
   
   void _startMapboxNavigation() {
@@ -413,14 +476,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Navigation',
-          style: TextStyle(color: Colors.white),
+      appBar: AppTheme.buildAppBar(
+        title: 'Navigation',
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: Color(0xFFE93C4A),
-        elevation: 0,
-        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: _isSupportedPlatform()
         ? Column(
@@ -428,7 +489,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               // Top navigation info bar
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                color: Color(0xFFE93C4A),
+                color: AppTheme.primaryColor,
                 child: Column(
                   children: [
                     Row(
@@ -438,7 +499,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
                         Expanded(
                           child: Text(
                             widget.hospital['name'] ?? 'Hospital',
-                            style: GoogleFonts.notoSans(
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -613,25 +675,31 @@ class _NavigationScreenState extends State<NavigationScreen> {
                       children: [
                         Text(
                           'ETA: $_eta',
-                          style: TextStyle(
-                            fontSize: 18,
+                          style: AppTheme.textTheme.bodyLarge?.copyWith(
                             fontWeight: FontWeight.bold,
+                            fontSize: 18,
                           ),
                         ),
                         SizedBox(height: 4),
                         Text(
                           '${_duration} (${_distance})',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                          ),
+                          style: AppTheme.textTheme.bodyMedium,
                         ),
                       ],
                     ),
                     ElevatedButton(
                       onPressed: _startMapboxNavigation,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFE93C4A),
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        textStyle: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w600,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: Text('Start Navigation'),
                     ),
@@ -647,8 +715,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 Icon(Icons.map, size: 100, color: Colors.grey),
                 SizedBox(height: 20),
                 Text(
-                  'Maps are only supported on iOS and Android devices',
-                  style: TextStyle(fontSize: 16),
+                  'Map is supported on iOS and Android devices only',
+                  style: AppTheme.textTheme.bodyLarge,
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -667,7 +735,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
             SizedBox(width: 4),
             Text(
               value,
-              style: GoogleFonts.notoSans(
+              style: TextStyle(
+                fontFamily: 'Pretendard',
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -677,7 +746,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
         SizedBox(height: 2),
         Text(
           label,
-          style: GoogleFonts.notoSans(
+          style: TextStyle(
+            fontFamily: 'Pretendard',
             color: Colors.white.withOpacity(0.8),
             fontSize: 12,
           ),
