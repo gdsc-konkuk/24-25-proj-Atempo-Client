@@ -402,19 +402,19 @@ class HospitalService {
       print('[HospitalService] 🔄 SSE data processing');
       print('[HospitalService] 📦 Original data: $data');
       
-      // SSE 데이터 형식 확인 및 처리
+      // Check if the data is empty
       if (data.trim().isEmpty) {
         print('[HospitalService] ⚠️ Empty data received');
         return;
       }
       
-      // 'event:HOSPITAL_INFO_RESPONSE' 같은 형식인지 확인
+      // Check if the format is 'event:HOSPITAL_INFO_RESPONSE'
       if (data.contains('event:HOSPITAL_INFO_RESPONSE')) {
         print('[HospitalService] 📌 Event marker received, ignoring');
         return;
       }
       
-      // 여러 줄의 데이터가 한 번에 올 수 있으므로 라인별로 분리하여 처리
+      // Multiple lines of data may come at once, so process line by line
       final lines = data.split('\n').where((line) => line.trim().isNotEmpty);
       
       for (final line in lines) {
@@ -426,21 +426,21 @@ class HospitalService {
     }
   }
   
-  // 한 줄의 데이터 처리
+  // Process single line of data
   void _processSingleLine(String line) {
     try {
       print('[HospitalService] 🔄 Processing single line: ${line.substring(0, math.min(50, line.length))}${line.length > 50 ? "..." : ""}');
       
-      // SSE 데이터 형식: data: {...JSON data...}
+      // SSE Data format case
       if (line.startsWith('data:')) {
         final jsonData = line.substring(5).trim();
         _processJsonData(jsonData);
       } 
-      // 직접 JSON 형식으로 오는 경우
+      // Direct JSON format case
       else if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
         _processJsonData(line);
       }
-      // JSON 배열 형식 처리 (여러 병원 정보가 한번에 오는 경우)
+      // JSON Array format case
       else if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
         _processJsonArray(line);
       } else {
@@ -451,7 +451,7 @@ class HospitalService {
     }
   }
   
-  // JSON 데이터 처리
+  // JSON Data processing
   void _processJsonData(String jsonString) {
     if (jsonString.isEmpty) {
       print('[HospitalService] ⚠️ Empty JSON data');
@@ -468,7 +468,7 @@ class HospitalService {
         final hospital = Hospital.fromJson(hospitalData);
         print('[HospitalService] ✅ Created hospital object: name=${hospital.name}, id=${hospital.id}');
         
-        // 스트림에 즉시 추가하여 UI 업데이트 트리거
+        // Add to stream immediately to trigger UI update
         _hospitalsStreamController?.add(hospital);
         print('[HospitalService] 📢 Hospital object added to stream');
       } else {
@@ -480,7 +480,7 @@ class HospitalService {
     }
   }
   
-  // JSON 배열 처리
+  // JSON Array processing
   void _processJsonArray(String jsonArrayString) {
     try {
       final List<dynamic> hospitalsData = json.decode(jsonArrayString);
@@ -493,7 +493,7 @@ class HospitalService {
           final hospital = Hospital.fromJson(hospitalData);
           print('[HospitalService] ✅ Created hospital from array: name=${hospital.name}, id=${hospital.id}');
           
-          // 각 병원 정보를 즉시 스트림에 추가
+          // Add each hospital info immediately to stream
           _hospitalsStreamController?.add(hospital);
           print('[HospitalService] 📢 Hospital from array added to stream');
         }

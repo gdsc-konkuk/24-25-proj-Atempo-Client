@@ -9,6 +9,7 @@ import 'package:medicall/screens/mapbox_navigation_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/location_provider.dart';
 import 'dart:math';
+import 'error_screen.dart';
 
 class NavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -51,6 +52,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
     // Get location from location provider (user's selected location)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      
+      // Validate hospital coordinates
+      if (!_validateHospitalCoordinates(widget.hospital)) {
+        _navigateToErrorScreen("Cannot find hospital location.");
+        return;
+      }
+      
       setState(() {
         _currentLocation = LatLng(locationProvider.latitude, locationProvider.longitude);
       });
@@ -60,30 +68,38 @@ class _NavigationScreenState extends State<NavigationScreen> {
     });
     
     // Get hospital location data from widget
-    double hospitalLat;
-    double hospitalLng;
+    double? hospitalLat;
+    double? hospitalLng;
     
     // Type casting for latitude and longitude
     try {
       if (widget.hospital['latitude'] is String) {
         hospitalLat = double.parse(widget.hospital['latitude']);
-      } else {
-        hospitalLat = widget.hospital['latitude']?.toDouble() ?? 37.579617;
+      } else if (widget.hospital['latitude'] != null) {
+        hospitalLat = widget.hospital['latitude'].toDouble();
       }
       
       if (widget.hospital['longitude'] is String) {
         hospitalLng = double.parse(widget.hospital['longitude']);
-      } else {
-        hospitalLng = widget.hospital['longitude']?.toDouble() ?? 126.998898;
+      } else if (widget.hospital['longitude'] != null) {
+        hospitalLng = widget.hospital['longitude'].toDouble();
       }
+      
+      // If coordinates are still null or invalid, don't set a destination
+      if (hospitalLat == null || hospitalLng == null ||
+          hospitalLat < -90 || hospitalLat > 90 ||
+          hospitalLng < -180 || hospitalLng > 180) {
+        print("Invalid hospital coordinates: lat=$hospitalLat, lng=$hospitalLng");
+        return;
+      }
+      
+      // Set destination location
+      _destinationLocation = LatLng(hospitalLat, hospitalLng);
     } catch (e) {
       print("Error parsing hospital coordinates: $e");
-      hospitalLat = 37.579617;  // Default latitude for Seoul National University Hospital
-      hospitalLng = 126.998898; // Default longitude
+      // No default values
+      return;
     }
-    
-    // Set destination location
-    _destinationLocation = LatLng(hospitalLat, hospitalLng);
     
     // Set initial values based on the passed hospital data
     _distance = widget.hospital['distance']?.toString() ?? '0 km';
@@ -181,18 +197,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
       // Creating temporary hospital data for testing
       Map<String, dynamic> hospitalData = Map.from(widget.hospital);
       
-      // If hospital location information is missing, set default values
+      // If hospital location information is missing, show error screen
       if (!hospitalData.containsKey('latitude') || !hospitalData.containsKey('longitude') || 
           hospitalData['latitude'] == null || hospitalData['longitude'] == null) {
-        print("No hospital location info; setting default values.");
-        hospitalData['latitude'] = 37.579617;  // Default latitude for Seoul National University Hospital
-        hospitalData['longitude'] = 126.998898; // Default longitude
-        if (hospitalData['name'] == null) {
-          hospitalData['name'] = 'Seoul National University Hospital';
-        }
-        if (hospitalData['distance'] == null) {
-          hospitalData['distance'] = '5.2 km';
-        }
+        print("No hospital location info; showing error screen.");
+        _navigateToErrorScreen("Cannot find hospital location.");
+        return;
       }
       
       print("Hospital data: $hospitalData");
@@ -206,8 +216,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
         }
       } catch (e) {
         print("Coordinate conversion error: $e");
-        hospitalData['latitude'] = 37.579617;
-        hospitalData['longitude'] = 126.998898;
+        _navigateToErrorScreen("Error converting hospital coordinates: $e");
+        return;
       }
       
       // Add current user location to hospital data
@@ -341,6 +351,64 @@ class _NavigationScreenState extends State<NavigationScreen> {
   
   double min(double a, double b) => a < b ? a : b;
   double max(double a, double b) => a > b ? a : b;
+  
+  // Validate that hospital has valid coordinates
+  bool _validateHospitalCoordinates(Map<String, dynamic> hospital) {
+    try {
+      var lat = hospital['latitude'];
+      var lng = hospital['longitude'];
+      
+      // Check if coordinates exist
+      if (lat == null || lng == null) {
+        print("Hospital coordinates are null");
+        return false;
+      }
+      
+      // Convert to double if needed
+      double latValue;
+      double lngValue;
+      
+      if (lat is String) {
+        latValue = double.parse(lat);
+      } else {
+        latValue = lat.toDouble();
+      }
+      
+      if (lng is String) {
+        lngValue = double.parse(lng);
+      } else {
+        lngValue = lng.toDouble();
+      }
+      
+      // Validate coordinate ranges
+      if (latValue < -90 || latValue > 90 || lngValue < -180 || lngValue > 180) {
+        print("Hospital coordinates out of range: $latValue, $lngValue");
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      print("Error validating hospital coordinates: $e");
+      return false;
+    }
+  }
+  
+  // Navigate to error screen
+  void _navigateToErrorScreen(String errorMessage) {
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => ErrorScreen(
+            title: 'Can\'t start navigation',
+            errorMessage: errorMessage,
+            onRetry: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
+    }
+  }
   
   @override
   Widget build(BuildContext context) {

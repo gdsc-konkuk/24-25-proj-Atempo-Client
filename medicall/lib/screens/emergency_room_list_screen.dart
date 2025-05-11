@@ -56,7 +56,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
       (hospital) {
         print('[EmergencyRoomListScreen] 📥 Received hospital update: ${hospital.name} (ID: ${hospital.id})');
         
-        // 즉시 UI 업데이트를 위해 setState 호출
+        // Call useState to update the hospital list
         if (mounted) {
           setState(() {
             // Check if there's a hospital with the same ID
@@ -70,7 +70,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
               print('[EmergencyRoomListScreen] ➕ Adding new hospital to list (total: ${_hospitals.length + 1})');
               // Add new hospital
               _hospitals.add(hospital);
-              // AnimatedList에 새 아이템이 추가되었음을 알림 - 즉시 애니메이션 시작
+              // Alert when new hospital is added
               if (_listKey.currentState != null) {
                 _listKey.currentState!.insertItem(_hospitals.length - 1);
               }
@@ -92,11 +92,11 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
     );
     print('[EmergencyRoomListScreen] ✅ Hospital updates subscription setup completed');
     
-    // admissionId가 비어있는 경우 (첫 화면 진입 시)
-    // 별도의 코드를 추가하지 않음 - 자동으로 SSE를 통해 병원 정보가 업데이트됨
+    // If the admissionId is empty, set it to the initial value
+    // do nothing
   }
 
-  // 새로운 admission ID를 설정하는 함수 추가
+  // Function to start the new admission ID
   void updateAdmissionId(String newAdmissionId) {
     if (mounted) {
       setState(() {
@@ -300,7 +300,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                       ),
                                     ),
                                     SizedBox(height: 24),
-                                    // 로딩 애니메이션 개선
+                                    // Loading animation improvement
                                     Container(
                                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                       decoration: BoxDecoration(
@@ -496,7 +496,7 @@ class HospitalCard extends StatelessWidget {
                                 Text(' • ', style: TextStyle(color: Colors.blue[700])),
                               if (hospital.travelTime != null)
                                 Text(
-                                  '${hospital.travelTime}분',
+                                  '${hospital.travelTime}min',
                                   style: GoogleFonts.notoSans(
                                     fontSize: 12,
                                     color: Colors.blue[700],

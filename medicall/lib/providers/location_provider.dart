@@ -70,20 +70,20 @@ class LocationProvider with ChangeNotifier {
         if (placemarks.isNotEmpty) {
           final placemark = placemarks[0];
           
-          // 주소 포맷 개선
+          // Improve address formatting
           final List<String> addressComponents = [];
           
-          // 함수 생성: 공백이나 널이 아닌 문자열만 추가
+          // Create function: add only non-empty strings
           void addIfValid(String? component) {
             if (component != null && component.trim().isNotEmpty) {
-              // 이미 추가된 컴포넌트와 중복되지 않는지 확인
+              // Check if the component is not already in the list
               if (!addressComponents.contains(component.trim())) {
                 addressComponents.add(component.trim());
               }
             }
           }
           
-          // 세부 주소부터 추가 (더 구체적인 정보)
+          // Add subThoroughfare first (more specific information)
           addIfValid(placemark.subThoroughfare);
           addIfValid(placemark.thoroughfare);
           addIfValid(placemark.subLocality);
@@ -91,14 +91,14 @@ class LocationProvider with ChangeNotifier {
           addIfValid(placemark.administrativeArea);
           addIfValid(placemark.country);
           
-          // 빈 문자열 확인 및 제거
+          // Check for empty strings and remove them
           final filteredComponents = addressComponents.where((c) => c.isNotEmpty).toList();
           
-          // 주소 컴포넌트가 비어있는 경우 기본값 설정
+          // If address components are empty, set default value
           if (filteredComponents.isEmpty) {
             _address = "Location at ${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}";
           } else {
-            // 역순으로 표시 (국가, 지역, 도시, 거리 순)
+            // Display in reverse order (country, region, city, street)
             _address = filteredComponents.join(', ');
           }
           

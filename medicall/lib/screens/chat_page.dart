@@ -87,7 +87,7 @@ class _ChatPageState extends State<ChatPage> {
   // Set to track selected hashtags
   final Set<String> _selectedTags = {};
 
-  // Emergency Room List Screen 참조를 위한 키
+  // Key for Emergency Room List Screen navigation
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   // Add or remove hashtag
@@ -273,32 +273,32 @@ class _ChatPageState extends State<ChatPage> {
       
       print('[ChatPage] 🔍 Search parameters: radius=${searchRadius}km, patient condition=${patientCondition}');
 
-      // 로딩 상태 초기화
+      // Initialize loading state
       setState(() {
         _isLoading = false;
       });
       
-      // 기존 구독 취소
+      // Cancel existing subscription
       if (_hospitalSubscription != null) {
         print('[ChatPage] 🔄 Cancelling existing subscription before navigation');
         _hospitalSubscription?.cancel();
         _hospitalSubscription = null;
       }
       
-      // EmergencyRoomListScreen으로 즉시 이동
+      // Immediately navigate to hospital list screen before API response
       print('[ChatPage] 🚀 Immediately navigating to hospital list screen before API response');
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => EmergencyRoomListScreen(
-            hospitals: [], // 빈 리스트로 시작
-            admissionId: '', // 아직 ID가 없음
+            hospitals: [], // Start with empty list
+            admissionId: '', // No ID yet
             hospitalService: _hospitalService,
           ),
         ),
       );
       
-      // API 요청 진행 - UI 네비게이션과 병렬로 처리
+      // Process API request in parallel with UI navigation
       print('[ChatPage] 🏥 Now creating admission request using ApiService');
       
       final requestData = {
@@ -315,7 +315,7 @@ class _ChatPageState extends State<ChatPage> {
       if (response != null && response.containsKey('admissionId')) {
         _admissionId = response['admissionId']?.toString() ?? '';
         print('[ChatPage] ✅ Admission created with ID: $_admissionId');
-        // EmergencyRoomListScreen에서 SSE를 통해 자동으로 병원 목록이 업데이트됨
+        // Hospitals will be updated automatically through SSE in EmergencyRoomListScreen
       } else {
         print('[ChatPage] ⚠️ No admission ID received from server');
         throw Exception('No admission ID received from server');

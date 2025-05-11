@@ -26,22 +26,22 @@ class Hospital {
   });
 
   factory Hospital.fromJson(Map<String, dynamic> json) {
-    // SSE 데이터 형식 처리
+    // Handle SSE data format
     if (json.containsKey('name') && json.containsKey('address') && json.containsKey('distance')) {
-      // ID를 고유하게 생성하기 위해 이름과 주소의 해시코드를 사용
+      // Generate unique ID using name and address hash code
       int generatedId = '${json['name']}_${json['address']}'.hashCode;
       
-      // 전화번호 포맷팅 처리
+      // Format phone number
       String formattedPhone = json['phone_number'] ?? '';
       
-      // 부서 정보를 specialties로 사용
+      // Use departments as specialties
       String specialties = json['departments'] ?? '';
       
-      // SSE 응답에는 isAvailable과 availableBeds가 없을 수 있음
+      // SSE response may not have isAvailable and availableBeds
       bool isAvailable = json['is_available'] ?? true;
-      int availableBeds = json['available_beds'] ?? 5; // 기본값 5
+      int availableBeds = json['available_beds'] ?? 5; // Default value 5
       
-      // SSE 응답에는 좌표가 없을 수 있음 - 기본 좌표 사용
+      // SSE response may not have coordinates - use default coordinates
       double lat = json['latitude'] ?? 37.5665;
       double lng = json['longitude'] ?? 126.9780;
       
@@ -60,7 +60,7 @@ class Hospital {
       );
     }
     
-    // 기존 형식 처리
+    // Handle existing format
     return Hospital(
       id: json['id'],
       name: json['name'],

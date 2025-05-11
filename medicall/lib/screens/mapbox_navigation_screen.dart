@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/location_provider.dart';
 import 'emt_license_verification_screen.dart';
 import '../services/hospital_service.dart';
+import 'error_screen.dart';
 
 class MapboxNavigationScreen extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -104,26 +105,39 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
     print("User location from provider: $startLat, $startLng");
     
     // Get hospital location
-    double hospitalLat;
-    double hospitalLng;
+    double? hospitalLat;
+    double? hospitalLng;
+    String hospitalName = widget.hospital['name'] ?? "Hospital";
     
     try {
       // Type casting for hospital coordinates
       if (widget.hospital['latitude'] is String) {
         hospitalLat = double.parse(widget.hospital['latitude']);
-      } else {
-        hospitalLat = widget.hospital['latitude']?.toDouble() ?? 37.579617;
+      } else if (widget.hospital['latitude'] != null) {
+        hospitalLat = widget.hospital['latitude'].toDouble();
       }
       
       if (widget.hospital['longitude'] is String) {
         hospitalLng = double.parse(widget.hospital['longitude']);
-      } else {
-        hospitalLng = widget.hospital['longitude']?.toDouble() ?? 126.998898;
+      } else if (widget.hospital['longitude'] != null) {
+        hospitalLng = widget.hospital['longitude'].toDouble();
+      }
+      
+      // Validate coordinates
+      if (hospitalLat == null || hospitalLng == null) {
+        _navigateToErrorScreen("Can't find location for ${hospitalName}");
+        return;
+      }
+      
+      // Validate coordinate ranges
+      if (hospitalLat < -90 || hospitalLat > 90 || hospitalLng < -180 || hospitalLng > 180) {
+        _navigateToErrorScreen("Invalid coordinates for ${hospitalName}");
+        return;
       }
     } catch (e) {
       print("Error parsing hospital coordinates: $e");
-      hospitalLat = 37.579617;  // Default latitude for Seoul National University Hospital
-      hospitalLng = 126.998898; // Default longitude
+      _navigateToErrorScreen("Error converting hospital coordinates: $e");
+      return;
     }
     
     print("Hospital location: $hospitalLat, $hospitalLng");
@@ -136,7 +150,7 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
     );
     
     _destination = WayPoint(
-      name: widget.hospital['name'] ?? "Hospital",
+      name: hospitalName,
       latitude: hospitalLat,
       longitude: hospitalLng,
     );
@@ -161,6 +175,27 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
     setState(() {
       _isLoading = false;
     });
+  }
+  
+  // Navigate to error screen
+  void _navigateToErrorScreen(String errorMessage) {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => ErrorScreen(
+            title: 'Can\'t start navigation',
+            errorMessage: errorMessage,
+            onRetry: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
+    }
   }
   
   @override
