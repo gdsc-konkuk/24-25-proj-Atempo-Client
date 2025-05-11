@@ -470,17 +470,16 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppTheme.buildAppBar(
         title: 'Medicall',
-        leading: null,
+        leading: IconButton(
+          icon: Icon(Icons.settings, color: Colors.white),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SettingsScreen()),
+            );
+          },
+        ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.settings, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsScreen()),
-              );
-            },
-          ),
           IconButton(
             icon: Icon(Icons.person, color: Colors.white),
             onPressed: () {
