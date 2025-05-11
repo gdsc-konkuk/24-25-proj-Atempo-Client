@@ -4,6 +4,7 @@ import 'dart:async';
 import '../services/hospital_service.dart';
 import '../models/hospital_model.dart';
 import 'navigation_screen.dart';
+import '../theme/app_theme.dart';
 
 class EmergencyRoomListScreen extends StatefulWidget {
   // Hospital list data received from server
@@ -116,58 +117,32 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: Color(0xFFE93C4A),
-        title: Center(
-          child: RichText(
-            text: TextSpan(
-              style: GoogleFonts.notoSans(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              children: [
-                TextSpan(text: 'Medi'),
-                WidgetSpan(
-                  child: Transform.translate(
-                    offset: Offset(0, -2),
-                    child: Icon(Icons.call, color: Colors.white, size: 22),
-                  ),
-                  alignment: PlaceholderAlignment.middle,
-                ),
-                TextSpan(text: 'all'),
-              ],
-            ),
-          ),
-        ),
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppTheme.buildAppBar(
+        title: 'Medicall',
+        leading: AppTheme.buildBackButton(context),
       ),
       body: SafeArea(
         child: isLoading
             ? Center(
-                child: CircularProgressIndicator(color: Color(0xFFE93C4A)),
+                child: CircularProgressIndicator(color: AppTheme.primaryColor),
               )
             : errorMessage.isNotEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.error_outline, color: Color(0xFFE93C4A), size: 48),
+                        Icon(Icons.error_outline, color: AppTheme.errorColor, size: 48),
                         SizedBox(height: 16),
                         Text(
                           errorMessage,
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: AppTheme.textTheme.bodyLarge,
                         ),
                         SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFE93C4A)),
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
                           child: Text('Go Back'),
                         ),
                       ],
@@ -184,19 +159,12 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                           children: [
                             Text(
                               'Nearby Emergency Rooms',
-                              style: GoogleFonts.notoSans(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
+                              style: AppTheme.textTheme.displayMedium,
                             ),
                             SizedBox(height: 4),
                             Text(
                               'Select the hospital you want to visit',
-                              style: GoogleFonts.notoSans(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
+                              style: AppTheme.textTheme.bodyMedium,
                             ),
                             SizedBox(height: 16),
                           ],
@@ -238,10 +206,8 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                           children: [
                             Text(
                               'Available hospitals: ${_hospitals.length}',
-                              style: GoogleFonts.notoSans(
-                                fontSize: 14,
+                              style: AppTheme.textTheme.bodyLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
                               ),
                             ),
                             if (_hospitals.isNotEmpty)
@@ -278,7 +244,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                       height: 40,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 3,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE93C4A)),
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
                                       ),
                                     ),
                                     SizedBox(height: 16),
@@ -386,7 +352,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                   ),
                 );
               },
-              backgroundColor: Color(0xFFE93C4A),
+              backgroundColor: AppTheme.primaryColor,
               icon: Icon(Icons.directions),
               label: Text('Navigate'),
             )
@@ -410,10 +376,10 @@ class HospitalCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(12),
         border: isSelected
-            ? Border.all(color: Color(0xFFE93C4A), width: 2)
+            ? Border.all(color: AppTheme.primaryColor, width: 2)
             : Border.all(color: Colors.grey.shade200, width: 1),
         boxShadow: [
           BoxShadow(
@@ -439,7 +405,7 @@ class HospitalCard extends StatelessWidget {
                   ),
                   child: Icon(
                     Icons.add,
-                    color: Color(0xFFE93C4A),
+                    color: AppTheme.primaryColor,
                     size: 20,
                   ),
                 ),
@@ -639,7 +605,7 @@ class HospitalCard extends StatelessWidget {
                     child: Text(
                       'Detail',
                       style: GoogleFonts.notoSans(
-                        color: Color(0xFFE93C4A),
+                        color: AppTheme.primaryColor,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -654,7 +620,7 @@ class HospitalCard extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: isSelected 
-                          ? Color(0xFFE93C4A) 
+                          ? AppTheme.primaryColor 
                           : (hospital.isAvailable ? null : Colors.grey[200]),
                       borderRadius: BorderRadius.only(
                         bottomRight: Radius.circular(12),
@@ -670,7 +636,7 @@ class HospitalCard extends StatelessWidget {
                       style: GoogleFonts.notoSans(
                         color: isSelected 
                             ? Colors.white 
-                            : (hospital.isAvailable ? Color(0xFFE93C4A) : Colors.grey[600]),
+                            : (hospital.isAvailable ? AppTheme.primaryColor : Colors.grey[600]),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
