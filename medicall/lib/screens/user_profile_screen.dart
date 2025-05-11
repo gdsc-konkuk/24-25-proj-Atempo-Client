@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:medicall/models/user_model.dart';
 import 'package:medicall/services/user_service.dart';
+import '../theme/app_theme.dart';
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -43,37 +44,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('User Profile'),
-        backgroundColor: const Color(0xFFD94B4B),
+      appBar: AppTheme.buildAppBar(
+        title: 'User Profile',
+        leading: AppTheme.buildBackButton(context),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadUserInfo,
           ),
         ],
       ),
       body: _isLoading
           ? Center(
-              child: CircularProgressIndicator(color: const Color(0xFFD94B4B)),
+              child: CircularProgressIndicator(color: AppTheme.primaryColor),
             )
           : _error != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      Icon(Icons.error_outline, color: AppTheme.errorColor, size: 48),
                       SizedBox(height: 16),
                       Text(
                         _error!,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.red),
+                        style: AppTheme.textTheme.bodyLarge?.copyWith(color: AppTheme.errorColor),
                       ),
                       SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadUserInfo,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD94B4B),
+                          backgroundColor: AppTheme.primaryColor,
                         ),
                         child: Text('Try Again'),
                       ),
@@ -96,7 +97,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ? NetworkImage(_user!.photoUrl!)
                 : null,
             child: _user?.photoUrl == null
-                ? Icon(Icons.person, size: 64, color: Colors.grey)
+                ? Icon(Icons.person, size: 64, color: AppTheme.primaryColor)
                 : null,
           ),
         ),
@@ -124,13 +125,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFFD94B4B),
+                color: AppTheme.primaryColor,
               ),
             ),
             Divider(height: 24),
             _buildInfoRow('Name', _user?.name ?? '-'),
             _buildInfoRow('Email', _user?.email ?? '-'),
-            _buildInfoRow('Nickname', _user?.nickName ?? '-'),
             _buildInfoRow('Role', _getRoleText(_user?.role)),
           ],
         ),
@@ -154,7 +154,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFFD94B4B),
+                color: AppTheme.primaryColor,
               ),
             ),
             Divider(height: 24),
@@ -176,7 +176,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             width: 100,
             child: Text(
               label,
-              style: TextStyle(
+              style: AppTheme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Colors.grey[700],
               ),
@@ -185,9 +185,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontSize: 16,
-              ),
+              style: AppTheme.textTheme.bodyLarge,
             ),
           ),
         ],
