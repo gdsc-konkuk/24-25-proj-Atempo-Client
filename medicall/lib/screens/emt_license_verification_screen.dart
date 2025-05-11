@@ -119,7 +119,27 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
       if (!regExp.hasMatch(text)) {
         _errorText = errorMessage;
       } else {
-        _isLicenseValid = true;
+        // 추가: 특정 자격번호만 허용
+        bool isValidLicense = false;
+        switch (dropdownValue) {
+          case 'NREMT':
+            isValidLicense = text == 'GDG143' || text == 'MED911';
+            break;
+          case 'EMT(KOREA)':
+            isValidLicense = text == '123456';
+            break;
+          case 'EMS':
+            isValidLicense = text == '123456789012';
+            break;
+          default:
+            isValidLicense = false;
+        }
+        
+        if (isValidLicense) {
+          _isLicenseValid = true;
+        } else {
+          _errorText = 'Invalid license number';
+        }
       }
     });
   }
@@ -166,6 +186,37 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
           backgroundColor: Colors.red,
         )
       );
+      return;
+    }
+    
+    // Verify license number 
+    bool isValidLicense = false;
+    switch (dropdownValue) {
+      case 'NREMT':
+        isValidLicense = formattedLicense == 'GDG143' || formattedLicense == 'MED911';
+        break;
+      case 'EMT(KOREA)':
+        isValidLicense = formattedLicense == '123456';
+        break;
+      case 'EMS':
+        isValidLicense = formattedLicense == '123456789012';
+        break;
+      default:
+        isValidLicense = false;
+    }
+    
+    if (!isValidLicense) {
+      print('EMT Screen: Invalid license number for $dropdownValue: $formattedLicense');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invalid license number. Please check and try again.'),
+          backgroundColor: Colors.red,
+        )
+      );
+      setState(() {
+        _errorText = 'Invalid license number';
+        _isLicenseValid = false;
+      });
       return;
     }
     
