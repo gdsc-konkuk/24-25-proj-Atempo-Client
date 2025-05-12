@@ -399,7 +399,8 @@ class HospitalCard extends StatelessWidget {
                   // Hospital name
                   Text(
                     hospital.name,
-                    style: GoogleFonts.notoSans(
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                       color: Colors.black87,
@@ -410,7 +411,8 @@ class HospitalCard extends StatelessWidget {
                   // Address
                   Text(
                     hospital.address,
-                    style: GoogleFonts.notoSans(
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
                       fontSize: 14,
                       color: Colors.grey[600],
                     ),
@@ -434,7 +436,8 @@ class HospitalCard extends StatelessWidget {
                         hospital.distance != null 
                             ? '${hospital.distance?.toStringAsFixed(1)}km' 
                             : '-',
-                        style: GoogleFonts.notoSans(
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: Colors.black87,
@@ -456,7 +459,8 @@ class HospitalCard extends StatelessWidget {
                         hospital.travelTime != null 
                             ? '${hospital.travelTime} min' 
                             : '-',
-                        style: GoogleFonts.notoSans(
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: Colors.black87,
@@ -540,7 +544,8 @@ class HospitalCard extends StatelessWidget {
                         ),
                         child: Text(
                           'Detail',
-                          style: GoogleFonts.notoSans(
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
                             color: AppTheme.primaryColor,
                             fontWeight: FontWeight.w500,
                           ),
@@ -574,7 +579,8 @@ class HospitalCard extends StatelessWidget {
                               child: Center(
                                 child: Text(
                                   'Selected',
-                                  style: GoogleFonts.notoSans(
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
                                     color: Colors.white,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -598,7 +604,8 @@ class HospitalCard extends StatelessWidget {
                             child: Center(
                               child: Text(
                                 hospital.isAvailable ? 'Select' : 'Not Available',
-                                style: GoogleFonts.notoSans(
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
                                   color: hospital.isAvailable 
                                       ? AppTheme.primaryColor 
                                       : Colors.grey[600],

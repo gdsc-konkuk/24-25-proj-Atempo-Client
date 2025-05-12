@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
 class FAQScreen extends StatelessWidget {
@@ -27,11 +26,7 @@ class FAQScreen extends StatelessWidget {
               SizedBox(width: 8),
               Text(
                 'Frequently Asked Questions',
-                style: GoogleFonts.pretendard(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+                style: AppTheme.textTheme.displayLarge,
               ),
             ],
           ),
@@ -148,8 +143,7 @@ class FAQScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     question,
-                    style: GoogleFonts.pretendard(
-                      fontSize: 16,
+                    style: AppTheme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -175,8 +169,7 @@ class FAQScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               answer,
-              style: GoogleFonts.pretendard(
-                fontSize: 14,
+              style: AppTheme.textTheme.bodyMedium?.copyWith(
                 height: 1.5,
                 color: Colors.grey[800],
               ),

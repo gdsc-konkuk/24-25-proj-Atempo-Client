@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/settings_provider.dart';
@@ -87,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                           child: Text(
                             'Confirm',
-                            style: GoogleFonts.notoSans(
+                            style: AppTheme.textTheme.bodyLarge?.copyWith(
                               color: AppTheme.primaryColor,
                               fontWeight: FontWeight.bold,
                             ),

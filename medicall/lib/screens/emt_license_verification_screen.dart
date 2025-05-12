@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 import 'package:flutter/services.dart';
+import '../services/api_service.dart';
+import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../providers/auth_provider.dart';
 import '../services/http_client_service.dart';
 import 'map_screen.dart';
 import 'login_screen.dart';
@@ -381,14 +382,14 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
                   // Title
                   Text(
                     'Enter Your',
-                    style: GoogleFonts.notoSans(
+                    style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     'EMT License Number',
-                    style: GoogleFonts.notoSans(
+                    style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),
@@ -397,7 +398,7 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
                   // Subtitle
                   Text(
                     'This service is only available for certified EMTs.',
-                    style: GoogleFonts.notoSans(
+                    style: TextStyle(
                       fontSize: 16,
                       color: Colors.black87,
                     ),
@@ -426,7 +427,7 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
                                   value: value,
                                   child: Text(
                                     value,
-                                    style: GoogleFonts.notoSans(
+                                    style: TextStyle(
                                       fontSize: 16,
                                     ),
                                   ),
@@ -491,7 +492,7 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
                       padding: const EdgeInsets.only(top: 8.0, left: 8.0),
                       child: Text(
                         _errorText!,
-                        style: GoogleFonts.notoSans(
+                        style: TextStyle(
                           fontSize: 12,
                           color: Colors.red,
                         ),
@@ -503,7 +504,7 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
                     padding: const EdgeInsets.only(left: 8.0),
                     child: Text(
                       'Format: ${licenseFormats[dropdownValue]}',
-                      style: GoogleFonts.notoSans(
+                      style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
                       ),
@@ -514,7 +515,7 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
                       padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
                       child: Text(
                         _verificationMessage!,
-                        style: GoogleFonts.notoSans(
+                        style: TextStyle(
                           fontSize: 14,
                           color: _isVerificationError ? Colors.red : Colors.green,
                           fontWeight: FontWeight.bold,
@@ -533,14 +534,14 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
                           children: [
                             TextSpan(
                               text: "Don't know your license number? ",
-                              style: GoogleFonts.notoSans(
+                              style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.black54,
                               ),
                             ),
                             TextSpan(
                               text: 'Learn more',
-                              style: GoogleFonts.notoSans(
+                              style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.blue,
                                 decoration: TextDecoration.underline,
@@ -571,7 +572,7 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
                         ? CircularProgressIndicator(color: Colors.white)
                         : Text(
                           'Verify License',
-                          style: GoogleFonts.notoSans(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,

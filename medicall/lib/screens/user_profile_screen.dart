@@ -6,7 +6,7 @@ import '../services/api_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'login_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -66,8 +66,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.signOut();
       
-      // 로그인 화면으로 이동
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      // 로그인 화면으로 이동 (네임드 라우트가 아닌 직접 화면 이동)
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+        (route) => false
+      );
     } catch (e) {
       setState(() {
         _isLoggingOut = false;
@@ -86,23 +89,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         return AlertDialog(
           title: Text(
             'Confirm Logout',
-            style: GoogleFonts.pretendard(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTheme.textTheme.displayMedium,
           ),
           content: Text(
             'Are you sure you want to logout?',
-            style: GoogleFonts.pretendard(
-              fontSize: 16,
-            ),
+            style: AppTheme.textTheme.bodyLarge,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Cancel',
-                style: GoogleFonts.pretendard(
+                style: TextStyle(
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -117,7 +115,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               },
               child: Text(
                 'Logout',
-                style: GoogleFonts.pretendard(
+                style: TextStyle(
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -197,9 +195,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             ),
                             child: Text(
                               'Logout',
-                              style: GoogleFonts.pretendard(
+                              style: AppTheme.textTheme.bodyLarge?.copyWith(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -246,9 +245,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           children: [
             Text(
               'Profile Details',
-              style: GoogleFonts.pretendard(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+              style: AppTheme.textTheme.displaySmall?.copyWith(
                 color: AppTheme.primaryColor,
               ),
             ),
@@ -275,9 +272,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           children: [
             Text(
               'Certification Information',
-              style: GoogleFonts.pretendard(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+              style: AppTheme.textTheme.displaySmall?.copyWith(
                 color: AppTheme.primaryColor,
               ),
             ),
@@ -300,8 +295,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             width: 100,
             child: Text(
               label,
-              style: GoogleFonts.pretendard(
-                fontSize: 14,
+              style: AppTheme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Colors.grey[700],
               ),
@@ -310,9 +304,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           Expanded(
             child: Text(
               value,
-              style: GoogleFonts.pretendard(
-                fontSize: 16,
-              ),
+              style: AppTheme.textTheme.bodyLarge,
             ),
           ),
         ],

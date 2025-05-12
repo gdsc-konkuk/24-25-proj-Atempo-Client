@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 class ErrorScreen extends StatelessWidget {
   final String title;
@@ -23,7 +23,8 @@ class ErrorScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Error information',
-          style: GoogleFonts.pretendard(
+          style: TextStyle(
+            fontFamily: 'Pretendard',
             color: Colors.white, 
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -48,7 +49,8 @@ class ErrorScreen extends StatelessWidget {
                 SizedBox(height: 24),
                 Text(
                   title,
-                  style: GoogleFonts.pretendard(
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
@@ -57,7 +59,8 @@ class ErrorScreen extends StatelessWidget {
                 SizedBox(height: 16),
                 Text(
                   errorMessage,
-                  style: GoogleFonts.pretendard(
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
                     fontSize: 16,
                     color: Colors.grey[700],
                   ),
@@ -76,7 +79,10 @@ class ErrorScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFFE93C4A),
                       padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                      textStyle: GoogleFonts.pretendard(fontSize: 16),
+                      textStyle: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 SizedBox(height: 16),
@@ -87,7 +93,10 @@ class ErrorScreen extends StatelessWidget {
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.grey[700],
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    textStyle: GoogleFonts.pretendard(fontSize: 16),
+                    textStyle: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ],
