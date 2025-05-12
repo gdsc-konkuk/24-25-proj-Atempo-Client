@@ -277,7 +277,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                       width: 200,
                                       height: 200,
                                       child: Lottie.asset(
-                                        'assets/images/spinner_call.lottie',
+                                        'assets/images/spinner_call.json',
                                         fit: BoxFit.contain,
                                       ),
                                     ),
@@ -296,19 +296,6 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                       decoration: BoxDecoration(
                                         color: Colors.grey[100],
                                         borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
-                                            ),
-                                          ),
-                                        ],
                                       ),
                                     ),
                                   ],
