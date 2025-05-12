@@ -41,7 +41,6 @@ class _ChatPageState extends State<ChatPage> {
   final FocusNode _patientConditionFocusNode = FocusNode();
   var uuid = Uuid();
   String _sessionToken = '1234567890';
-  bool _isLoading = false;
   bool _isProcessing = false;
   final String _apiUrl = '${dotenv.env['API_BASE_URL']!}/api/v1/admissions';
   
@@ -247,11 +246,6 @@ class _ChatPageState extends State<ChatPage> {
   
   // Create admission request
   Future<void> _fetchHospitals() async {
-    setState(() {
-      _isLoading = true;
-      _hospitals = [];
-    });
-
     try {
       print('[ChatPage] 🏥 Starting hospital search process');
       
@@ -279,11 +273,6 @@ class _ChatPageState extends State<ChatPage> {
       
       print('[ChatPage] 🔍 Search parameters: radius=${searchRadius}km, patient condition=${patientCondition}');
 
-      // Initialize loading state
-      setState(() {
-        _isLoading = false;
-      });
-      
       // Cancel existing subscription
       if (_hospitalSubscription != null) {
         print('[ChatPage] 🔄 Cancelling existing subscription before navigation');
@@ -291,47 +280,40 @@ class _ChatPageState extends State<ChatPage> {
         _hospitalSubscription = null;
       }
       
-      // Immediately navigate to hospital list screen before API response
-      print('[ChatPage] 🚀 Immediately navigating to hospital list screen before API response');
+      // 즉시 EmergencyRoomListScreen으로 이동하여 로딩 화면 표시
+      print('[ChatPage] 🚀 Immediately navigating to hospital list screen with loading view');
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => EmergencyRoomListScreen(
-            hospitals: [], // Start with empty list
-            admissionId: '', // No ID yet
+            hospitals: [],
+            admissionId: '', // 아직 ID 없음
             hospitalService: _hospitalService,
+            status: 'SUCCESS', // 초기 상태는 SUCCESS로 설정하여 로딩 화면 표시
           ),
         ),
       );
       
-      // Process API request in parallel with UI navigation
-      print('[ChatPage] 🏥 Now creating admission request using ApiService');
+      // API 요청 실행 (화면 이동 후 병렬로 처리)
+      print('[ChatPage] 🏥 Creating admission request in background');
+      final response = await _hospitalService.createAdmission(
+        latitude, 
+        longitude, 
+        searchRadius, 
+        patientCondition
+      );
       
-      final requestData = {
-        'location': {
-          'latitude': latitude,
-          'longitude': longitude
-        },
-        'search_radius': searchRadius,
-        'patient_condition': patientCondition
-      };
-      
-      final response = await _apiService.post('api/v1/admissions', requestData);
-      
+      // API 응답 확인 (화면 이동 후에도 로그 출력)
       if (response != null && response.containsKey('admissionId')) {
-        _admissionId = response['admissionId']?.toString() ?? '';
-        print('[ChatPage] ✅ Admission created with ID: $_admissionId');
-        // Hospitals will be updated automatically through SSE in EmergencyRoomListScreen
+        _admissionId = response['admissionId'];
+        final String admissionStatus = response['admissionStatus'] ?? 'ERROR';
+        print('[ChatPage] ✅ Admission created with ID: $_admissionId, Status: $admissionStatus');
       } else {
-        print('[ChatPage] ⚠️ No admission ID received from server');
-        throw Exception('No admission ID received from server');
+        print('[ChatPage] ⚠️ No admission ID or status received from server');
       }
-            
     } catch (e) {
       print('[ChatPage] ❌ ERROR: Exception while requesting hospital information: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error occurred while getting hospital information: $e'))
       );
@@ -387,7 +369,7 @@ class _ChatPageState extends State<ChatPage> {
     print('[ChatPage] ✅ Hospital updates subscription setup completed');
   }
   
-  // Retry admission request
+  // Retry admission request with admissionId
   Future<void> _retryAdmission() async {
     if (_admissionId == null) {
       print('[ChatPage] ❌ No previous admission ID found for retry');
@@ -399,62 +381,46 @@ class _ChatPageState extends State<ChatPage> {
     
     print('[ChatPage] 🔄 Retrying admission with ID: $_admissionId');
     setState(() {
-      _isLoading = true;
       _isProcessing = true;
       _processingMessage = "Retrying previous admission request...";
     });
     print('[ChatPage] 📢 Processing message updated: $_processingMessage');
     
     try {
-      // Get coordinates from location provider
-      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-      final latitude = locationProvider.latitude;
-      final longitude = locationProvider.longitude;
+      // Use HospitalService retryAdmission method 
+      final response = await _hospitalService.retryAdmission(_admissionId!);
       
-      // Get searchRadius from Provider
-      final searchRadius = context.read<SettingsProvider>().searchRadius.toInt();
-      
-      // Combine text field content and selected tags (without # symbol)
-      final patientConditionText = _patientConditionController.text.trim();
-      final selectedTagsText = _selectedTags
-          .map((tag) => tag.substring(1)) // Remove # symbol
-          .join(', ');
-      
-      // Combine both inputs
-      final String patientCondition = patientConditionText.isNotEmpty && selectedTagsText.isNotEmpty
-          ? '$patientConditionText. $selectedTagsText'
-          : patientConditionText.isNotEmpty
-              ? patientConditionText
-              : selectedTagsText;
-      
-      // Set up SSE subscription first
-      print('[ChatPage] 📡 Setting up SSE subscription for retry BEFORE admission retry request');
-      _subscribeToHospitalUpdates();
-      
-      // Retry admission request after SSE subscription using ApiService
-      print('[ChatPage] 🔄 Now retrying admission using ApiService');
-      
-      final requestData = {
-        'admissionId': _admissionId,
-        'location': {
-          'latitude': latitude,
-          'longitude': longitude
-        },
-        'search_radius': searchRadius,
-        'patient_condition': patientCondition
-      };
-      
-      await _apiService.post('api/v1/admissions', requestData);
-      
-      setState(() {
-        _processingMessage = "Contacting hospitals...";
-      });
-      print('[ChatPage] 📢 Processing message updated: $_processingMessage');
-      
+      if (response != null && response.containsKey('admissionStatus')) {
+        final String admissionStatus = response['admissionStatus'] ?? 'ERROR';
+        print('[ChatPage] ✅ Admission retry status: $admissionStatus');
+        
+        // 모든 경우 EmergencyRoomListScreen으로 이동
+        print('[ChatPage] 🚀 Navigating to hospital list screen after retry');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EmergencyRoomListScreen(
+              hospitals: [], // Start with empty list
+              admissionId: _admissionId ?? '',
+              hospitalService: _hospitalService,
+              status: admissionStatus, // 상태 전달
+            ),
+          ),
+        );
+      } else {
+        print('[ChatPage] ⚠️ No admission status received from server after retry');
+        setState(() {
+          _isProcessing = false;
+        });
+        
+        // 오류 메시지 표시
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No admission status received from server after retry'))
+        );
+      }
     } catch (e) {
       print('[ChatPage] ❌ Error retrying admission: $e');
       setState(() {
-        _isLoading = false;
         _isProcessing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -468,7 +434,6 @@ class _ChatPageState extends State<ChatPage> {
     print('[ChatPage] 🚀 Navigating to hospital list with ${_hospitals.length} hospitals');
     setState(() {
       _isProcessing = false;
-      _isLoading = false;
     });
     
     Navigator.push(
@@ -771,25 +736,23 @@ class _ChatPageState extends State<ChatPage> {
                         
                         Expanded(
                           flex: _admissionId != null && !_isProcessing ? 2 : 3,
-                          child: _isLoading && !_isProcessing
-                            ? Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
-                            : ElevatedButton(
-                                onPressed: _isProcessing ? null : _fetchHospitals,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primaryColor,
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Find Emergency Room',
-                                  style: AppTheme.textTheme.bodyLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                          child: ElevatedButton(
+                            onPressed: _isProcessing ? null : _fetchHospitals,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryColor,
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                            ),
+                            child: Text(
+                              'Find Emergency Room',
+                              style: AppTheme.textTheme.bodyLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),

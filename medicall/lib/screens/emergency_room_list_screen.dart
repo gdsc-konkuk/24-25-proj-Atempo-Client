@@ -6,6 +6,8 @@ import '../models/hospital_model.dart';
 import 'navigation_screen.dart';
 import '../theme/app_theme.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
+import '../providers/settings_provider.dart';
 
 // ort option
 enum SortOption {
@@ -17,12 +19,14 @@ class EmergencyRoomListScreen extends StatefulWidget {
   final List<Hospital> hospitals;
   final String admissionId;
   final HospitalService hospitalService;
+  final String status; // 추가된 status 파라미터
 
   const EmergencyRoomListScreen({
     Key? key,
     required this.hospitals,
     required this.admissionId,
     required this.hospitalService,
+    this.status = 'SUCCESS', 
   }) : super(key: key);
 
   @override
@@ -36,6 +40,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   late List<Hospital> _hospitals;
   StreamSubscription? _hospitalSubscription;
   late String _admissionId;
+  late String _status; // Add status parameter
   
   // sort option
   SortOption _currentSortOption = SortOption.distance; // default is distance
@@ -46,11 +51,42 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   void initState() {
     super.initState();
     _admissionId = widget.admissionId;
+    _status = widget.status; // Initialize status
     print('[EmergencyRoomListScreen] 🏥 Initializing with ${widget.hospitals.length} hospitals');
     print('[EmergencyRoomListScreen] 🔑 Admission ID: $_admissionId');
+    print('[EmergencyRoomListScreen] 🔑 Status: $_status');
     _hospitals = List.from(widget.hospitals);
     _sortHospitals(); // initial sort
-    _subscribeToHospitalUpdates();
+    
+    // If the status is SUCCESS, subscribe to hospital updates
+    if (_status == 'SUCCESS') {
+      if (_admissionId.isNotEmpty) {
+        _subscribeToHospitalUpdates();
+      } else {
+        // If the admission ID is empty (initial loading) set up the broadcast listener
+        print('[EmergencyRoomListScreen] 🔄 Setting up broadcast listener for admission results');
+        
+        // TODO: Set up the actual broadcast event and use it to receive admission results
+        
+        // Example implementation (for testing purposes): Set the status to SUCCESS or NO_HOSPITAL_FOUND after 5 seconds
+        Future.delayed(Duration(seconds: 5), () {
+          if (mounted) {
+\            setState(() {
+              _admissionId = '123'; // Temporary test ID
+              
+              // Randomly set the status to SUCCESS or NO_HOSPITAL_FOUND (for testing purposes)
+              _status = (DateTime.now().millisecondsSinceEpoch % 2 == 0) ? 'SUCCESS' : 'NO_HOSPITAL_FOUND';
+              
+              print('[EmergencyRoomListScreen] 🔄 Status updated to: $_status');
+              
+              if (_status == 'SUCCESS') {
+                _subscribeToHospitalUpdates();
+              }
+            });
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -88,11 +124,9 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
             
             if (index >= 0) {
               print('[EmergencyRoomListScreen] 🔄 Updating existing hospital at index $index');
-              // Update existing hospital information
               _hospitals[index] = hospital;
             } else {
               print('[EmergencyRoomListScreen] ➕ Adding new hospital to list (total: ${_hospitals.length + 1})');
-              // Add new hospital
               _hospitals.add(hospital);
               // Alert when new hospital is added
               if (_listKey.currentState != null) {
@@ -108,13 +142,38 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
       onError: (error) {
         print('[EmergencyRoomListScreen] ❌ Hospital subscription error: $error');
         if (mounted) {
+          setState(() {
+            errorMessage = 'Error updating hospital information: $error';
+          });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error updating hospital information: $error'))
+            SnackBar(
+              content: Text('Error updating hospital information: $error'),
+              duration: Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Retry',
+                onPressed: () {
+                  // Try to resubscribe
+                  _hospitalSubscription?.cancel();
+                  _subscribeToHospitalUpdates();
+                },
+              ),
+            )
           );
         }
       },
       onDone: () {
         print('[EmergencyRoomListScreen] ✅ Hospital subscription completed');
+        
+        // If hospital data reception is stopped, try to resubscribe
+        if (mounted && _hospitals.isEmpty) {
+          print('[EmergencyRoomListScreen] ⚠️ Hospital subscription ended with no hospitals - attempting to resubscribe');
+          Future.delayed(Duration(seconds: 2), () {
+            if (mounted) {
+              _hospitalSubscription?.cancel();
+              _subscribeToHospitalUpdates();
+            }
+          });
+        }
       },
     );
     print('[EmergencyRoomListScreen] ✅ Hospital updates subscription setup completed');
@@ -174,154 +233,161 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                       ],
                     ),
                   )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header section with fixed height
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Nearby Emergency Rooms',
-                              style: AppTheme.textTheme.displayMedium,
+                : _status != 'SUCCESS'
+                    ? _buildNoHospitalFoundView(context) // NO_HOSPITAL_FOUND, ERROR
+                    : Column( // If the status is SUCCESS, show the hospital list
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header section with fixed height
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Nearby Emergency Rooms',
+                                  style: AppTheme.textTheme.displayMedium,
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Select the hospital you want to visit',
+                                  style: AppTheme.textTheme.bodyMedium,
+                                ),
+                                SizedBox(height: 16),
+                              ],
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Select the hospital you want to visit',
-                              style: AppTheme.textTheme.bodyMedium,
-                            ),
-                            SizedBox(height: 16),
-                          ],
-                        ),
-                      ),
-                      // Real-time status information
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue[200]!),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info_outline, color: Colors.blue[700]),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'We are continuously searching for hospitals. New hospitals will be added to the list automatically when they respond.',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue[800],
-                                  ),
-                                ),
+                          // Real-time status information
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.blue[200]!),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      
-                      // Hospital count
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Available hospitals: ${_hospitals.length}',
-                              style: AppTheme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: _sortHospitals,
-                                style: TextButton.styleFrom(
-                                  minimumSize: Size(0, 0),
-                                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  backgroundColor: Colors.grey[200],
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Distance',
-                                  style: TextStyle(
-                                    color: Colors.black87,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      // Scrollable list that takes remaining space
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: _hospitals.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 200,
-                                      height: 200,
-                                      child: Lottie.asset(
-                                        'assets/images/spinner_call.json',
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                    SizedBox(height: 16),
-                                    Text(
-                                      'AI is calling the hospital to confirm the hospital\'s ability to accept patients',
-                                      textAlign: TextAlign.center,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: Colors.blue[700]),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'We are continuously searching for hospitals. New hospitals will be added to the list automatically when they respond.',
                                       style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                        color: Colors.blue[800],
                                       ),
                                     ),
-                                    SizedBox(height: 24),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[100],
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView.builder(
-                                padding: EdgeInsets.only(bottom: 16),
-                                itemCount: _hospitals.length,
-                                itemBuilder: (context, index) {
-                                  final isSelected = selectedHospitalIndex == index;
-                                  final hospital = _hospitals[index];
-                                  
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 16.0),
-                                    child: HospitalCard(
-                                      hospital: hospital,
-                                      isSelected: isSelected,
-                                      onSelect: () => selectHospital(index),
-                                    ),
-                                  );
-                                },
+                                  ),
+                                ],
                               ),
-                        ),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          
+                          // Hospital count (only when we have hospitals)
+                          if (_hospitals.isNotEmpty)
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Available hospitals: ${_hospitals.length}',
+                                    style: AppTheme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: _sortHospitals,
+                                      style: TextButton.styleFrom(
+                                        minimumSize: Size(0, 0),
+                                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        backgroundColor: Colors.grey[200],
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Distance',
+                                        style: TextStyle(
+                                          color: Colors.black87,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                          if (_hospitals.isNotEmpty)
+                            SizedBox(height: 8),
+                          
+                          // Scrollable list that takes remaining space
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20),
+                              child: _hospitals.isEmpty
+                                // Loading screen (no hospitals yet in SUCCESS state)
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 200,
+                                          height: 200,
+                                          child: Lottie.asset(
+                                            'assets/images/spinner_call.json',
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                        SizedBox(height: 16),
+                                        Text(
+                                          'AI is calling the hospital to confirm the hospital\'s ability to accept patients',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        SizedBox(height: 24),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[100],
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    padding: EdgeInsets.only(bottom: 16),
+                                    itemCount: _hospitals.length,
+                                    itemBuilder: (context, index) {
+                                      final isSelected = selectedHospitalIndex == index;
+                                      final hospital = _hospitals[index];
+                                      
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 16.0),
+                                        child: HospitalCard(
+                                          hospital: hospital,
+                                          isSelected: isSelected,
+                                          onSelect: () => selectHospital(index),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
       ),
       floatingActionButton: selectedHospitalIndex != null
           ? FloatingActionButton.extended(
@@ -342,6 +408,213 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
               label: Text('Navigate', style: TextStyle(color: Colors.white)),
             )
           : null,
+    );
+  }
+
+  // When no hospitals are found, show this view
+  Widget _buildNoHospitalFoundView(BuildContext context) {
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    double searchRadius = settingsProvider.searchRadius;
+    
+    return StatefulBuilder(
+      builder: (context, setState) => Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Search icon (includes X icon)
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.search,
+                      size: 45,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        size: 24,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24),
+              
+              // Message
+              Text(
+                'No available hospitals matched',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[700],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Try adjusting the search radius below',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 40),
+              
+              // Display current radius
+              Text(
+                '${searchRadius.toInt()}km',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              SizedBox(height: 10),
+              
+              // Slider
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: Colors.red,
+                  inactiveTrackColor: Colors.grey[300],
+                  thumbColor: Colors.red,
+                  thumbShape: RoundSliderThumbShape(
+                    enabledThumbRadius: 10.0,
+                  ),
+                  overlayColor: Colors.red.withAlpha(50),
+                ),
+                child: Slider(
+                  min: 1,
+                  max: 50,
+                  divisions: 49,
+                  value: searchRadius,
+                  onChanged: (value) {
+                    setState(() {
+                      searchRadius = value;
+                    });
+                  },
+                  onChangeEnd: (value) {
+                    settingsProvider.setSearchRadius(value);
+                  },
+                ),
+              ),
+              SizedBox(height: 40),
+              
+              // Retry button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // retry logic execution, show loading
+                    setState(() {
+                      isLoading = true;
+                    });
+                    
+                    // retry logic
+                    if (_admissionId.isNotEmpty) {
+                      widget.hospitalService.retryAdmission(_admissionId).then((response) {
+                        setState(() {
+                          isLoading = false;
+                        });
+                        
+                        if (response['admissionStatus'] == 'SUCCESS') {
+                          // If the retry request is processed successfully
+                          setState(() {
+                            _status = 'SUCCESS'; // Update status
+                          });
+                          
+                          // Restart the subscription
+                          _hospitalSubscription?.cancel();
+                          _subscribeToHospitalUpdates();
+                          
+                          // Show success message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Successfully found hospitals. Waiting for responses...'),
+                              backgroundColor: Colors.green,
+                            )
+                          );
+                        } else {
+                          // Still no hospitals found, keep the status
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('No hospitals found. Try again with a larger radius.'),
+                              backgroundColor: Colors.orange,
+                            )
+                          );
+                        }
+                      }).catchError((error) {
+                        setState(() {
+                          isLoading = false;
+                        });
+                        
+                        // If an error occurs, show a message
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error retrying: $error'),
+                            backgroundColor: Colors.red,
+                          )
+                        );
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Retry',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Add Go Back button
+              SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'Go Back',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

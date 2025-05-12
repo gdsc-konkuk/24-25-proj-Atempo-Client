@@ -28,235 +28,96 @@ class HospitalService {
   }
 
   // Create admission request
-  Future<String> createAdmission(double latitude, double longitude, int searchRadius, String patientCondition) async {
+  Future<Map<String, dynamic>> createAdmission(double latitude, double longitude, int searchRadius, String patientCondition) async {
     try {
       print('[HospitalService] 🏥 Creating admission request...');
       print('[HospitalService] 📍 Location: lat=$latitude, lng=$longitude');
       print('[HospitalService] 🔍 Search radius: ${searchRadius}km');
       print('[HospitalService] 📝 Patient condition: $patientCondition');
       
-      // Check and get token
-      final storage = FlutterSecureStorage();
-      String? token = await storage.read(key: 'access_token');
-      
-      if (token == null || token.isEmpty) {
-        print('[HospitalService] ❌ Authentication token not found or empty');
-        
-        // Try to refresh token via api_service
-        try {
-          print('[HospitalService] 🔄 Attempting to refresh token via ApiService');
-          token = await _apiService.refreshToken();
-          
-          if (token.isEmpty) {
-            print('[HospitalService] ❌ Token refresh failed');
-            throw Exception('Authentication token refresh failed');
-          }
-          print('[HospitalService] ✅ Token refreshed successfully');
-        } catch (refreshError) {
-          print('[HospitalService] ❌ Error during token refresh: $refreshError');
-          throw Exception('Authentication token not found and refresh failed: $refreshError');
-        }
-      }
-      print('[HospitalService] 🔑 Authentication token retrieved (length: ${token.length})');
-      print('[HospitalService] 🔍 Token starts with: ${token.substring(0, math.min(10, token.length))}...');
-      
-      final url = '$_baseUrl/api/v1/admissions';
-      final headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
-      final body = jsonEncode({
+      // ApiService를 사용하여 요청 생성
+      final requestData = {
         'location': {
           'latitude': latitude,
           'longitude': longitude
         },
         'search_radius': searchRadius,
         'patient_condition': patientCondition
-      });
-
-      print('[HospitalService] 🌐 Sending admission request to: $url');
-      print('[HospitalService] 📤 Request headers: $headers');
-      print('[HospitalService] 📦 Request body: $body');
+      };
       
-      final response = await http.post(
-        Uri.parse(url),
-        headers: headers,
-        body: body,
-      );
-
-      print('[HospitalService] 📊 Response status code: ${response.statusCode}');
-      print('[HospitalService] 📥 Response headers: ${response.headers}');
-      print('[HospitalService] 📄 Response body: ${response.body}');
+      final response = await _apiService.post('api/v1/admissions', requestData);
       
-      // Check token expiration (401)
-      if (response.statusCode == 401) {
-        print('[HospitalService] ⚠️ Token expired (401) - attempting to refresh');
+      if (response != null) {
+        final Map<String, dynamic> responseData = {
+          'admissionId': response['admissionId']?.toString() ?? '',
+          'admissionStatus': response['admissionStatus'] ?? 'ERROR'
+        };
         
-        // Try to refresh token
-        try {
-          final newToken = await _apiService.refreshToken();
-          if (newToken.isNotEmpty) {
-            print('[HospitalService] ✅ Token refreshed successfully, retrying request');
-            
-            // Retry request with new token
-            final retryHeaders = {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $newToken'
-            };
-            
-            final retryResponse = await http.post(
-              Uri.parse(url),
-              headers: retryHeaders,
-              body: body,
-            );
-            
-            print('[HospitalService] 📊 Retry response status code: ${retryResponse.statusCode}');
-            print('[HospitalService] 📄 Retry response body: ${retryResponse.body}');
-            
-            if (retryResponse.statusCode == 200 || retryResponse.statusCode == 201) {
-              final data = json.decode(retryResponse.body);
-              final admissionId = data['admissionId']?.toString() ?? '';
-              
-              if (admissionId.isEmpty) {
-                print('[HospitalService] ❌ Invalid admission ID received from server after token refresh');
-                throw Exception('Invalid admission ID received from server after token refresh');
-              }
-              
-              print('[HospitalService] ✅ Admission created with ID: $admissionId after token refresh');
-              return admissionId;
-            } else {
-              print('[HospitalService] ❌ Server error after token refresh: ${retryResponse.statusCode} - ${retryResponse.body}');
-              throw Exception('Server error after token refresh: ${retryResponse.statusCode} - ${retryResponse.body}');
-            }
-          } else {
-            print('[HospitalService] ❌ Token refresh failed');
-            throw Exception('Token refresh failed for 401 response');
-          }
-        } catch (refreshError) {
-          print('[HospitalService] ❌ Error during token refresh: $refreshError');
-          throw Exception('Authentication error: $refreshError');
-        }
-      }
-      
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = json.decode(response.body);
-        final admissionId = data['admissionId']?.toString() ?? '';
+        final String admissionId = responseData['admissionId'];
+        final String status = responseData['admissionStatus'];
         
-        if (admissionId.isEmpty) {
-          print('[HospitalService] ❌ Invalid admission ID received from server');
-          throw Exception('Invalid admission ID received from server');
+        print('[HospitalService] ✅ Admission created with ID: $admissionId, Status: $status');
+        
+        if (status == 'SUCCESS') {
+          print('[HospitalService] ✅ Hospitals found successfully');
+        } else {
+          print('[HospitalService] ⚠️ No hospitals found or error occurred: $status');
         }
         
-        print('[HospitalService] ✅ Admission created with ID: $admissionId');
-        return admissionId;
+        return responseData;
       } else {
-        print('[HospitalService] ❌ Server error: ${response.statusCode} - ${response.body}');
-        throw Exception('Server error: ${response.statusCode} - ${response.body}');
+        print('[HospitalService] ❌ Empty response from server');
+        return {
+          'admissionId': '',
+          'admissionStatus': 'ERROR'
+        };
       }
     } catch (e) {
       print('[HospitalService] ❌ Error creating admission: $e');
-      rethrow;
+      return {
+        'admissionId': '',
+        'admissionStatus': 'ERROR'
+      };
     }
   }
   
   // Retry admission request
-  Future<String> retryAdmission(String admissionId) async {
+  Future<Map<String, dynamic>> retryAdmission(String admissionId) async {
     try {
       print('[HospitalService] 🔄 Retrying admission request with ID: $admissionId');
       
-      // Check and get token
-      final storage = FlutterSecureStorage();
-      String? token = await storage.read(key: 'access_token');
+      // 추가된 엔드포인트를 사용하여 API 요청
+      final response = await _apiService.post('api/v1/admissions/$admissionId/retry', {});
       
-      if (token == null || token.isEmpty) {
-        print('[HospitalService] ❌ Authentication token not found or empty for retry');
+      if (response != null) {
+        final Map<String, dynamic> responseData = {
+          'admissionId': admissionId,
+          'admissionStatus': response['admissionStatus'] ?? 'ERROR'
+        };
         
-        // Try to refresh token via api_service
-        try {
-          print('[HospitalService] 🔄 Attempting to refresh token via ApiService for retry');
-          token = await _apiService.refreshToken();
-          
-          if (token.isEmpty) {
-            print('[HospitalService] ❌ Token refresh failed for retry');
-            throw Exception('Authentication token refresh failed for retry');
-          }
-          print('[HospitalService] ✅ Token refreshed successfully for retry');
-        } catch (refreshError) {
-          print('[HospitalService] ❌ Error during token refresh for retry: $refreshError');
-          throw Exception('Authentication token not found and refresh failed for retry: $refreshError');
-        }
-      }
-      print('[HospitalService] 🔑 Authentication token retrieved for retry (length: ${token.length})');
-      
-      final url = '$_baseUrl/api/v1/admissions/$admissionId/retry';
-      final headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
-      
-      print('[HospitalService] 🌐 Sending retry request to: $url');
-      print('[HospitalService] 📤 Request headers: $headers');
-      
-      final response = await http.post(
-        Uri.parse(url),
-        headers: headers,
-      );
-      
-      print('[HospitalService] 📊 Response status code: ${response.statusCode}');
-      print('[HospitalService] 📥 Response headers: ${response.headers}');
-      print('[HospitalService] 📄 Response body: ${response.body}');
-      
-      // Check token expiration (401)
-      if (response.statusCode == 401) {
-        print('[HospitalService] ⚠️ Token expired (401) for retry - attempting to refresh');
+        final String status = responseData['admissionStatus'];
+        print('[HospitalService] ✅ Admission retry response: $responseData');
         
-        // Try to refresh token
-        try {
-          final newToken = await _apiService.refreshToken();
-          if (newToken.isNotEmpty) {
-            print('[HospitalService] ✅ Token refreshed successfully for retry, retrying request');
-            
-            // Retry request with new token
-            final retryHeaders = {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $newToken'
-            };
-            
-            final retryResponse = await http.post(
-              Uri.parse(url),
-              headers: retryHeaders,
-            );
-            
-            print('[HospitalService] 📊 Retry response status code: ${retryResponse.statusCode}');
-            print('[HospitalService] 📄 Retry response body: ${retryResponse.body}');
-            
-            if (retryResponse.statusCode == 200 || retryResponse.statusCode == 201) {
-              print('[HospitalService] ✅ Admission retry successful after token refresh');
-              return admissionId;
-            } else {
-              print('[HospitalService] ❌ Server error after token refresh for retry: ${retryResponse.statusCode} - ${retryResponse.body}');
-              throw Exception('Server error after token refresh for retry: ${retryResponse.statusCode} - ${retryResponse.body}');
-            }
-          } else {
-            print('[HospitalService] ❌ Token refresh failed for retry');
-            throw Exception('Token refresh failed for 401 response during retry');
-          }
-        } catch (refreshError) {
-          print('[HospitalService] ❌ Error during token refresh for retry: $refreshError');
-          throw Exception('Authentication error during retry: $refreshError');
+        if (status == 'SUCCESS') {
+          print('[HospitalService] ✅ Admission retry successful');
+        } else {
+          print('[HospitalService] ⚠️ Admission retry did not find hospitals: $status');
         }
-      }
-      
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print('[HospitalService] ✅ Admission retry successful');
-        return admissionId;
+        
+        return responseData;
       } else {
-        print('[HospitalService] ❌ Server error for retry: ${response.statusCode} - ${response.body}');
-        throw Exception('Server error for retry: ${response.statusCode} - ${response.body}');
+        print('[HospitalService] ❌ Empty response for admission retry');
+        return {
+          'admissionId': admissionId,
+          'admissionStatus': 'ERROR'
+        };
       }
     } catch (e) {
       print('[HospitalService] ❌ Error retrying admission: $e');
-      rethrow;
+      return {
+        'admissionId': admissionId,
+        'admissionStatus': 'ERROR'
+      };
     }
   }
   
