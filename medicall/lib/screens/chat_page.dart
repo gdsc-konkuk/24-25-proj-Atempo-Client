@@ -443,6 +443,7 @@ class _ChatPageState extends State<ChatPage> {
           hospitals: _hospitals,
           admissionId: _admissionId ?? '',
           hospitalService: _hospitalService,
+          status: 'SUCCESS', // hospitals가 있으므로 상태는 SUCCESS로 설정
         ),
       ),
     );
@@ -737,7 +738,7 @@ class _ChatPageState extends State<ChatPage> {
                         Expanded(
                           flex: _admissionId != null && !_isProcessing ? 2 : 3,
                           child: ElevatedButton(
-                            onPressed: _isProcessing ? null : _fetchHospitals,
+                            onPressed: _fetchHospitals,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primaryColor,
                               padding: EdgeInsets.symmetric(vertical: 16),

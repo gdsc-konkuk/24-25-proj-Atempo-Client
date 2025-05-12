@@ -67,14 +67,14 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
         print('[EmergencyRoomListScreen] 🔄 Setting up broadcast listener for admission results');
         
         // TODO: Set up the actual broadcast event and use it to receive admission results
-        
         // Example implementation (for testing purposes): Set the status to SUCCESS or NO_HOSPITAL_FOUND after 5 seconds
         Future.delayed(Duration(seconds: 5), () {
           if (mounted) {
-\            setState(() {
-              _admissionId = '123'; // Temporary test ID
+            setState(() {
+              // 테스트 ID '123'을 사용하지 않고 실제 API 응답에서 받아올 ID를 사용하도록 수정
+              // _admissionId = '123'; // 이전: 테스트용 임시 ID
               
-              // Randomly set the status to SUCCESS or NO_HOSPITAL_FOUND (for testing purposes)
+              // 랜덤하게 SUCCESS 또는 NO_HOSPITAL_FOUND 상태 설정 (테스트용)
               _status = (DateTime.now().millisecondsSinceEpoch % 2 == 0) ? 'SUCCESS' : 'NO_HOSPITAL_FOUND';
               
               print('[EmergencyRoomListScreen] 🔄 Status updated to: $_status');
@@ -131,6 +131,14 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
               // Alert when new hospital is added
               if (_listKey.currentState != null) {
                 _listKey.currentState!.insertItem(_hospitals.length - 1);
+              }
+              
+              // 새로운 병원이 추가되면 NO_HOSPITAL_FOUND 상태에서 SUCCESS 상태로 변경
+              if (_status != 'SUCCESS') {
+                print('[EmergencyRoomListScreen] 🔄 Status changed from $_status to SUCCESS');
+                setState(() {
+                  _status = 'SUCCESS';
+                });
               }
             }
             
@@ -771,39 +779,358 @@ class HospitalCard extends StatelessWidget {
                         // Navigate to detail screen or show detail modal
                         showDialog(
                           context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text('Hospital Details'),
-                            content: SingleChildScrollView(
+                          builder: (context) => Dialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
+                            backgroundColor: Colors.transparent,
+                            child: Container(
+                              padding: EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    spreadRadius: 2,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Hospital Name: ${hospital.name}'),
-                                  SizedBox(height: 8),
-                                  Text('Address: ${hospital.address}'),
-                                  SizedBox(height: 8),
-                                  Text('Phone Number: ${hospital.phoneNumber}'),
-                                  SizedBox(height: 8),
-                                  Text('Available Beds: ${hospital.availableBeds}'),
-                                  SizedBox(height: 8),
-                                  Text('Distance: ${hospital.distance != null ? '${hospital.distance?.toStringAsFixed(1)}km' : 'N/A'}'),
-                                  SizedBox(height: 8),
-                                  Text('Travel Time: ${hospital.travelTime != null ? '${hospital.travelTime} min' : 'N/A'}'),
-                                  if (hospital.specialties != null) ...[
-                                    SizedBox(height: 8),
-                                    Text('Specialties: ${hospital.specialties}'),
+                                  // 헤더 섹션 (병원 이름과 가용 여부)
+                                  Row(
+                                    children: [
+                                      // 상태 인디케이터
+                                      Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: hospital.isAvailable ? Colors.green : Colors.red,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      // 병원 이름
+                                      Expanded(
+                                        child: Text(
+                                          hospital.name,
+                                          style: TextStyle(
+                                            fontFamily: 'Pretendard',
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                      // 닫기 버튼
+                                      IconButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        icon: Icon(Icons.close, color: Colors.grey[600]),
+                                        padding: EdgeInsets.zero,
+                                        constraints: BoxConstraints(),
+                                      ),
+                                    ],
+                                  ),
+                                  
+                                  // 상태 텍스트
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 20),
+                                    child: Text(
+                                      hospital.isAvailable ? "Available" : "Not Available",
+                                      style: TextStyle(
+                                        fontFamily: 'Pretendard',
+                                        fontSize: 14,
+                                        color: hospital.isAvailable ? Colors.green : Colors.red,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  
+                                  SizedBox(height: 16),
+                                  
+                                  // 구분선
+                                  Divider(color: Colors.grey[200], thickness: 1),
+                                  SizedBox(height: 16),
+                                  
+                                  // 정보 섹션
+                                  // 주소
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(Icons.location_on, size: 20, color: Colors.grey[600]),
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "Address",
+                                              style: TextStyle(
+                                                fontFamily: 'Pretendard',
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                            Text(
+                                              hospital.address,
+                                              style: TextStyle(
+                                                fontFamily: 'Pretendard',
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  
+                                  SizedBox(height: 16),
+                                  
+                                  // 전화번호
+                                  Row(
+                                    children: [
+                                      Icon(Icons.phone, size: 20, color: Colors.grey[600]),
+                                      SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Phone",
+                                            style: TextStyle(
+                                              fontFamily: 'Pretendard',
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          Text(
+                                            hospital.phoneNumber,
+                                            style: TextStyle(
+                                              fontFamily: 'Pretendard',
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  
+                                  SizedBox(height: 16),
+                                  
+                                  // 병상 수
+                                  Row(
+                                    children: [
+                                      Icon(Icons.local_hospital, size: 20, color: Colors.grey[600]),
+                                      SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Available Beds",
+                                            style: TextStyle(
+                                              fontFamily: 'Pretendard',
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          Text(
+                                            hospital.availableBeds.toString(),
+                                            style: TextStyle(
+                                              fontFamily: 'Pretendard',
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  
+                                  SizedBox(height: 16),
+                                  
+                                  // 거리 및 이동 시간
+                                  Row(
+                                    children: [
+                                      // 거리
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.directions_car, size: 20, color: Colors.grey[600]),
+                                            SizedBox(width: 12),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  "Distance",
+                                                  style: TextStyle(
+                                                    fontFamily: 'Pretendard',
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                                Text(
+                                                  hospital.distance != null ? '${hospital.distance?.toStringAsFixed(1)}km' : 'N/A',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Pretendard',
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      
+                                      // 이동 시간
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.access_time, size: 20, color: Colors.grey[600]),
+                                            SizedBox(width: 12),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  "Travel Time",
+                                                  style: TextStyle(
+                                                    fontFamily: 'Pretendard',
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                                Text(
+                                                  hospital.travelTime != null ? '${hospital.travelTime} min' : 'N/A',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Pretendard',
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  
+                                  // 전문 분야 (있는 경우에만 표시)
+                                  if (hospital.specialties != null && hospital.specialties!.isNotEmpty) ...[
+                                    SizedBox(height: 16),
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Icon(Icons.medical_services_outlined, size: 20, color: Colors.grey[600]),
+                                        SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                "Specialties",
+                                                style: TextStyle(
+                                                  fontFamily: 'Pretendard',
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                              Text(
+                                                hospital.specialties!,
+                                                style: TextStyle(
+                                                  fontFamily: 'Pretendard',
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
-                                  SizedBox(height: 8),
-                                  Text('Status: ${hospital.isAvailable ? "Can accept patients" : "Cannot accept patients"}'),
+                                  
+                                  SizedBox(height: 24),
+                                  
+                                  // 버튼 섹션
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          style: OutlinedButton.styleFrom(
+                                            side: BorderSide(color: Colors.grey[400]!),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            padding: EdgeInsets.symmetric(vertical: 12),
+                                          ),
+                                          child: Text(
+                                            'Close',
+                                            style: TextStyle(
+                                              fontFamily: 'Pretendard',
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      
+                                      SizedBox(width: 12),
+                                      
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: hospital.isAvailable 
+                                            ? () {
+                                                Navigator.pop(context);
+                                                // 선택 기능 수행
+                                                onSelect();
+                                              } 
+                                            : null,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppTheme.primaryColor,
+                                            disabledBackgroundColor: Colors.grey[300],
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            padding: EdgeInsets.symmetric(vertical: 12),
+                                          ),
+                                          child: Text(
+                                            'Select',
+                                            style: TextStyle(
+                                              fontFamily: 'Pretendard',
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: Text('Close'),
-                              )
-                            ],
                           ),
                         );
                       },
