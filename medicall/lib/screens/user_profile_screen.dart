@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:medicall/models/user_model.dart';
 import 'package:medicall/services/user_service.dart';
 import '../theme/app_theme.dart';
+import '../services/api_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -10,7 +14,10 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final UserService _userService = UserService();
+  final ApiService _apiService = ApiService();
+  final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   bool _isLoading = true;
+  bool _isLoggingOut = false;
   User? _user;
   String? _error;
 
@@ -39,6 +46,67 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _logout() async {
+    setState(() {
+      _isLoggingOut = true;
+    });
+
+    try {
+      // 서버에 로그아웃 요청 보내기
+      await _apiService.delete('api/v1/auth/logout', {});
+      
+      // 로컬 저장소에서 토큰 제거
+      await _secureStorage.delete(key: 'access_token');
+      await _secureStorage.delete(key: 'refresh_token');
+      
+      // AuthProvider 상태 업데이트
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      authProvider.setLoggedIn(false);
+      
+      // 로그인 화면으로 이동
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } catch (e) {
+      setState(() {
+        _isLoggingOut = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to logout: $e'))
+      );
+    }
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Logout'),
+          content: Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey[700],
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _logout();
+              },
+              child: Text('Logout'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.errorColor,
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -81,7 +149,41 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                 )
-              : _buildUserProfile(),
+              : Column(
+                  children: [
+                    Expanded(
+                      child: _buildUserProfile(),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _isLoggingOut
+                        ? Center(
+                            child: CircularProgressIndicator(
+                              color: AppTheme.errorColor,
+                            ),
+                          )
+                        : ElevatedButton(
+                            onPressed: _showLogoutConfirmation,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.errorColor,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              minimumSize: Size(double.infinity, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Logout',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                    ),
+                  ],
+                ),
     );
   }
 
