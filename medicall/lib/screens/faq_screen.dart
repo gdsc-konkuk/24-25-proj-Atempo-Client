@@ -27,7 +27,11 @@ class FAQScreen extends StatelessWidget {
               SizedBox(width: 8),
               Text(
                 'Frequently Asked Questions',
-                style: AppTheme.textTheme.displayMedium,
+                style: GoogleFonts.pretendard(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
             ],
           ),
@@ -144,8 +148,10 @@ class FAQScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     question,
-                    style: AppTheme.textTheme.bodyLarge?.copyWith(
+                    style: GoogleFonts.pretendard(
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -169,8 +175,10 @@ class FAQScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               answer,
-              style: AppTheme.textTheme.bodyMedium?.copyWith(
+              style: GoogleFonts.pretendard(
+                fontSize: 14,
                 height: 1.5,
+                color: Colors.grey[800],
               ),
             ),
           ),

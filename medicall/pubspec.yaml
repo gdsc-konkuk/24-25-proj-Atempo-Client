@@ -62,7 +62,6 @@ flutter:
     - assets/images/campaign_thumbnail.png
     - assets/images/ambulance-car-for-map.png
     - assets/images/location_pin.png
-    - assets/images/spinner_call.lottie
     
   fonts:
     - family: Pretendard

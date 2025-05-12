@@ -38,7 +38,11 @@ class AboutUsScreen extends StatelessWidget {
                   SizedBox(width: 8),
                   Text(
                     'About Us',
-                    style: AppTheme.textTheme.displayMedium,
+                    style: GoogleFonts.pretendard(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                 ],
               ),
@@ -62,21 +66,29 @@ class AboutUsScreen extends StatelessWidget {
                           SizedBox(width: 8),
                           Text(
                             'Our Team',
-                            style: AppTheme.textTheme.displaySmall,
+                            style: GoogleFonts.pretendard(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
                         ],
                       ),
                       SizedBox(height: 16),
                       Text(
                         'Atempo from Konkuk University, South Korea',
-                        style: AppTheme.textTheme.bodyLarge?.copyWith(
+                        style: GoogleFonts.pretendard(
+                          fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       SizedBox(height: 8),
                       Text(
                         'We are a team of students dedicated to improving emergency medical services through technology.',
-                        style: AppTheme.textTheme.bodyMedium,
+                        style: GoogleFonts.pretendard(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
                       ),
                     ],
                   ),
@@ -108,7 +120,11 @@ class AboutUsScreen extends StatelessWidget {
                             SizedBox(width: 8),
                             Text(
                               'Campaign Video',
-                              style: AppTheme.textTheme.displaySmall,
+                              style: GoogleFonts.pretendard(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
                             ),
                           ],
                         ),
@@ -154,7 +170,10 @@ class AboutUsScreen extends StatelessWidget {
                         SizedBox(height: 12),
                         Text(
                           'Watch our campaign video to learn more about Medicall',
-                          style: AppTheme.textTheme.bodyMedium,
+                          style: GoogleFonts.pretendard(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                          ),
                         ),
                       ],
                     ),
@@ -182,7 +201,11 @@ class AboutUsScreen extends StatelessWidget {
                           SizedBox(width: 8),
                           Text(
                             'GitHub Repositories',
-                            style: AppTheme.textTheme.displaySmall,
+                            style: GoogleFonts.pretendard(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
                         ],
                       ),
@@ -227,7 +250,7 @@ class AboutUsScreen extends StatelessWidget {
               Center(
                 child: Text(
                   '© 2025 Atempo, Konkuk University',
-                  style: TextStyle(
+                  style: GoogleFonts.pretendard(
                     fontSize: 12,
                     color: Colors.grey[600],
                   ),
@@ -270,7 +293,7 @@ class AboutUsScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
+                      style: GoogleFonts.pretendard(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: Colors.blue[700],
@@ -279,7 +302,7 @@ class AboutUsScreen extends StatelessWidget {
                     SizedBox(height: 4),
                     Text(
                       description,
-                      style: TextStyle(
+                      style: GoogleFonts.pretendard(
                         fontSize: 14,
                         color: Colors.grey[700],
                       ),

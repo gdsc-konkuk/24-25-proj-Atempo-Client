@@ -23,7 +23,11 @@ class ErrorScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Error information',
-          style: TextStyle(color: Colors.white),
+          style: GoogleFonts.pretendard(
+            color: Colors.white, 
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         backgroundColor: Color(0xFFE93C4A),
         elevation: 0,
@@ -44,7 +48,7 @@ class ErrorScreen extends StatelessWidget {
                 SizedBox(height: 24),
                 Text(
                   title,
-                  style: GoogleFonts.notoSans(
+                  style: GoogleFonts.pretendard(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
@@ -53,7 +57,7 @@ class ErrorScreen extends StatelessWidget {
                 SizedBox(height: 16),
                 Text(
                   errorMessage,
-                  style: GoogleFonts.notoSans(
+                  style: GoogleFonts.pretendard(
                     fontSize: 16,
                     color: Colors.grey[700],
                   ),
@@ -72,7 +76,7 @@ class ErrorScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFFE93C4A),
                       padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                      textStyle: GoogleFonts.notoSans(fontSize: 16),
+                      textStyle: GoogleFonts.pretendard(fontSize: 16),
                     ),
                   ),
                 SizedBox(height: 16),
@@ -83,7 +87,7 @@ class ErrorScreen extends StatelessWidget {
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.grey[700],
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    textStyle: GoogleFonts.notoSans(fontSize: 16),
+                    textStyle: GoogleFonts.pretendard(fontSize: 16),
                   ),
                 ),
               ],

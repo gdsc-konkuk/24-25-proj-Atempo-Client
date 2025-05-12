@@ -39,7 +39,11 @@ class ContactUsScreen extends StatelessWidget {
                   SizedBox(width: 8),
                   Text(
                     'Contact Us',
-                    style: AppTheme.textTheme.displayMedium,
+                    style: GoogleFonts.pretendard(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                 ],
               ),
@@ -64,14 +68,21 @@ class ContactUsScreen extends StatelessWidget {
                           SizedBox(width: 8),
                           Text(
                             'Email Us',
-                            style: AppTheme.textTheme.displaySmall,
+                            style: GoogleFonts.pretendard(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
                         ],
                       ),
                       SizedBox(height: 16),
                       Text(
                         'Have a question or feedback? Reach out to us directly:',
-                        style: AppTheme.textTheme.bodyMedium,
+                        style: GoogleFonts.pretendard(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
                       ),
                       SizedBox(height: 12),
                       InkWell(
@@ -88,7 +99,7 @@ class ContactUsScreen extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   'medicall.developer@gmail.com',
-                                  style: TextStyle(
+                                  style: GoogleFonts.pretendard(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
                                     color: Colors.blue[700],
@@ -118,9 +129,9 @@ class ContactUsScreen extends StatelessWidget {
                       SizedBox(height: 8),
                       Text(
                         'We typically respond within 24-48 hours',
-                        style: AppTheme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
+                        style: GoogleFonts.pretendard(
                           fontSize: 12,
+                          color: Colors.grey[600],
                         ),
                       ),
                     ],
@@ -135,7 +146,7 @@ class ContactUsScreen extends StatelessWidget {
               Center(
                 child: Text(
                   '© 2025 Atempo, Konkuk University',
-                  style: TextStyle(
+                  style: GoogleFonts.pretendard(
                     fontSize: 12,
                     color: Colors.grey[600],
                   ),
