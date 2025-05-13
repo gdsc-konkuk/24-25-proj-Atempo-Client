@@ -48,12 +48,16 @@ class _NavigationScreenState extends State<NavigationScreen> {
   void initState() {
     super.initState();
     
+    print("[NavigationScreen] Hospital: ${widget.hospital.id} - ${widget.hospital.name}");
+    print("[NavigationScreen] Hospital coordinates: latitude=${widget.hospital.latitude}, longitude=${widget.hospital.longitude}");
+    
     // Initialize with default location (will be overridden by LocationProvider)
     _currentLocation = LatLng(37.5662, 126.9785); // Seoul City Hall as default
     
     // Get location from location provider (user's selected location)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      print("[NavigationScreen] User location: latitude=${locationProvider.latitude}, longitude=${locationProvider.longitude}");
       
       // Validate hospital coordinates
       if (!_validateHospitalCoordinates(widget.hospital)) {
@@ -78,19 +82,27 @@ class _NavigationScreenState extends State<NavigationScreen> {
       hospitalLat = widget.hospital.latitude;
       hospitalLng = widget.hospital.longitude;
       
+      print("[NavigationScreen] Checking hospital coordinates: latitude=$hospitalLat, longitude=$hospitalLng");
+      
       // If coordinates are still null or invalid, don't set a destination
-      if (hospitalLat == null || hospitalLng == null ||
-          hospitalLat < -90 || hospitalLat > 90 ||
-          hospitalLng < -180 || hospitalLng > 180) {
-        print("Invalid hospital coordinates: lat=$hospitalLat, lng=$hospitalLng");
+      if (hospitalLat == null || hospitalLng == null) {
+        print("[NavigationScreen] ❌ Hospital coordinates are null.");
+        // Don't show error yet, wait for addPostFrameCallback to handle it
+        return;
+      }
+      
+      if (hospitalLat < -90 || hospitalLat > 90 || hospitalLng < -180 || hospitalLng > 180) {
+        print("[NavigationScreen] ❌ Hospital coordinates are out of valid range: latitude=$hospitalLat, longitude=$hospitalLng");
+        // Don't show error yet, wait for addPostFrameCallback to handle it
         return;
       }
       
       // Set destination location
       _destinationLocation = LatLng(hospitalLat, hospitalLng);
+      print("[NavigationScreen] ✅ Destination coordinates set: $_destinationLocation");
     } catch (e) {
-      print("Error parsing hospital coordinates: $e");
-      // No default values
+      print("[NavigationScreen] Error converting hospital coordinates: $e");
+      // Don't show error yet, wait for addPostFrameCallback to handle it
       return;
     }
     
@@ -246,49 +258,45 @@ class _NavigationScreenState extends State<NavigationScreen> {
     try {
       print("Starting Mapbox Navigation...");
       
+      // Print hospital info
+      print("Hospital info: id=${widget.hospital.id}, name=${widget.hospital.name}");
+      print("Hospital coordinates: latitude=${widget.hospital.latitude}, longitude=${widget.hospital.longitude}");
+      
       // Get location provider
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      print("User coordinates from provider: latitude=${locationProvider.latitude}, longitude=${locationProvider.longitude}");
       
-      // Creating temporary hospital data for testing
-      Map<String, dynamic> hospitalData = Map.from(widget.hospital);
-      
-      // If hospital location information is missing, show error screen
-      if (!hospitalData.containsKey('latitude') || !hospitalData.containsKey('longitude') || 
-          hospitalData['latitude'] == null || hospitalData['longitude'] == null) {
-        print("No hospital location info; showing error screen.");
+        // 병원 객체 직접 사용 (toJson 메서드로 변환하지 않음)
+        // 병원 좌표 확인
+      if (widget.hospital.latitude == null || widget.hospital.longitude == null) {
+        print("❌ Hospital coordinates are null!");
         _navigateToErrorScreen("Cannot find hospital location.");
         return;
       }
       
-      print("Hospital data: $hospitalData");
+      // 병원과 사용자 위치 정보를 포함하는 데이터 생성
+      Map<String, dynamic> navigationData = {
+        'id': widget.hospital.id,
+        'name': widget.hospital.name,
+        'address': widget.hospital.address,
+        'latitude': widget.hospital.latitude,
+        'longitude': widget.hospital.longitude,
+        'phoneNumber': widget.hospital.phoneNumber,
+        'user_latitude': locationProvider.latitude,
+        'user_longitude': locationProvider.longitude,
+        'user_address': locationProvider.address,
+      };
       
-      try {
-        if (hospitalData['latitude'] is String) {
-          hospitalData['latitude'] = double.parse(hospitalData['latitude']);
-        }
-        if (hospitalData['longitude'] is String) {
-          hospitalData['longitude'] = double.parse(hospitalData['longitude']);
-        }
-      } catch (e) {
-        print("Coordinate conversion error: $e");
-        _navigateToErrorScreen("Error converting hospital coordinates: $e");
-        return;
-      }
-      
-      // Add current user location to hospital data
-      hospitalData['user_latitude'] = locationProvider.latitude;
-      hospitalData['user_longitude'] = locationProvider.longitude;
-      hospitalData['user_address'] = locationProvider.address;
-      
-      print("Hospital location: ${hospitalData['latitude']}, ${hospitalData['longitude']}");
-      print("User location: ${hospitalData['user_latitude']}, ${hospitalData['user_longitude']}");
+      print("✅ Navigation data prepared: $navigationData");
+      print("Hospital location: ${navigationData['latitude']}, ${navigationData['longitude']}");
+      print("User location: ${navigationData['user_latitude']}, ${navigationData['user_longitude']}");
       
       // Display confirmation dialog before starting navigation
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           title: Text('Start Navigation'),
-          content: Text('Would you like to start navigation to ${hospitalData['name']}?'),
+          content: Text('Would you like to start navigation to ${widget.hospital.name}?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -300,7 +308,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => MapboxNavigationScreen(hospital: hospitalData),
+                    builder: (context) => MapboxNavigationScreen(hospital: navigationData),
                   ),
                 ).then((value) {
                   print("Navigation screen returned with: $value");
@@ -430,8 +438,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
       MaterialPageRoute(
         builder: (context) => ErrorScreen(
           errorMessage: message,
-          buttonText: 'Go Back',
-          onPressed: () => Navigator.pop(context),
+          backButtonText: 'Go Back',
+          onRetry: () => Navigator.pop(context),
         ),
       ),
     );

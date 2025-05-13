@@ -111,18 +111,30 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
     String hospitalName = widget.hospital['name'] ?? "Hospital";
     
     try {
-      // Type casting for hospital coordinates
-      if (widget.hospital['latitude'] is String) {
-        hospitalLat = double.parse(widget.hospital['latitude']);
-      } else if (widget.hospital['latitude'] != null) {
-        hospitalLat = widget.hospital['latitude'].toDouble();
+      // Get hospital coordinates
+      var latValue = widget.hospital['latitude'];
+      var lngValue = widget.hospital['longitude'];
+      
+      print("⚠️ Hospital coordinates raw: latitude=$latValue (${latValue.runtimeType}), longitude=$lngValue (${lngValue.runtimeType})");
+      
+      // Convert string to double
+      if (latValue is String) {
+        hospitalLat = double.parse(latValue);
+      } else if (latValue is int) {
+        hospitalLat = latValue.toDouble();
+      } else if (latValue is double) {
+        hospitalLat = latValue;
       }
       
-      if (widget.hospital['longitude'] is String) {
-        hospitalLng = double.parse(widget.hospital['longitude']);
-      } else if (widget.hospital['longitude'] != null) {
-        hospitalLng = widget.hospital['longitude'].toDouble();
+      if (lngValue is String) {
+        hospitalLng = double.parse(lngValue);
+      } else if (lngValue is int) {
+        hospitalLng = lngValue.toDouble();
+      } else if (lngValue is double) {
+        hospitalLng = lngValue;
       }
+      
+      print("✅ Hospital coordinates after conversion: latitude=$hospitalLat, longitude=$hospitalLng");
       
       // Validate coordinates
       if (hospitalLat == null || hospitalLng == null) {

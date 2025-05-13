@@ -41,9 +41,48 @@ class Hospital {
       bool isAvailable = json['is_available'] ?? true;
       int availableBeds = json['available_beds'] ?? 5; // Default value 5
       
-      // SSE response may not have coordinates - use default coordinates
-      double lat = json['latitude'] ?? 37.5665;
-      double lng = json['longitude'] ?? 126.9780;
+      // Coordinate conversion and validation
+      double lat;
+      double lng;
+      
+      try {
+        var rawLat = json['latitude'];
+        var rawLng = json['longitude'];
+        
+        if (rawLat == null || rawLng == null) {
+          throw Exception("Hospital coordinates are null.");
+        }
+        
+        if (rawLat is double) {
+          lat = rawLat;
+        } else if (rawLat is int) {
+          lat = rawLat.toDouble();
+        } else if (rawLat is String) {
+          lat = double.parse(rawLat);
+        } else {
+          throw Exception("Invalid latitude format: $rawLat (${rawLat.runtimeType})");
+        }
+        
+        if (rawLng is double) {
+          lng = rawLng;
+        } else if (rawLng is int) {
+          lng = rawLng.toDouble();
+        } else if (rawLng is String) {
+          lng = double.parse(rawLng);
+        } else {
+          throw Exception("Invalid longitude format: $rawLng (${rawLng.runtimeType})");
+        }
+        
+        // Coordinate validation
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          throw Exception("Coordinates are out of valid range: lat=$lat, lng=$lng");
+        }
+      } catch (e) {
+        print("⚠️ Hospital coordinates processing error: $e - Using Seoul City Hall coordinates as fallback.");
+        // Error occurred, use Seoul City Hall coordinates as fallback
+        lat = 37.5662;
+        lng = 126.9785;
+      }
       
       return Hospital(
         id: generatedId,
@@ -61,17 +100,69 @@ class Hospital {
     }
     
     // Handle existing format
-    return Hospital(
-      id: json['id'],
-      name: json['name'],
-      address: json['address'],
-      latitude: json['latitude'],
-      longitude: json['longitude'],
-      phoneNumber: json['phoneNumber'],
-      isAvailable: json['isAvailable'],
-      availableBeds: json['availableBeds'],
-      specialties: json['specialties'],
-    );
+    try {
+      
+      double lat;
+      double lng;
+      
+      var rawLat = json['latitude'];
+      var rawLng = json['longitude'];
+      
+      if (rawLat == null || rawLng == null) {
+        throw Exception("Hospital coordinates are null.");
+      }
+      
+      if (rawLat is double) {
+        lat = rawLat;
+      } else if (rawLat is int) {
+        lat = rawLat.toDouble();
+      } else if (rawLat is String) {
+        lat = double.parse(rawLat);
+      } else {
+        throw Exception("Invalid latitude format: $rawLat (${rawLat.runtimeType})");
+      }
+      
+      if (rawLng is double) {
+        lng = rawLng;
+      } else if (rawLng is int) {
+        lng = rawLng.toDouble();
+      } else if (rawLng is String) {
+        lng = double.parse(rawLng);
+      } else {
+        throw Exception("Invalid longitude format: $rawLng (${rawLng.runtimeType})");
+      }
+      
+      // 좌표 범위 검증
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        throw Exception("Coordinates are out of valid range: lat=$lat, lng=$lng");
+      }
+      
+      return Hospital(
+        id: json['id'],
+        name: json['name'],
+        address: json['address'],
+        latitude: lat,
+        longitude: lng,
+        phoneNumber: json['phoneNumber'],
+        isAvailable: json['isAvailable'],
+        availableBeds: json['availableBeds'],
+        specialties: json['specialties'],
+      );
+    } catch (e) {
+      print("⚠️ Hospital coordinates processing error: $e - Using Seoul City Hall coordinates as fallback.");
+      // Error occurred, use Seoul City Hall coordinates as fallback
+      return Hospital(
+        id: json['id'] ?? (json['name'] ?? '').hashCode,
+        name: json['name'] ?? '',
+        address: json['address'] ?? '',
+        latitude: 37.5662, 
+        longitude: 126.9785,  
+        phoneNumber: json['phoneNumber'] ?? '',
+        isAvailable: json['isAvailable'] ?? true,
+        availableBeds: json['availableBeds'] ?? 5,
+        specialties: json['specialties'],
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {

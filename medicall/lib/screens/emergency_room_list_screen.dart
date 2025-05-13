@@ -98,6 +98,9 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
 
   // sort hospitals
   void _sortHospitals() {
+    // 병원 목록이 비어 있으면 정렬하지 않음
+    if (_hospitals.isEmpty) return;
+    
     setState(() {
       // sort by distance (null items are at the end)
       _hospitals.sort((a, b) {
@@ -298,8 +301,8 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                           if (_hospitals.isNotEmpty)
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Available hospitals: ${_hospitals.length}',
@@ -307,28 +310,31 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  SizedBox(height: 8),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: TextButton(
-                                      onPressed: _sortHospitals,
-                                      style: TextButton.styleFrom(
-                                        minimumSize: Size(0, 0),
+                                  Consumer<SettingsProvider>(
+                                    builder: (context, settingsProvider, child) {
+                                      return Container(
                                         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        backgroundColor: Colors.grey[200],
-                                        shape: RoundedRectangleBorder(
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[200],
                                           borderRadius: BorderRadius.circular(6),
                                         ),
-                                      ),
-                                      child: Text(
-                                        'Distance',
-                                        style: TextStyle(
-                                          color: Colors.black87,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.search, size: 16, color: Colors.grey[700]),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Radius: ${settingsProvider.searchRadius.toInt()} km',
+                                              style: TextStyle(
+                                                color: Colors.black87,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
@@ -365,12 +371,31 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                                           ),
                                         ),
                                         SizedBox(height: 24),
-                                        Container(
-                                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[100],
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
+                                        Consumer<SettingsProvider>(
+                                          builder: (context, settingsProvider, child) {
+                                            return Container(
+                                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[100],
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.search, size: 18, color: Colors.grey[600]),
+                                                  SizedBox(width: 8),
+                                                  Text(
+                                                    'Search radius: ${settingsProvider.searchRadius.toInt()} km',
+                                                    style: TextStyle(
+                                                      color: Colors.grey[700],
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ],
                                     ),
@@ -400,12 +425,17 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
       floatingActionButton: selectedHospitalIndex != null
           ? FloatingActionButton.extended(
               onPressed: () {
+                
+                final selectedHospital = _hospitals[selectedHospitalIndex!];
+                print('[EmergencyRoomListScreen] Selected hospital: ${selectedHospital.name}');
+                print('[EmergencyRoomListScreen] Hospital coordinates: latitude=${selectedHospital.latitude}, longitude=${selectedHospital.longitude}');
+                
                 // Navigate to the navigation screen with the selected hospital
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => NavigationScreen(
-                      hospital: _hospitals[selectedHospitalIndex!],
+                      hospital: selectedHospital,
                     ),
                   ),
                 );
@@ -541,21 +571,17 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                     // retry logic
                     if (_admissionId.isNotEmpty) {
                       widget.hospitalService.retryAdmission(_admissionId).then((response) {
-                        setState(() {
-                          isLoading = false;
-                        });
-                        
                         if (response['admissionStatus'] == 'SUCCESS') {
                           // If the retry request is processed successfully
                           setState(() {
-                            _status = 'SUCCESS'; // Update status
+                            _status = 'SUCCESS'; // Update status to SUCCESS
+                            _hospitals = []; // Empty the hospitals list so the loading screen appears
+                            isLoading = false; // Set loading to false to show the hospitals view
                           });
                           
                           // Restart the subscription
                           _hospitalSubscription?.cancel();
                           _subscribeToHospitalUpdates();
-                          
-                          Navigator.of(context).pop();
                           
                           // Show success message
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -565,6 +591,10 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                             )
                           );
                         } else {
+                          setState(() {
+                            isLoading = false;
+                          });
+                          
                           // Still no hospitals found, keep the status
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
