@@ -202,9 +202,26 @@ class _MapboxNavigationScreenState extends State<MapboxNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppTheme.buildAppBar(
-        title: 'Hospital Navigation',
-        leading: AppTheme.buildBackButton(context),
+      appBar: AppBar(
+        backgroundColor: AppTheme.primaryColor,
+        elevation: 4,
+        centerTitle: true,
+        title: Text(
+          'Hospital Navigation',
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+            color: Colors.white,
+          ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.chevron_left, color: Colors.white, size: 28),
+          onPressed: () => Navigator.of(context).pop(),
+          padding: EdgeInsets.all(8),
+          splashRadius: 24,
+        ),
       ),
       body: _isCheckingAuth
           ? Center(
