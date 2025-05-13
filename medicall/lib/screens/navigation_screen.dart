@@ -11,9 +11,10 @@ import '../providers/location_provider.dart';
 import 'dart:math' as math;
 import 'error_screen.dart';
 import '../theme/app_theme.dart';
+import '../models/hospital_model.dart';
 
 class NavigationScreen extends StatefulWidget {
-  final Map<String, dynamic> hospital;
+  final Hospital hospital;
   
   // Constructor takes hospital data
   const NavigationScreen({
@@ -74,17 +75,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
     
     // Type casting for latitude and longitude
     try {
-      if (widget.hospital['latitude'] is String) {
-        hospitalLat = double.parse(widget.hospital['latitude']);
-      } else if (widget.hospital['latitude'] != null) {
-        hospitalLat = widget.hospital['latitude'].toDouble();
-      }
-      
-      if (widget.hospital['longitude'] is String) {
-        hospitalLng = double.parse(widget.hospital['longitude']);
-      } else if (widget.hospital['longitude'] != null) {
-        hospitalLng = widget.hospital['longitude'].toDouble();
-      }
+      hospitalLat = widget.hospital.latitude;
+      hospitalLng = widget.hospital.longitude;
       
       // If coordinates are still null or invalid, don't set a destination
       if (hospitalLat == null || hospitalLng == null ||
@@ -103,8 +95,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
     
     // Set initial values based on the passed hospital data
-    _distance = widget.hospital['distance']?.toString() ?? '0 km';
-    _duration = widget.hospital['travelTime']?.toString() ?? '0 min';
+    _distance = widget.hospital.distance != null ? '${widget.hospital.distance!.toStringAsFixed(1)} km' : '0 km';
+    _duration = widget.hospital.travelTime != null ? '${widget.hospital.travelTime} min' : '0 min';
     if (!_duration.contains('min')) {
       _duration += ' min';
     }
@@ -152,7 +144,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           markerId: MarkerId('hospital'),
           position: _destinationLocation,
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          infoWindow: InfoWindow(title: widget.hospital['name'] ?? 'Hospital'),
+          infoWindow: InfoWindow(title: widget.hospital.name),
         ),
       };
       
@@ -416,61 +408,33 @@ class _NavigationScreenState extends State<NavigationScreen> {
   double max(double a, double b) => a > b ? a : b;
   
   // Validate that hospital has valid coordinates
-  bool _validateHospitalCoordinates(Map<String, dynamic> hospital) {
-    try {
-      var lat = hospital['latitude'];
-      var lng = hospital['longitude'];
-      
-      // Check if coordinates exist
-      if (lat == null || lng == null) {
-        print("Hospital coordinates are null");
-        return false;
-      }
-      
-      // Convert to double if needed
-      double latValue;
-      double lngValue;
-      
-      if (lat is String) {
-        latValue = double.parse(lat);
-      } else {
-        latValue = lat.toDouble();
-      }
-      
-      if (lng is String) {
-        lngValue = double.parse(lng);
-      } else {
-        lngValue = lng.toDouble();
-      }
-      
-      // Validate coordinate ranges
-      if (latValue < -90 || latValue > 90 || lngValue < -180 || lngValue > 180) {
-        print("Hospital coordinates out of range: $latValue, $lngValue");
-        return false;
-      }
-      
-      return true;
-    } catch (e) {
-      print("Error validating hospital coordinates: $e");
+  bool _validateHospitalCoordinates(Hospital hospital) {
+    // Check if the hospital has valid coordinates
+    if (hospital.latitude == null || hospital.longitude == null) {
       return false;
     }
+    
+    // Check if coordinates are in valid range
+    if (hospital.latitude! < -90 || hospital.latitude! > 90 ||
+        hospital.longitude! < -180 || hospital.longitude! > 180) {
+      return false;
+    }
+    
+    return true;
   }
   
   // Navigate to error screen
-  void _navigateToErrorScreen(String errorMessage) {
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => ErrorScreen(
-            title: 'Can\'t start navigation',
-            errorMessage: errorMessage,
-            onRetry: () {
-              Navigator.of(context).pop();
-            },
-          ),
+  void _navigateToErrorScreen(String message) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ErrorScreen(
+          errorMessage: message,
+          buttonText: 'Go Back',
+          onPressed: () => Navigator.pop(context),
         ),
-      );
-    }
+      ),
+    );
   }
   
   @override
@@ -498,7 +462,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            widget.hospital['name'] ?? 'Hospital',
+                            widget.hospital.name,
                             style: TextStyle(
                               fontFamily: 'Pretendard',
                               color: Colors.white,
@@ -641,7 +605,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              '${widget.hospital['distance']} ahead',
+                              '${widget.hospital.distance?.toStringAsFixed(1)} km ahead',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,

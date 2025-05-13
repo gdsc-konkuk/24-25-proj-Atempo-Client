@@ -405,7 +405,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => NavigationScreen(
-                      hospital: _hospitals[selectedHospitalIndex!].toJson(),
+                      hospital: _hospitals[selectedHospitalIndex!],
                     ),
                   ),
                 );
