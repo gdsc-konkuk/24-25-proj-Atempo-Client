@@ -24,9 +24,11 @@ class FAQScreen extends StatelessWidget {
                 size: 28,
               ),
               SizedBox(width: 8),
-              Text(
-                'Frequently Asked Questions',
-                style: AppTheme.textTheme.displayLarge,
+              Expanded(
+                child: Text(
+                  'Frequently Asked Questions',
+                  style: AppTheme.textTheme.displayLarge,
+                ),
               ),
             ],
           ),

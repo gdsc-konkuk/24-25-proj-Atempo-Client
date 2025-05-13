@@ -555,6 +555,8 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                           _hospitalSubscription?.cancel();
                           _subscribeToHospitalUpdates();
                           
+                          Navigator.of(context).pop();
+                          
                           // Show success message
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -645,116 +647,115 @@ class HospitalCard extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias, // child widgets do not exceed the container boundaries
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: Offset(0, 2),
+            color: Colors.grey.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 3,
+            offset: Offset(0, 1),
           ),
         ],
-        // If the hospital is not selected, add a border
-        border: isSelected ? null : Border.all(color: borderColor, width: 1),
+        // 선택된 경우 빨간색 테두리 표시
+        border: Border.all(
+          color: isSelected ? AppTheme.primaryColor : Colors.grey.shade100,
+          width: isSelected ? 2.0 : 1.0,
+        ),
       ),
       child: Column(
         children: [
-          // card content
-          Container(
-            // If the hospital is selected, add a border
-            decoration: isSelected 
-                ? BoxDecoration(
-                    border: Border(
-                      left: BorderSide(color: AppTheme.primaryColor, width: 2),
-                      top: BorderSide(color: AppTheme.primaryColor, width: 2),
-                      right: BorderSide(color: AppTheme.primaryColor, width: 2),
-                    ),
-                  ) 
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Hospital name
-                  Text(
-                    hospital.name,
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
+          // 카드 콘텐츠
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 병원 이름
+                Text(
+                  hospital.name,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.black87,
                   ),
-                  SizedBox(height: 4),
-                  
-                  // Address
-                  Text(
-                    hospital.address,
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 4),
+                
+                // 주소
+                Text(
+                  hospital.address,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 14,
+                    color: Colors.grey[600],
                   ),
-                  
-                  SizedBox(height: 12),
-                  
-                  // Distance and Travel Time
-                  Row(
-                    children: [
-                      // Car icon with distance
-                      Icon(
-                        Icons.directions_car,
-                        size: 16,
-                        color: Colors.grey[700],
-                      ),
-                      SizedBox(width: 6),
-                      
-                      // Distance
-                      Text(
-                        hospital.distance != null 
-                            ? '${hospital.distance?.toStringAsFixed(1)}km' 
-                            : '-',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                
+                SizedBox(height: 12),
+                
+                // 거리 및 소요 시간
+                Row(
+                  children: [
+                    // 거리
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.directions_car,
+                          size: 16,
+                          color: Colors.grey[700],
                         ),
-                      ),
-                      
-                      SizedBox(width: 16),
-                      
-                      // Clock icon with travel time
-                      Icon(
-                        Icons.access_time,
-                        size: 16,
-                        color: Colors.grey[700],
-                      ),
-                      SizedBox(width: 6),
-                      
-                      // Travel time
-                      Text(
-                        hospital.travelTime != null 
-                            ? '${hospital.travelTime} min' 
-                            : '-',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                        SizedBox(width: 4),
+                        Text(
+                          hospital.distance != null 
+                              ? '${hospital.distance?.toStringAsFixed(1)}km' 
+                              : '-',
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                    ),
+                    
+                    SizedBox(width: 16),
+                    
+                    // 소요 시간
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 16,
+                          color: Colors.grey[700],
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          hospital.travelTime != null 
+                              ? '${hospital.travelTime} min' 
+                              : '-',
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           
-          // Action buttons
+          // 버튼 영역
           Container(
             decoration: BoxDecoration(
               border: Border(
@@ -763,20 +764,13 @@ class HospitalCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Detail button
+                // Detail 버튼
                 Expanded(
-                  child: Container(
-                    // If the hospital is selected, add a left border
-                    decoration: isSelected 
-                        ? BoxDecoration(
-                            border: Border(
-                              left: BorderSide(color: AppTheme.primaryColor, width: 2),
-                            ),
-                          ) 
-                        : null,
+                  child: Material(
+                    color: Colors.transparent,
                     child: InkWell(
                       onTap: () {
-                        // Navigate to detail screen or show detail modal
+                        // 상세 정보 모달 표시
                         showDialog(
                           context: context,
                           builder: (context) => Dialog(
@@ -1135,7 +1129,7 @@ class HospitalCard extends StatelessWidget {
                         );
                       },
                       child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(vertical: 12),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           border: Border(
@@ -1155,66 +1149,32 @@ class HospitalCard extends StatelessWidget {
                   ),
                 ),
                 
-                // Select button
+                // Select 버튼
                 Expanded(
-                  child: isSelected
-                      // If the hospital is selected, add a border
-                      ? Container(
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            borderRadius: BorderRadius.only(
-                              bottomRight: Radius.circular(12),
-                            ),
-                            // Add a right and bottom border
-                            border: Border(
-                              right: BorderSide(color: AppTheme.primaryColor, width: 2),
-                              bottom: BorderSide(color: AppTheme.primaryColor, width: 2),
-                            ),
-                          ),
-                          child: InkWell(
-                            onTap: hospital.isAvailable ? onSelect : null,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              width: double.infinity,
-                              child: Center(
-                                child: Text(
-                                  'Selected',
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                      // If the hospital is not selected, add a border
-                      : InkWell(
-                          onTap: hospital.isAvailable ? onSelect : null,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: hospital.isAvailable ? null : Colors.grey[200],
-                              borderRadius: BorderRadius.only(
-                                bottomRight: Radius.circular(11),
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                hospital.isAvailable ? 'Select' : 'Not Available',
-                                style: TextStyle(
-                                  fontFamily: 'Pretendard',
-                                  color: hospital.isAvailable 
-                                      ? AppTheme.primaryColor 
-                                      : Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: hospital.isAvailable ? onSelect : null,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        width: double.infinity,
+                        child: Center(
+                          child: Text(
+                            isSelected 
+                              ? 'Selected' 
+                              : (hospital.isAvailable ? 'Select' : 'Not Available'),
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              color: isSelected 
+                                ? AppTheme.primaryColor 
+                                : (hospital.isAvailable ? AppTheme.primaryColor : Colors.grey[500]),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
