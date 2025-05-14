@@ -9,9 +9,13 @@ import 'package:medicall/screens/mapbox_navigation_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/location_provider.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'error_screen.dart';
 import '../theme/app_theme.dart';
 import '../models/hospital_model.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter/services.dart';
 
 class NavigationScreen extends StatefulWidget {
   final Hospital hospital;
@@ -44,12 +48,22 @@ class _NavigationScreenState extends State<NavigationScreen> {
   // Hospital destination location
   late LatLng _destinationLocation;
   
+  // Google Maps API key
+  final String _googleMapsApiKey = 'AIzaSyAw92wiRgypo3fVZ4-R5CbpB4x_Pcj1gwk';
+  
+  // Custom marker icons
+  BitmapDescriptor? _userLocationIcon;
+  BitmapDescriptor? _hospitalLocationIcon;
+  
   @override
   void initState() {
     super.initState();
     
     print("[NavigationScreen] Hospital: ${widget.hospital.id} - ${widget.hospital.name}");
     print("[NavigationScreen] Hospital coordinates: latitude=${widget.hospital.latitude}, longitude=${widget.hospital.longitude}");
+    
+    // Initialize custom markers
+    _createCustomMarkers();
     
     // Initialize with default location (will be overridden by LocationProvider)
     _currentLocation = LatLng(37.5662, 126.9785); // Seoul City Hall as default
@@ -127,6 +141,33 @@ class _NavigationScreenState extends State<NavigationScreen> {
     // Don't initialize navigation yet - wait for location provider
   }
   
+  // Create custom marker icons
+  Future<void> _createCustomMarkers() async {
+    try {
+      // Create custom user location marker
+      final Uint8List userMarkerIcon = await _getBytesFromAsset('assets/images/location_pin.png', 120);
+      _userLocationIcon = BitmapDescriptor.fromBytes(userMarkerIcon);
+      
+      // Create hospital location marker (using default red for now)
+      _hospitalLocationIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+      
+      print("[NavigationScreen] ✅ Custom markers created successfully");
+    } catch (e) {
+      print("[NavigationScreen] ❌ Error creating custom markers: $e");
+      // Fallback to default markers
+      _userLocationIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue);
+      _hospitalLocationIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+    }
+  }
+  
+  // Convert asset image to Uint8List
+  Future<Uint8List> _getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(), targetWidth: width);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+  }
+  
   Future<void> _initNavigation() async {
     setState(() {
       _isLoading = true;
@@ -134,13 +175,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
     });
     
     try {
-      // In a real app, this would make an API call to get the route
-      await Future.delayed(Duration(seconds: 2)); // Simulate API delay
-      
-      // Get current location from Provider if not set yet
-      if (!mounted) return;
-      
       // Refresh the current location from the provider
+      if (!mounted) return;
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
       _currentLocation = LatLng(locationProvider.latitude, locationProvider.longitude);
       
@@ -149,19 +185,216 @@ class _NavigationScreenState extends State<NavigationScreen> {
         Marker(
           markerId: MarkerId('current_location'),
           position: _currentLocation,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          icon: _userLocationIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
           infoWindow: InfoWindow(title: 'Current Location'),
         ),
         Marker(
           markerId: MarkerId('hospital'),
           position: _destinationLocation,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon: _hospitalLocationIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           infoWindow: InfoWindow(title: widget.hospital.name),
         ),
       };
       
-      // Set up polylines with a more realistic route (curved path with waypoints)
-      List<LatLng> routePoints = _generateRealisticRoute(_currentLocation, _destinationLocation);
+      // Call Google Directions API to get the route
+      await _getDirectionsFromGoogleAPI();
+      
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to load route: $e';
+      });
+      print("[NavigationScreen] ❌ Error initializing navigation: $e");
+    }
+  }
+  
+  // Get directions from Google Directions API
+  Future<void> _getDirectionsFromGoogleAPI() async {
+    try {
+      final origin = "${_currentLocation.latitude},${_currentLocation.longitude}";
+      final destination = "${_destinationLocation.latitude},${_destinationLocation.longitude}";
+      
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/directions/json?'
+        'origin=$origin&'
+        'destination=$destination&'
+        'mode=driving&'
+        'key=$_googleMapsApiKey'
+      );
+      
+      print("[NavigationScreen] 🔄 Requesting directions from Google API: $url");
+      
+      final response = await http.get(url);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        if (data['status'] == 'OK') {
+          // Extract route points
+          final points = _decodePolyline(data['routes'][0]['overview_polyline']['points']);
+          
+          // Extract distance and duration
+          final legs = data['routes'][0]['legs'][0];
+          final distance = legs['distance']['text'];
+          final duration = legs['duration']['text'];
+          
+          // Update UI with route info
+          setState(() {
+            _distance = distance;
+            _duration = duration;
+            
+            // Update ETA based on duration
+            final durationInMinutes = legs['duration']['value'] ~/ 60;
+            final now = DateTime.now();
+            final arrivalTime = now.add(Duration(minutes: durationInMinutes));
+            _eta = '${arrivalTime.hour}:${arrivalTime.minute.toString().padLeft(2, '0')} ${arrivalTime.hour >= 12 ? 'PM' : 'AM'}';
+            
+            // Create polyline from points
+            _polylines = {
+              Polyline(
+                polylineId: PolylineId('route'),
+                points: points,
+                color: AppTheme.primaryColor,
+                width: 5,
+              ),
+            };
+          });
+          
+          print("[NavigationScreen] ✅ Route fetched successfully: $_distance, $_duration");
+        } else {
+          print("[NavigationScreen] ⚠️ Directions API returned non-OK status: ${data['status']}");
+          
+          // 오류 유형에 따른 핸들링
+          if (data['status'] == 'ZERO_RESULTS') {
+            // 경로를 찾을 수 없는 경우: 직선 경로로 fallback
+            _createDirectLineRoute();
+            
+            // 사용자에게 피드백
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Could not find a driving route. Showing direct line.'),
+                  duration: Duration(seconds: 4),
+                )
+              );
+            }
+          } else {
+            // 다른 API 오류: 일반 fallback 라우트 생성
+            _createFallbackRoute();
+            throw Exception("Directions API error: ${data['status']}");
+          }
+        }
+      } else {
+        print("[NavigationScreen] ❌ HTTP error: ${response.statusCode}");
+        _createFallbackRoute();
+        throw Exception("Failed to fetch directions: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("[NavigationScreen] ❌ Error getting directions: $e");
+      // Fallback to a simulated route if the API call fails
+      _createFallbackRoute();
+      
+      // 오류 메시지 설정 (반드시 setState 내에서 해야 함)
+      setState(() {
+        _errorMessage = 'Failed to load route: $e';
+      });
+    }
+  }
+  
+  // 직선 경로 생성 (ZERO_RESULTS 오류 발생 시)
+  void _createDirectLineRoute() {
+    print("[NavigationScreen] 🔄 Creating direct line route");
+    
+    // 출발지와 목적지를 직선으로 연결
+    List<LatLng> directPoints = [
+      _currentLocation,
+      _destinationLocation
+    ];
+    
+    // 가상의 거리와 시간 계산
+    double distanceKm = _calculateApproximateDistance(_currentLocation, _destinationLocation);
+    int estimatedMinutes = (distanceKm * 2).round(); // 대략 km당 2분으로 가정
+    
+    // UI 업데이트
+    setState(() {
+      _distance = '${distanceKm.toStringAsFixed(1)} km';
+      _duration = '$estimatedMinutes min';
+      
+      // ETA 업데이트
+      final now = DateTime.now();
+      final arrivalTime = now.add(Duration(minutes: estimatedMinutes));
+      _eta = '${arrivalTime.hour}:${arrivalTime.minute.toString().padLeft(2, '0')} ${arrivalTime.hour >= 12 ? 'PM' : 'AM'}';
+      
+      // 직선 경로 설정
+      _polylines = {
+        Polyline(
+          polylineId: PolylineId('direct_route'),
+          points: directPoints,
+          color: Colors.red,
+          width: 5,
+          patterns: [
+            PatternItem.dash(20), 
+            PatternItem.gap(10),
+          ], // 점선으로 표시하여 실제 경로가 아님을 나타냄
+        ),
+      };
+      
+      // 오류 메시지 업데이트
+      _errorMessage = '';
+    });
+    
+    print("[NavigationScreen] ✅ Created direct line route: $_distance, $_duration");
+  }
+  
+  // 두 좌표 간 대략적인 거리 계산 (km)
+  double _calculateApproximateDistance(LatLng start, LatLng end) {
+    const double earthRadius = 6371; // 지구 반경 (km)
+    
+    // 라디안으로 변환
+    double startLatRad = start.latitude * math.pi / 180;
+    double startLngRad = start.longitude * math.pi / 180;
+    double endLatRad = end.latitude * math.pi / 180;
+    double endLngRad = end.longitude * math.pi / 180;
+    
+    // 위도와 경도의 차이
+    double latDiff = endLatRad - startLatRad;
+    double lngDiff = endLngRad - startLngRad;
+    
+    // Haversine 공식
+    double a = math.sin(latDiff/2) * math.sin(latDiff/2) +
+               math.cos(startLatRad) * math.cos(endLatRad) *
+               math.sin(lngDiff/2) * math.sin(lngDiff/2);
+    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
+    double distance = earthRadius * c;
+    
+    return distance;
+  }
+  
+  // Create a fallback route if the API call fails
+  void _createFallbackRoute() {
+    print("[NavigationScreen] ⚠️ Using fallback route generation");
+    List<LatLng> routePoints = _generateRealisticRoute(_currentLocation, _destinationLocation);
+    
+    // Calculate approximate distance and duration
+    double totalDistance = 0;
+    for (int i = 0; i < routePoints.length - 1; i++) {
+      totalDistance += _calculateApproximateDistance(routePoints[i], routePoints[i + 1]);
+    }
+    
+    // Assume average speed of 30 km/h for urban areas
+    int estimatedMinutes = (totalDistance / 30 * 60).round();
+    
+    setState(() {
+      _distance = '${totalDistance.toStringAsFixed(1)} km';
+      _duration = '$estimatedMinutes min';
+      
+      // Update ETA
+      final now = DateTime.now();
+      final arrivalTime = now.add(Duration(minutes: estimatedMinutes));
+      _eta = '${arrivalTime.hour}:${arrivalTime.minute.toString().padLeft(2, '0')} ${arrivalTime.hour >= 12 ? 'PM' : 'AM'}';
       
       _polylines = {
         Polyline(
@@ -172,18 +405,53 @@ class _NavigationScreenState extends State<NavigationScreen> {
         ),
       };
       
-      setState(() {
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to load route: $e';
-      });
-    }
+      // Clear error message
+      _errorMessage = '';
+    });
+    
+    print("[NavigationScreen] ✅ Created fallback route: $_distance, $_duration");
   }
   
-  // Generate a more realistic route with waypoints following roads
+  // Decode polyline points from Google Directions API
+  List<LatLng> _decodePolyline(String encoded) {
+    List<LatLng> points = [];
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
+    
+    while (index < len) {
+      int b, shift = 0, result = 0;
+      
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      
+      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+      
+      shift = 0;
+      result = 0;
+      
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      
+      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+      
+      double latitude = lat / 1e5;
+      double longitude = lng / 1e5;
+      
+      points.add(LatLng(latitude, longitude));
+    }
+    
+    return points;
+  }
+  
+  // Generate a more realistic route with waypoints following roads (fallback method)
   List<LatLng> _generateRealisticRoute(LatLng start, LatLng end) {
     List<LatLng> points = [];
     

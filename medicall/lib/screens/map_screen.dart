@@ -138,11 +138,12 @@ class _MapScreenState extends State<MapScreen> {
       try {
         await _getCurrentLocation();
         
+        // SSE 초기화는 필요할 때만 하도록 코드 수정 (주석 처리)
         // Start SSE subscription when app starts
-        if (!_sseSubscribed) {
-          print('[MapScreen] 🔄 Start SSE subscription');
-          _subscribeToSSE();
-        }
+        // if (!_sseSubscribed) {
+        //   print('[MapScreen] 🔄 Start SSE subscription');
+        //   _subscribeToSSE();
+        // }
       } catch (e) {
         debugPrint('Location services initialization error: $e');
         if (mounted) {
@@ -163,29 +164,29 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // SSE 구독 메소드
-  void _subscribeToSSE() {
-    try {
-      print('[MapScreen] 📡 Starting SSE subscription');
-      _hospitalService.subscribeToHospitalUpdates().listen(
-        (hospital) {
-          print('[MapScreen] 📥 Hospital update received: ${hospital.name} (ID: ${hospital.id})');
-        },
-        onError: (error) {
-          print('[MapScreen] ❌ SSE subscription error: $error');
-        },
-        onDone: () {
-          print('[MapScreen] ✅ SSE subscription completed');
-          _sseSubscribed = false;
-        },
-      );
-      _sseSubscribed = true;
-      print('[MapScreen] ✅ SSE subscription setup completed');
-    } catch (e) {
-      print('[MapScreen] ❌ SSE subscription setup error: $e');
-      _sseSubscribed = false;
-    }
-  }
+  // SSE 구독 메소드 - MapScreen에서는 사용하지 않음
+  // void _subscribeToSSE() {
+  //   try {
+  //     print('[MapScreen] 📡 Starting SSE subscription');
+  //     _hospitalService.subscribeToHospitalUpdates().listen(
+  //       (hospital) {
+  //         print('[MapScreen] 📥 Hospital update received: ${hospital.name} (ID: ${hospital.id})');
+  //       },
+  //       onError: (error) {
+  //         print('[MapScreen] ❌ SSE subscription error: $error');
+  //       },
+  //       onDone: () {
+  //         print('[MapScreen] ✅ SSE subscription completed');
+  //         _sseSubscribed = false;
+  //       },
+  //     );
+  //     _sseSubscribed = true;
+  //     print('[MapScreen] ✅ SSE subscription setup completed');
+  //   } catch (e) {
+  //     print('[MapScreen] ❌ SSE subscription setup error: $e');
+  //     _sseSubscribed = false;
+  //   }
+  // }
 
   Future<bool> _handleLocationPermission() async {
     try {

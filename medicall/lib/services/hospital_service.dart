@@ -127,9 +127,12 @@ class HospitalService {
     if (_hospitalsStreamController == null || _hospitalsStreamController!.isClosed) {
       print('[HospitalService] 🔄 Initializing new stream controller');
       _hospitalsStreamController = StreamController<Hospital>.broadcast();
+      
+      // 새로운 스트림 컨트롤러를 생성한 경우에만 SSE 연결 시도
+      _connectToSSE();
+    } else {
+      print('[HospitalService] ✅ Using existing stream controller');
     }
-    
-    _connectToSSE();
     
     print('[HospitalService] ✅ Returning hospital updates stream');
     return _hospitalsStreamController!.stream;

@@ -68,6 +68,9 @@ class _ChatPageState extends State<ChatPage> {
   
   // Subscription cancellation object
   StreamSubscription? _hospitalSubscription;
+  
+  // SSE 구독 상태 관리 변수
+  bool _isSseInitialized = false;
 
   // Add hashtag list and selected tags set
   final List<String> _hashtags = [
@@ -120,7 +123,65 @@ class _ChatPageState extends State<ChatPage> {
       if (widget.currentAddress != "Finding your location...") {
         locationProvider.updateAddress(widget.currentAddress);
       }
+      
+      // 초기화 시 SSE 구독 설정
+      _initializeSSE();
     });
+  }
+
+  // SSE 초기화 메서드
+  Future<void> _initializeSSE() async {
+    try {
+      print('[ChatPage] 🔄 Initializing SSE subscription before any API requests');
+      
+      // 이미 초기화되었는지 확인
+      if (_isSseInitialized) {
+        print('[ChatPage] ✅ SSE already initialized');
+        return;
+      }
+      
+      // SSE 구독 설정
+      _hospitalSubscription = _hospitalService.subscribeToHospitalUpdates().listen(
+        (hospital) {
+          print('[ChatPage] 📥 Received hospital update: ${hospital.name} (ID: ${hospital.id})');
+          
+          setState(() {
+            // Check if hospital with same ID exists
+            final index = _hospitals.indexWhere((h) => h.id == hospital.id);
+            
+            if (index >= 0) {
+              print('[ChatPage] 🔄 Updating existing hospital at index $index');
+              _hospitals[index] = hospital;
+            } else {
+              print('[ChatPage] ➕ Adding new hospital to list (total: ${_hospitals.length + 1})');
+              _hospitals.add(hospital);
+            }
+            
+            // Navigate to hospital list when first hospital arrives
+            if (_hospitals.length == 1 && _isProcessing) {
+              print('[ChatPage] 🚀 First hospital received, navigating to hospital list');
+              _navigateToHospitalList();
+            }
+          });
+        },
+        onError: (error) {
+          print('[ChatPage] ❌ Hospital subscription error: $error');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error updating hospital information: $error'))
+          );
+        },
+        onDone: () {
+          print('[ChatPage] ✅ Hospital subscription completed');
+        }
+      );
+      
+      // SSE 초기화 완료
+      _isSseInitialized = true;
+      print('[ChatPage] ✅ SSE initialization completed successfully');
+    } catch (e) {
+      print('[ChatPage] ❌ Error initializing SSE: $e');
+      _isSseInitialized = false;
+    }
   }
 
   @override
@@ -249,6 +310,14 @@ class _ChatPageState extends State<ChatPage> {
     try {
       print('[ChatPage] 🏥 Starting hospital search process');
       
+      // 먼저 SSE 구독이 초기화되었는지 확인하고, 안되어 있으면 초기화
+      if (!_isSseInitialized) {
+        print('[ChatPage] 🔄 SSE not initialized, initializing now before API request');
+        await _initializeSSE();
+      } else {
+        print('[ChatPage] ✅ SSE already initialized, continuing with API request');
+      }
+      
       // Get coordinates from location provider
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
       final latitude = locationProvider.latitude;
@@ -273,12 +342,11 @@ class _ChatPageState extends State<ChatPage> {
       
       print('[ChatPage] 🔍 Search parameters: radius=${searchRadius}km, patient condition=${patientCondition}');
 
-      // Cancel existing subscription
-      if (_hospitalSubscription != null) {
-        print('[ChatPage] 🔄 Cancelling existing subscription before navigation');
-        _hospitalSubscription?.cancel();
-        _hospitalSubscription = null;
-      }
+      // 처리 중 상태로 설정
+      setState(() {
+        _isProcessing = true;
+        _processingMessage = "Searching for available emergency rooms...";
+      });
       
       // 즉시 EmergencyRoomListScreen으로 이동하여 로딩 화면 표시
       print('[ChatPage] 🚀 Immediately navigating to hospital list screen with loading view');
@@ -317,56 +385,12 @@ class _ChatPageState extends State<ChatPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error occurred while getting hospital information: $e'))
       );
+      
+      // 에러 발생 시 처리 중 상태 해제
+      setState(() {
+        _isProcessing = false;
+      });
     }
-  }
-  
-  // Subscribe to hospital updates
-  void _subscribeToHospitalUpdates() {
-    print('[ChatPage] 📡 Setting up hospital updates subscription');
-    
-    // Cancel existing subscription
-    if (_hospitalSubscription != null) {
-      print('[ChatPage] 🔄 Cancelling existing subscription');
-      _hospitalSubscription?.cancel();
-    }
-    
-    // Start new subscription
-    print('[ChatPage] 🔄 Starting new hospital updates subscription');
-    _hospitalSubscription = _hospitalService.subscribeToHospitalUpdates().listen(
-      (hospital) {
-        print('[ChatPage] 📥 Received hospital update: ${hospital.name} (ID: ${hospital.id})');
-        
-        setState(() {
-          // Check if hospital with same ID exists
-          final index = _hospitals.indexWhere((h) => h.id == hospital.id);
-          
-          if (index >= 0) {
-            print('[ChatPage] 🔄 Updating existing hospital at index $index');
-            _hospitals[index] = hospital;
-          } else {
-            print('[ChatPage] ➕ Adding new hospital to list (total: ${_hospitals.length + 1})');
-            _hospitals.add(hospital);
-          }
-          
-          // Navigate to hospital list when first hospital arrives
-          if (_hospitals.length == 1 && _isProcessing) {
-            print('[ChatPage] 🚀 First hospital received, navigating to hospital list');
-            _navigateToHospitalList();
-          }
-        });
-      },
-      onError: (error) {
-        print('[ChatPage] ❌ Hospital subscription error: $error');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating hospital information: $error'))
-        );
-      },
-      onDone: () {
-        print('[ChatPage] ✅ Hospital subscription completed');
-      }
-    );
-    
-    print('[ChatPage] ✅ Hospital updates subscription setup completed');
   }
   
   // Retry admission request with admissionId
@@ -377,6 +401,12 @@ class _ChatPageState extends State<ChatPage> {
         SnackBar(content: Text('No previous admission request information.'))
       );
       return;
+    }
+    
+    // SSE 구독이 초기화되어 있는지 확인
+    if (!_isSseInitialized) {
+      print('[ChatPage] 🔄 SSE not initialized, initializing now before retry API request');
+      await _initializeSSE();
     }
     
     print('[ChatPage] 🔄 Retrying admission with ID: $_admissionId');

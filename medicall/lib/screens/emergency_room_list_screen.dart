@@ -115,6 +115,13 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   // subscribe to real-time hospital list updates
   void _subscribeToHospitalUpdates() {
     print('[EmergencyRoomListScreen] 📡 Setting up hospital updates subscription');
+    
+    // 이미 구독 중인 경우 중복 구독 방지
+    if (_hospitalSubscription != null) {
+      print('[EmergencyRoomListScreen] ℹ️ Already subscribed to hospital updates, reusing existing subscription');
+      return;
+    }
+    
     _hospitalSubscription = widget.hospitalService.subscribeToHospitalUpdates().listen(
       (hospital) {
         print('[EmergencyRoomListScreen] 📥 Received hospital update: ${hospital.name} (ID: ${hospital.id})');
@@ -165,6 +172,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                 onPressed: () {
                   // Try to resubscribe
                   _hospitalSubscription?.cancel();
+                  _hospitalSubscription = null;
                   _subscribeToHospitalUpdates();
                 },
               ),
@@ -181,6 +189,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
           Future.delayed(Duration(seconds: 2), () {
             if (mounted) {
               _hospitalSubscription?.cancel();
+              _hospitalSubscription = null;
               _subscribeToHospitalUpdates();
             }
           });
@@ -188,9 +197,6 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
       },
     );
     print('[EmergencyRoomListScreen] ✅ Hospital updates subscription setup completed');
-    
-    // If the admissionId is empty, set it to the initial value
-    // do nothing
   }
 
   // Function to start the new admission ID
