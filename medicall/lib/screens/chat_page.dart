@@ -387,9 +387,9 @@ class _ChatPageState extends State<ChatPage> {
       );
       
       // 에러 발생 시 처리 중 상태 해제
-      setState(() {
+        setState(() {
         _isProcessing = false;
-      });
+        });
     }
   }
   
