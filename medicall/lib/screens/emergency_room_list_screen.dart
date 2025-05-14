@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import '../services/hospital_service.dart';
 import '../models/hospital_model.dart';
-import 'navigation_screen.dart';
+import 'mapbox_navigation_screen.dart';
 import '../theme/app_theme.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
@@ -227,7 +227,58 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
       body: SafeArea(
         child: isLoading
             ? Center(
-                child: CircularProgressIndicator(color: AppTheme.primaryColor),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: Lottie.asset(
+                        'assets/images/spinner_call.json',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        'AI is calling the hospital to confirm the hospital\'s ability to accept patients',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 24),
+                    Consumer<SettingsProvider>(
+                      builder: (context, settingsProvider, child) {
+                        return Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.search, size: 18, color: Colors.grey[600]),
+                              SizedBox(width: 8),
+                              Text(
+                                'Search radius: ${settingsProvider.searchRadius.toInt()} km',
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               )
             : errorMessage.isNotEmpty
                 ? Center(
@@ -436,12 +487,22 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                 print('[EmergencyRoomListScreen] Selected hospital: ${selectedHospital.name}');
                 print('[EmergencyRoomListScreen] Hospital coordinates: latitude=${selectedHospital.latitude}, longitude=${selectedHospital.longitude}');
                 
-                // Navigate to the navigation screen with the selected hospital
+                // 선택한 병원을 Map으로 변환하여 MapboxNavigationScreen으로 직접 전달
+                Map<String, dynamic> hospitalData = {
+                  'id': selectedHospital.id,
+                  'name': selectedHospital.name,
+                  'address': selectedHospital.address,
+                  'latitude': selectedHospital.latitude,
+                  'longitude': selectedHospital.longitude,
+                  'phoneNumber': selectedHospital.phoneNumber,
+                };
+                
+                // MapboxNavigationScreen으로 직접 이동
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => NavigationScreen(
-                      hospital: selectedHospital,
+                    builder: (context) => MapboxNavigationScreen(
+                      hospital: hospitalData,
                     ),
                   ),
                 );
@@ -569,27 +630,35 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // retry logic execution, show loading
-                    setState(() {
+                    // 메인 상태 업데이트를 위해 StatefulBuilder의 setState가 아닌 this.setState 사용
+                    this.setState(() {
                       isLoading = true;
+                    });
+                    
+                    // 병원 상태를 리셋
+                    this.setState(() {
+                      _hospitals = [];
+                      _status = 'SUCCESS'; // 로딩 화면을 표시하기 위해 SUCCESS로 변경
                     });
                     
                     // retry logic
                     if (_admissionId.isNotEmpty) {
                       widget.hospitalService.retryAdmission(_admissionId).then((response) {
                         if (response['admissionStatus'] == 'SUCCESS') {
-                          // If the retry request is processed successfully
-                          setState(() {
-                            _status = 'SUCCESS'; // Update status to SUCCESS
-                            _hospitals = []; // Empty the hospitals list so the loading screen appears
-                            isLoading = false; // Set loading to false to show the hospitals view
-                          });
+                          // 로딩 화면이 이미 보이는 상태이므로 추가 작업 필요 없음
+                          print('[EmergencyRoomListScreen] ✅ Retry successful, showing loading screen');
                           
-                          // Restart the subscription
+                          // 기존 구독 취소 후 새로 구독
                           _hospitalSubscription?.cancel();
+                          _hospitalSubscription = null;
                           _subscribeToHospitalUpdates();
                           
-                          // Show success message
+                          // 로딩 완료 상태로 변경
+                          this.setState(() {
+                            isLoading = false;
+                          });
+                          
+                          // 성공 메시지 표시
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Successfully found hospitals. Waiting for responses...'),
@@ -597,11 +666,13 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                             )
                           );
                         } else {
-                          setState(() {
+                          // 실패 시 다시 NO_HOSPITAL_FOUND 상태로 되돌림
+                          this.setState(() {
+                            _status = 'NO_HOSPITAL_FOUND';
                             isLoading = false;
                           });
                           
-                          // Still no hospitals found, keep the status
+                          // 실패 메시지 표시
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('No hospitals found. Try again with a larger radius.'),
@@ -610,11 +681,13 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                           );
                         }
                       }).catchError((error) {
-                        setState(() {
+                        // 오류 발생 시 원래 상태로 복귀
+                        this.setState(() {
+                          _status = 'NO_HOSPITAL_FOUND';
                           isLoading = false;
                         });
                         
-                        // If an error occurs, show a message
+                        // 오류 메시지 표시
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Error retrying: $error'),

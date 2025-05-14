@@ -68,7 +68,7 @@ class _ChatPageState extends State<ChatPage> {
   
   // Subscription cancellation object
   StreamSubscription? _hospitalSubscription;
-  
+
   // SSE 구독 상태 관리 변수
   bool _isSseInitialized = false;
 
