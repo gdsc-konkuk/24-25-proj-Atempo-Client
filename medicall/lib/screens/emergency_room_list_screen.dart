@@ -1031,39 +1031,6 @@ class HospitalCard extends StatelessWidget {
                                   
                                   SizedBox(height: 16),
                                   
-                                  // 병상 수
-                                  Row(
-                                    children: [
-                                      Icon(Icons.local_hospital, size: 20, color: Colors.grey[600]),
-                                      SizedBox(width: 12),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "Available Beds",
-                                            style: TextStyle(
-                                              fontFamily: 'Pretendard',
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                          Text(
-                                            hospital.availableBeds.toString(),
-                                            style: TextStyle(
-                                              fontFamily: 'Pretendard',
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  
-                                  SizedBox(height: 16),
-                                  
                                   // 거리 및 이동 시간
                                   Row(
                                     children: [

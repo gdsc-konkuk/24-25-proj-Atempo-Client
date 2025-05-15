@@ -881,10 +881,10 @@ packages:
     dependency: "direct main"
     description:
       name: webview_flutter_wkwebview
-      sha256: c9f9be526fa0d3347374ceaa05c4b3acb85f4f112abd62f7d74b7d301fa515ff
+      sha256: "6af7d1908c9c89311c2dffcc2c9b51b88a6f055ba16fa0aa8a04cbb1c3afc9ce"
       url: "https://pub.dev"
     source: hosted
-    version: "3.20.0"
+    version: "3.21.0"
   xdg_directories:
     dependency: transitive
     description:
