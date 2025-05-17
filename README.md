@@ -128,6 +128,6 @@ MediCall is exclusively for real emergencies or authorized training simulations.
 | **Unique Advantages** | AI-driven decision making, parallel calls, instant hospital matching  |
 
 
-# Wanna See more Details? visit our [website](https://atempo-medicall.vercel.app/).
+# Wanna See more Details? Visit our [website](https://atempo-medicall.vercel.app/).
 
 📧 **Contact:** [medicall.developer@gmail.com](mailto:medicall.developer@gmail.com)
