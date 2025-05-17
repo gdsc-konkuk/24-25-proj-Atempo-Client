@@ -25,74 +25,6 @@ class AuthService {
     return '$base$endpoint';
   }
 
-  // OAuth login URL for WebView
-  Future<String> getLoginUrl() async {
-    // Return direct OAuth URL to prevent redirect loop
-    final loginUrl = _normalizeUrl(_baseUrl, _OAUTH_AUTH_PATH);
-    debugPrint('Login URL: $loginUrl');
-    return loginUrl;
-  }
-
-  // Handle WebView login with auth code
-  Future<User> completeWebViewLogin(String authCode) async {
-    try {
-      // Request token using auth code
-      final tokenUrl = _normalizeUrl(_baseUrl, _AUTH_TOKEN_PATH);
-      final tokenResponse = await http.post(
-        Uri.parse(tokenUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'code': authCode}),
-      );
-      
-      if (tokenResponse.statusCode != 200) {
-        throw Exception('Token request failed: ${tokenResponse.statusCode}, ${tokenResponse.body}');
-      }
-      
-      // Parse token info
-      final tokenData = jsonDecode(tokenResponse.body);
-      final accessToken = tokenData['accessToken'];
-      final refreshToken = tokenData['refreshToken'];
-      
-      // Save tokens
-      await _storage.write(key: 'access_token', value: accessToken);
-      await _storage.write(key: 'refresh_token', value: refreshToken);
-      
-      // Request user info with access token
-      final userUrl = _normalizeUrl(_baseUrl, _USER_ME_PATH);
-      final userResponse = await http.get(
-        Uri.parse(userUrl),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-        },
-      );
-      
-      if (userResponse.statusCode != 200) {
-        throw Exception('User info request failed: ${userResponse.statusCode}, ${userResponse.body}');
-      }
-      
-      // Parse user info
-      final userData = jsonDecode(userResponse.body);
-      
-      // Save user ID
-      await _storage.write(key: 'user_id', value: userData['id'].toString());
-      
-      return User(
-        id: userData['id']?.toString() ?? '',
-        email: userData['email'] ?? '',
-        name: userData['name'] ?? '',
-        photoUrl: userData['profile_url'],
-        accessToken: accessToken,
-        role: userData['role'],
-        nickName: userData['nick_name'],
-        certificationType: userData['certification_type'],
-        certificationNumber: userData['certification_number'],
-      );
-    } catch (e) {
-      debugPrint('Login completion error: $e');
-      rethrow;
-    }
-  }
-  
   // Request token directly after successful login
   Future<User> requestTokenAfterLogin(String redirectUrl) async {
     try {
@@ -378,6 +310,62 @@ class AuthService {
       await _storage.delete(key: 'user_id');
     } catch (e) {
       debugPrint('Sign out error: $e');
+      rethrow;
+    }
+  }
+  
+  // WebView login handling (for in-app WebView)
+  Future<User> completeWebViewLogin(String authCode) async {
+    try {
+      // Request token using auth code
+      final tokenUrl = _normalizeUrl(_baseUrl, _AUTH_TOKEN_PATH);
+      final tokenResponse = await http.post(
+        Uri.parse(tokenUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'code': authCode}),
+      );
+      
+      if (tokenResponse.statusCode != 200) {
+        throw Exception('Token request failed: ${tokenResponse.statusCode}, ${tokenResponse.body}');
+      }
+      
+      final tokenData = jsonDecode(tokenResponse.body);
+      final accessToken = tokenData['accessToken'];
+      final refreshToken = tokenData['refreshToken'];
+      
+      // Save tokens
+      await _storage.write(key: 'access_token', value: accessToken);
+      await _storage.write(key: 'refresh_token', value: refreshToken);
+      
+      // Request user info
+      final userUrl = _normalizeUrl(_baseUrl, _USER_ME_PATH);
+      final userResponse = await http.get(
+        Uri.parse(userUrl),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+      
+      if (userResponse.statusCode != 200) {
+        throw Exception('User info request failed: ${userResponse.statusCode}');
+      }
+      
+      final userData = jsonDecode(userResponse.body);
+      await _storage.write(key: 'user_id', value: userData['id'].toString());
+      
+      return User(
+        id: userData['id']?.toString() ?? '',
+        email: userData['email'] ?? '',
+        name: userData['name'] ?? '',
+        photoUrl: userData['profile_url'],
+        accessToken: accessToken,
+        role: userData['role'],
+        nickName: userData['nick_name'],
+        certificationType: userData['certification_type'],
+        certificationNumber: userData['certification_number'],
+      );
+    } catch (e) {
+      debugPrint('WebView login error: $e');
       rethrow;
     }
   }

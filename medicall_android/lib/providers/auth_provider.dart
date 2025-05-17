@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:math' as math;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
+  final FlutterSecureStorage _storage = FlutterSecureStorage();
   User? _user;
   bool _isLoading = false;
   String? _errorMessage;
@@ -61,12 +66,12 @@ class AuthProvider with ChangeNotifier {
   Future<String> getLoginUrl() async {
     // Fix URL construction to avoid double slashes
     final baseUrl = dotenv.env['API_BASE_URL']!;
-    final path = '/oauth2/authorization/google';
-    
+      final path = '/oauth2/authorization/google';
+      
     // Ensure there's exactly one slash between baseUrl and path
-    final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
-    final route = path.startsWith('/') ? path : '/$path';
-    
+      final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+      final route = path.startsWith('/') ? path : '/$path';
+      
     return '$base$route';
   }
 

@@ -9,7 +9,7 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/settings_screen.dart';
-import 'package:uni_links/uni_links.dart';
+import 'package:app_links/app_links.dart';
 import 'dart:async';
 import 'package:medicall/services/env_service.dart';
 import 'package:flutter_mapbox_navigation/flutter_mapbox_navigation.dart';
@@ -61,6 +61,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  late AppLinks _appLinks;
   StreamSubscription? _deepLinkSubscription;
   String? _initialLink;
   String? _authCode;
@@ -78,10 +79,13 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> initDeepLinks() async {
+    _appLinks = AppLinks();
+    
     // Handle deep link when the app was completely terminated
     try {
-      _initialLink = await getInitialLink();
-      if (_initialLink != null) {
+      final uri = await _appLinks.getInitialAppLink();
+      if (uri != null) {
+        _initialLink = uri.toString();
         debugPrint('Initial deep link detected: $_initialLink');
         _handleDeepLink(_initialLink!);
       }
@@ -90,7 +94,7 @@ class _MyAppState extends State<MyApp> {
     }
 
     // Handle deep links when the app is in background or running
-    _deepLinkSubscription = uriLinkStream.listen((Uri? uri) {
+    _deepLinkSubscription = _appLinks.uriLinkStream.listen((Uri? uri) {
       if (uri != null) {
         debugPrint('Deep link detected in background: $uri');
         _handleDeepLink(uri.toString());
@@ -102,6 +106,12 @@ class _MyAppState extends State<MyApp> {
 
   void _handleDeepLink(String link) {
     debugPrint('Deep link received: $link');
+    
+    // XML 구문 감지 및 로그 출력
+    if (link.contains('<?xml') || link.contains('</') || link.contains('ErrorResponse')) {
+      debugPrint('Error detected in deep link: $link');
+      return;
+    }
     
     // Extract authentication code from OAuth redirection URL
     // Example: medicall://auth?code=abc123
@@ -116,7 +126,7 @@ class _MyAppState extends State<MyApp> {
         });
       }
     } else {
-      debugPrint('Authentication code not found: $link');
+      debugPrint('Authentication code not found in: $link');
     }
   }
 

@@ -9,7 +9,7 @@ import '../services/http_client_service.dart';
 import 'map_screen.dart';
 import 'emt_license_verification_screen.dart'; // Import EMT license screen
 import 'dart:async';
-import 'package:uni_links/uni_links.dart';
+import 'package:app_links/app_links.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -28,10 +28,12 @@ class _LoginScreenState extends State<LoginScreen> {
   StreamSubscription? _sub;
   bool _isLoading = false;
   String _statusMessage = "";
+  late AppLinks _appLinks;
 
   @override
   void initState() {
     super.initState();
+    _appLinks = AppLinks();
     _listenDeepLink();
     // Process code if provided via constructor
     if (widget.code != null) {
@@ -47,11 +49,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _checkInitialLink() async {
-    final initialLink = await getInitialLink();
-    if (initialLink != null) {
+    final uri = await _appLinks.getInitialAppLink();
+    if (uri != null) {
+      final initialLink = uri.toString();
       print('Initial deep link detected: $initialLink');
       try {
-        final uri = Uri.parse(initialLink);
         print('Parsed URI: $uri');
         print('URI query parameters: ${uri.queryParameters}');
         
@@ -96,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _listenDeepLink() {
-    _sub = uriLinkStream.listen((Uri? uri) async {
+    _sub = _appLinks.uriLinkStream.listen((Uri? uri) async {
       if (uri != null) {
         // First check for atk, rtk parameters
         final atk = uri.queryParameters['atk'];
@@ -305,15 +307,43 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     try {
       final loginUrl = await authProvider.getLoginUrl();
+      print("Login URL: $loginUrl");
+      
+      if (loginUrl.isEmpty) {
+        setState(() {
+          _statusMessage = "Login URL is empty. Check API_BASE_URL in .env file.";
+        });
+        return;
+      }
+      
       final url = Uri.parse(loginUrl);
+      print("Parsed URI: $url");
+      
       if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
+        final result = await launchUrl(
+          url,
+          mode: LaunchMode.externalApplication,
+          webOnlyWindowName: '_blank',
+          webViewConfiguration: const WebViewConfiguration(
+            enableJavaScript: true,
+            enableDomStorage: true,
+          ),
+        );
+        
+        print("Launch result: $result");
+        
+        if (!result) {
+          setState(() {
+            _statusMessage = "Failed to open browser. Error: Unable to launch $url";
+          });
+        }
       } else {
         setState(() {
-          _statusMessage = "Unable to open login page.";
+          _statusMessage = "Could not launch URL: $loginUrl";
         });
       }
     } catch (e) {
+      print("OAuth launch error: $e");
       setState(() {
         _statusMessage = "Login initialization error: $e";
       });

@@ -35,7 +35,7 @@ class HospitalService {
       print('[HospitalService] 🔍 Search radius: ${searchRadius}km');
       print('[HospitalService] 📝 Patient condition: $patientCondition');
       
-      // ApiService를 사용하여 요청 생성
+      // Create request using ApiService
       final requestData = {
         'location': {
           'latitude': latitude,
@@ -86,7 +86,7 @@ class HospitalService {
     try {
       print('[HospitalService] 🔄 Retrying admission request with ID: $admissionId');
       
-      // 추가된 엔드포인트를 사용하여 API 요청
+      // Use the added endpoint to make API request
       final response = await _apiService.post('api/v1/admissions/$admissionId/retry', {});
       
       if (response != null) {
@@ -128,7 +128,7 @@ class HospitalService {
       print('[HospitalService] 🔄 Initializing new stream controller');
       _hospitalsStreamController = StreamController<Hospital>.broadcast();
       
-      // 새로운 스트림 컨트롤러를 생성한 경우에만 SSE 연결 시도
+      // Only attempt SSE connection when a new stream controller is created
       _connectToSSE();
     } else {
       print('[HospitalService] ✅ Using existing stream controller');

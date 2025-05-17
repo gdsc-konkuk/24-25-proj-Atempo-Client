@@ -19,7 +19,7 @@ class EmergencyRoomListScreen extends StatefulWidget {
   final List<Hospital> hospitals;
   final String admissionId;
   final HospitalService hospitalService;
-  final String status; // 추가된 status 파라미터
+  final String status; 
 
   const EmergencyRoomListScreen({
     Key? key,
@@ -71,10 +71,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
         Future.delayed(Duration(seconds: 5), () {
           if (mounted) {
             setState(() {
-              // 테스트 ID '123'을 사용하지 않고 실제 API 응답에서 받아올 ID를 사용하도록 수정
-              // _admissionId = '123'; // 이전: 테스트용 임시 ID
-              
-              // 랜덤하게 SUCCESS 또는 NO_HOSPITAL_FOUND 상태 설정 (테스트용)
+             
               _status = (DateTime.now().millisecondsSinceEpoch % 2 == 0) ? 'SUCCESS' : 'NO_HOSPITAL_FOUND';
               
               print('[EmergencyRoomListScreen] 🔄 Status updated to: $_status');
@@ -98,7 +95,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
 
   // sort hospitals
   void _sortHospitals() {
-    // 병원 목록이 비어 있으면 정렬하지 않음
+
     if (_hospitals.isEmpty) return;
     
     setState(() {
@@ -116,7 +113,7 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
   void _subscribeToHospitalUpdates() {
     print('[EmergencyRoomListScreen] 📡 Setting up hospital updates subscription');
     
-    // 이미 구독 중인 경우 중복 구독 방지
+  
     if (_hospitalSubscription != null) {
       print('[EmergencyRoomListScreen] ℹ️ Already subscribed to hospital updates, reusing existing subscription');
       return;
@@ -143,7 +140,6 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                 _listKey.currentState!.insertItem(_hospitals.length - 1);
               }
               
-              // 새로운 병원이 추가되면 NO_HOSPITAL_FOUND 상태에서 SUCCESS 상태로 변경
               if (_status != 'SUCCESS') {
                 print('[EmergencyRoomListScreen] 🔄 Status changed from $_status to SUCCESS');
                 setState(() {
@@ -487,7 +483,6 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                 print('[EmergencyRoomListScreen] Selected hospital: ${selectedHospital.name}');
                 print('[EmergencyRoomListScreen] Hospital coordinates: latitude=${selectedHospital.latitude}, longitude=${selectedHospital.longitude}');
                 
-                // 선택한 병원을 Map으로 변환하여 MapboxNavigationScreen으로 직접 전달
                 Map<String, dynamic> hospitalData = {
                   'id': selectedHospital.id,
                   'name': selectedHospital.name,
@@ -497,7 +492,6 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                   'phoneNumber': selectedHospital.phoneNumber,
                 };
                 
-                // MapboxNavigationScreen으로 직접 이동
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -630,35 +624,29 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // 메인 상태 업데이트를 위해 StatefulBuilder의 setState가 아닌 this.setState 사용
                     this.setState(() {
                       isLoading = true;
                     });
                     
-                    // 병원 상태를 리셋
                     this.setState(() {
                       _hospitals = [];
-                      _status = 'SUCCESS'; // 로딩 화면을 표시하기 위해 SUCCESS로 변경
+                      _status = 'SUCCESS'; 
                     });
                     
                     // retry logic
                     if (_admissionId.isNotEmpty) {
                       widget.hospitalService.retryAdmission(_admissionId).then((response) {
                         if (response['admissionStatus'] == 'SUCCESS') {
-                          // 로딩 화면이 이미 보이는 상태이므로 추가 작업 필요 없음
                           print('[EmergencyRoomListScreen] ✅ Retry successful, showing loading screen');
                           
-                          // 기존 구독 취소 후 새로 구독
                           _hospitalSubscription?.cancel();
                           _hospitalSubscription = null;
                           _subscribeToHospitalUpdates();
                           
-                          // 로딩 완료 상태로 변경
                           this.setState(() {
                             isLoading = false;
                           });
                           
-                          // 성공 메시지 표시
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Successfully found hospitals. Waiting for responses...'),
@@ -666,13 +654,11 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                             )
                           );
                         } else {
-                          // 실패 시 다시 NO_HOSPITAL_FOUND 상태로 되돌림
                           this.setState(() {
                             _status = 'NO_HOSPITAL_FOUND';
                             isLoading = false;
                           });
                           
-                          // 실패 메시지 표시
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('No hospitals found. Try again with a larger radius.'),
@@ -681,13 +667,11 @@ class _EmergencyRoomListScreenState extends State<EmergencyRoomListScreen> {
                           );
                         }
                       }).catchError((error) {
-                        // 오류 발생 시 원래 상태로 복귀
                         this.setState(() {
                           _status = 'NO_HOSPITAL_FOUND';
                           isLoading = false;
                         });
                         
-                        // 오류 메시지 표시
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Error retrying: $error'),
@@ -766,7 +750,6 @@ class HospitalCard extends StatelessWidget {
             offset: Offset(0, 1),
           ),
         ],
-        // 선택된 경우 빨간색 테두리 표시
         border: Border.all(
           color: isSelected ? AppTheme.primaryColor : Colors.grey.shade100,
           width: isSelected ? 2.0 : 1.0,
@@ -774,13 +757,11 @@ class HospitalCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // 카드 콘텐츠
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 병원 이름
                 Text(
                   hospital.name,
                   style: TextStyle(
@@ -794,7 +775,6 @@ class HospitalCard extends StatelessWidget {
                 ),
                 SizedBox(height: 4),
                 
-                // 주소
                 Text(
                   hospital.address,
                   style: TextStyle(
@@ -808,10 +788,8 @@ class HospitalCard extends StatelessWidget {
                 
                 SizedBox(height: 12),
                 
-                // 거리 및 소요 시간
                 Row(
                   children: [
-                    // 거리
                     Row(
                       children: [
                         Icon(
@@ -836,7 +814,6 @@ class HospitalCard extends StatelessWidget {
                     
                     SizedBox(width: 16),
                     
-                    // 소요 시간
                     Row(
                       children: [
                         Icon(
@@ -864,7 +841,6 @@ class HospitalCard extends StatelessWidget {
             ),
           ),
           
-          // 버튼 영역
           Container(
             decoration: BoxDecoration(
               border: Border(
@@ -873,13 +849,11 @@ class HospitalCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Detail 버튼
                 Expanded(
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () {
-                        // 상세 정보 모달 표시
                         showDialog(
                           context: context,
                           builder: (context) => Dialog(
@@ -906,10 +880,8 @@ class HospitalCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // 헤더 섹션 (병원 이름과 가용 여부)
                                   Row(
                                     children: [
-                                      // 상태 인디케이터
                                       Container(
                                         width: 12,
                                         height: 12,
@@ -919,7 +891,6 @@ class HospitalCard extends StatelessWidget {
                                         ),
                                       ),
                                       SizedBox(width: 8),
-                                      // 병원 이름
                                       Expanded(
                                         child: Text(
                                           hospital.name,
@@ -931,7 +902,6 @@ class HospitalCard extends StatelessWidget {
                                           ),
                                         ),
                                       ),
-                                      // 닫기 버튼
                                       IconButton(
                                         onPressed: () => Navigator.pop(context),
                                         icon: Icon(Icons.close, color: Colors.grey[600]),
@@ -941,7 +911,6 @@ class HospitalCard extends StatelessWidget {
                                     ],
                                   ),
                                   
-                                  // 상태 텍스트
                                   Padding(
                                     padding: const EdgeInsets.only(left: 20),
                                     child: Text(
@@ -957,12 +926,10 @@ class HospitalCard extends StatelessWidget {
                                   
                                   SizedBox(height: 16),
                                   
-                                  // 구분선
                                   Divider(color: Colors.grey[200], thickness: 1),
                                   SizedBox(height: 16),
                                   
-                                  // 정보 섹션
-                                  // 주소
+
                                   Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -998,7 +965,6 @@ class HospitalCard extends StatelessWidget {
                                   
                                   SizedBox(height: 16),
                                   
-                                  // 전화번호
                                   Row(
                                     children: [
                                       Icon(Icons.phone, size: 20, color: Colors.grey[600]),
@@ -1031,10 +997,8 @@ class HospitalCard extends StatelessWidget {
                                   
                                   SizedBox(height: 16),
                                   
-                                  // 거리 및 이동 시간
                                   Row(
                                     children: [
-                                      // 거리
                                       Expanded(
                                         child: Row(
                                           children: [
@@ -1067,7 +1031,6 @@ class HospitalCard extends StatelessWidget {
                                         ),
                                       ),
                                       
-                                      // 이동 시간
                                       Expanded(
                                         child: Row(
                                           children: [
@@ -1102,7 +1065,6 @@ class HospitalCard extends StatelessWidget {
                                     ],
                                   ),
                                   
-                                  // 전문 분야 (있는 경우에만 표시)
                                   if (hospital.specialties != null && hospital.specialties!.isNotEmpty) ...[
                                     SizedBox(height: 16),
                                     Row(
@@ -1141,7 +1103,6 @@ class HospitalCard extends StatelessWidget {
                                   
                                   SizedBox(height: 24),
                                   
-                                  // 버튼 섹션
                                   Row(
                                     children: [
                                       Expanded(
@@ -1173,7 +1134,6 @@ class HospitalCard extends StatelessWidget {
                                           onPressed: hospital.isAvailable 
                                             ? () {
                                                 Navigator.pop(context);
-                                                // 선택 기능 수행
                                                 onSelect();
                                               } 
                                             : null,
@@ -1225,7 +1185,6 @@ class HospitalCard extends StatelessWidget {
                   ),
                 ),
                 
-                // Select 버튼
                 Expanded(
                   child: Material(
                     color: Colors.transparent,

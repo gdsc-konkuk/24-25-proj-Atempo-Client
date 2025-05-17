@@ -69,7 +69,7 @@ class _ChatPageState extends State<ChatPage> {
   // Subscription cancellation object
   StreamSubscription? _hospitalSubscription;
 
-  // SSE 구독 상태 관리 변수
+ 
   bool _isSseInitialized = false;
 
   // Add hashtag list and selected tags set
@@ -124,23 +124,23 @@ class _ChatPageState extends State<ChatPage> {
         locationProvider.updateAddress(widget.currentAddress);
       }
       
-      // 초기화 시 SSE 구독 설정
+
       _initializeSSE();
     });
   }
 
-  // SSE 초기화 메서드
+
   Future<void> _initializeSSE() async {
     try {
       print('[ChatPage] 🔄 Initializing SSE subscription before any API requests');
       
-      // 이미 초기화되었는지 확인
+
       if (_isSseInitialized) {
         print('[ChatPage] ✅ SSE already initialized');
         return;
       }
       
-      // SSE 구독 설정
+
       _hospitalSubscription = _hospitalService.subscribeToHospitalUpdates().listen(
         (hospital) {
           print('[ChatPage] 📥 Received hospital update: ${hospital.name} (ID: ${hospital.id})');
@@ -175,7 +175,7 @@ class _ChatPageState extends State<ChatPage> {
         }
       );
       
-      // SSE 초기화 완료
+
       _isSseInitialized = true;
       print('[ChatPage] ✅ SSE initialization completed successfully');
     } catch (e) {
@@ -310,7 +310,6 @@ class _ChatPageState extends State<ChatPage> {
     try {
       print('[ChatPage] 🏥 Starting hospital search process');
       
-      // 먼저 SSE 구독이 초기화되었는지 확인하고, 안되어 있으면 초기화
       if (!_isSseInitialized) {
         print('[ChatPage] 🔄 SSE not initialized, initializing now before API request');
         await _initializeSSE();
@@ -342,27 +341,26 @@ class _ChatPageState extends State<ChatPage> {
       
       print('[ChatPage] 🔍 Search parameters: radius=${searchRadius}km, patient condition=${patientCondition}');
 
-      // 처리 중 상태로 설정
+
       setState(() {
         _isProcessing = true;
         _processingMessage = "Searching for available emergency rooms...";
       });
       
-      // 즉시 EmergencyRoomListScreen으로 이동하여 로딩 화면 표시
       print('[ChatPage] 🚀 Immediately navigating to hospital list screen with loading view');
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => EmergencyRoomListScreen(
             hospitals: [],
-            admissionId: '', // 아직 ID 없음
+            admissionId: '', 
             hospitalService: _hospitalService,
-            status: 'SUCCESS', // 초기 상태는 SUCCESS로 설정하여 로딩 화면 표시
+            status: 'SUCCESS', 
           ),
         ),
       );
       
-      // API 요청 실행 (화면 이동 후 병렬로 처리)
+
       print('[ChatPage] 🏥 Creating admission request in background');
       final response = await _hospitalService.createAdmission(
         latitude, 
@@ -370,8 +368,7 @@ class _ChatPageState extends State<ChatPage> {
         searchRadius, 
         patientCondition
       );
-      
-      // API 응답 확인 (화면 이동 후에도 로그 출력)
+
       if (response != null && response.containsKey('admissionId')) {
         _admissionId = response['admissionId'];
         final String admissionStatus = response['admissionStatus'] ?? 'ERROR';
@@ -386,7 +383,6 @@ class _ChatPageState extends State<ChatPage> {
         SnackBar(content: Text('Error occurred while getting hospital information: $e'))
       );
       
-      // 에러 발생 시 처리 중 상태 해제
         setState(() {
         _isProcessing = false;
         });
@@ -402,8 +398,7 @@ class _ChatPageState extends State<ChatPage> {
       );
       return;
     }
-    
-    // SSE 구독이 초기화되어 있는지 확인
+
     if (!_isSseInitialized) {
       print('[ChatPage] 🔄 SSE not initialized, initializing now before retry API request');
       await _initializeSSE();
@@ -424,7 +419,6 @@ class _ChatPageState extends State<ChatPage> {
         final String admissionStatus = response['admissionStatus'] ?? 'ERROR';
         print('[ChatPage] ✅ Admission retry status: $admissionStatus');
         
-        // 모든 경우 EmergencyRoomListScreen으로 이동
         print('[ChatPage] 🚀 Navigating to hospital list screen after retry');
         Navigator.push(
           context,
@@ -433,7 +427,7 @@ class _ChatPageState extends State<ChatPage> {
               hospitals: [], // Start with empty list
               admissionId: _admissionId ?? '',
               hospitalService: _hospitalService,
-              status: admissionStatus, // 상태 전달
+              status: admissionStatus,
             ),
           ),
         );
@@ -443,7 +437,6 @@ class _ChatPageState extends State<ChatPage> {
           _isProcessing = false;
         });
         
-        // 오류 메시지 표시
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('No admission status received from server after retry'))
         );
@@ -473,7 +466,7 @@ class _ChatPageState extends State<ChatPage> {
           hospitals: _hospitals,
           admissionId: _admissionId ?? '',
           hospitalService: _hospitalService,
-          status: 'SUCCESS', // hospitals가 있으므로 상태는 SUCCESS로 설정
+          status: 'SUCCESS', 
         ),
       ),
     );

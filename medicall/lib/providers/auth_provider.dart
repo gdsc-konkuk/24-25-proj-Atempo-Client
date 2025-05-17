@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io';  // <-- Added for platform check
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -59,14 +60,14 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<String> getLoginUrl() async {
-    // Fix URL construction to avoid double slashes
     final baseUrl = dotenv.env['API_BASE_URL']!;
     final path = '/oauth2/authorization/google';
-    
-    // Ensure there's exactly one slash between baseUrl and path
-    final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    var base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    // For Android, enforce secure scheme due to Google’s policy
+    if (Platform.isAndroid) {
+      base = base.replaceFirst(RegExp(r'^http:'), 'https:');
+    }
     final route = path.startsWith('/') ? path : '/$path';
-    
     return '$base$route';
   }
 

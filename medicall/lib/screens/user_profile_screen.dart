@@ -55,18 +55,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     });
 
     try {
-      // 서버에 로그아웃 요청 보내기
+      // Send logout request to server
       await _apiService.delete('api/v1/auth/logout');
       
-      // 로컬 저장소에서 토큰 제거
+      // Remove tokens from local storage
       await _secureStorage.delete(key: 'access_token');
       await _secureStorage.delete(key: 'refresh_token');
       
-      // AuthProvider 상태 업데이트
+      // Update AuthProvider state
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.signOut();
       
-      // 로그인 화면으로 이동 (네임드 라우트가 아닌 직접 화면 이동)
+      // Navigate to login screen (direct navigation instead of named route)
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => LoginScreen()),
         (route) => false
@@ -339,4 +339,4 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         return type;
     }
   }
-} 
+}

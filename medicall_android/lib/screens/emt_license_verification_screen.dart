@@ -321,28 +321,37 @@ class _EmtLicenseVerificationScreenState extends State<EmtLicenseVerificationScr
           httpClient.updateRefreshToken(updatedRefreshToken);
         }
         
-        // Reload user information
-        await authProvider.loadCurrentUser();
-        print('EMT Screen: User information updated successfully');
-        
-        setState(() {
-          _isVerifying = false;
-          _verificationMessage = 'License verification completed successfully.';
-        });
-        
-        // Navigate to map screen after a short delay
-        Future.delayed(Duration(seconds: 2), () {
-          if (mounted) {
-            print('EMT Screen: License verification successful, navigating to MapScreen');
-            // Clear back stack and navigate to new MapScreen
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => MapScreen()),
-              (route) => false,
-            );
-          } else {
-            print('EMT Screen: Widget not mounted, cannot navigate to MapScreen');
-          }
-        });
+        try {
+          // Reload user information
+          await authProvider.loadCurrentUser();
+          print('EMT Screen: User information updated successfully');
+          
+          setState(() {
+            _isVerifying = false;
+            _verificationMessage = 'License verification completed successfully.';
+          });
+          
+          // Navigate to map screen after a short delay
+          Future.delayed(Duration(seconds: 2), () {
+            if (mounted) {
+              print('EMT Screen: License verification successful, navigating to MapScreen');
+              // Clear back stack and navigate to new MapScreen
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => MapScreen()),
+                (route) => false,
+              );
+            } else {
+              print('EMT Screen: Widget not mounted, cannot navigate to MapScreen');
+            }
+          });
+        } catch (userLoadError) {
+          print('EMT Screen: Error loading user after verification: $userLoadError');
+          setState(() {
+            _isVerifying = false;
+            _verificationMessage = 'License verification succeeded but there was an error updating your profile. Please try again.';
+            _isVerificationError = true;
+          });
+        }
       } else {
         final errorData = jsonDecode(response.body);
         print('EMT Screen: Error data - $errorData');

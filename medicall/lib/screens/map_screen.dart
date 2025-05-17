@@ -138,7 +138,6 @@ class _MapScreenState extends State<MapScreen> {
       try {
         await _getCurrentLocation();
         
-        // SSE 초기화는 필요할 때만 하도록 코드 수정 (주석 처리)
         // Start SSE subscription when app starts
         // if (!_sseSubscribed) {
         //   print('[MapScreen] 🔄 Start SSE subscription');
@@ -164,7 +163,7 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // SSE 구독 메소드 - MapScreen에서는 사용하지 않음
+  // SSE subscription method - Not used in MapScreen
   // void _subscribeToSSE() {
   //   try {
   //     print('[MapScreen] 📡 Starting SSE subscription');
@@ -383,9 +382,9 @@ class _MapScreenState extends State<MapScreen> {
     if (_mapController != null) {
       _mapController!.dispose();
     }
-    // SSE 연결 종료
+    // Close SSE connection
     if (_sseSubscribed) {
-      print('[MapScreen] 🔌 SSE 연결 종료');
+      print('[MapScreen] 🔌 SSE connection closing');
       _hospitalService.closeSSEConnection();
       _sseSubscribed = false;
     }
@@ -631,7 +630,7 @@ class _MapScreenState extends State<MapScreen> {
                               ),
                             ),
                           
-                          // Current location button (위치 변경: bottom을 80에서 16으로 변경)
+                          // Current location button 
                           Positioned(
                             right: 16,
                             bottom: 16,
@@ -646,7 +645,7 @@ class _MapScreenState extends State<MapScreen> {
                             ),
                           ),
                           
-                          // Address and coordinate information display panel (위치 변경: bottom을 150으로 수정)
+                          // Address and coordinate information display panel 
                           Positioned(
                             bottom: 150,
                             left: 16,
